@@ -1,0 +1,88 @@
+# OS-specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Node dependencies
+node_modules/
+**/node_modules/
+yarn-error.log
+npm-debug.log*
+yarn-debug.log*
+.pnpm-debug.log*
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+**/.env
+**/.env.local
+**/.env.*.local
+**/*.env
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Next.js build outputs
+.next/
+out/
+**/.next/
+**/out/
+
+# General build outputs
+dist/
+build/
+bin/
+obj/
+**/dist/
+**/build/
+**/bin/
+**/obj/
+
+# Xcode specific
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+xcuserdata/
+*.xccheckout
+*.moved-aside
+DerivedData/
+*.hmap
+*.ipa
+*.xcuserstate
+.xcode.env.local
+
+# Android specific
+.idea/
+.gradle/
+local.properties
+*.iml
+*.hprof
+.cxx/
+*.keystore
+!debug.keystore
+.kotlin/
+
+# React Native / Metro / CocoaPods
+*.jsbundle
+.metro-health-check*
+**/Pods/
+/vendor/bundle/
+
+# Fastlane
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/screenshots/
+**/fastlane/test_output/
+
+# Testing
+/coverage
+**/coverage/

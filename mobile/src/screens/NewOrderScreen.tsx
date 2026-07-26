@@ -1,0 +1,1051 @@
+import React, { useState, useMemo, useEffect, useCallback } from "react";
+import {
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  FlatList,
+  Image,
+  Dimensions,
+  ActivityIndicator,
+  SafeAreaView,
+} from "react-native";
+import { StackScreenProps } from "@react-navigation/stack";
+import { RootStackParamList } from "../navigation/AppNavigator";
+import { useGetProductsQuery } from "../lib/api/productApi";
+import { useGetCategoriesQuery } from "../lib/api/categoryApi";
+import { useGetTablesQuery } from "../lib/api/tableApi";
+import { useAppDispatch, useAppSelector } from "../lib/store/hooks";
+import { addItem, removeItem, updateQuantity, setCustomerInfo, clearCart } from "../lib/store/features/cart/slice";
+import { selectCartItems, selectCartTotalItems, selectCartSubtotal } from "../lib/store/features/cart/selectors";
+import { OrderType } from "@shared/types";
+import { useToast } from "../hooks/useToast";
+
+type Props = StackScreenProps<RootStackParamList, "NewOrder">;
+
+// Centralized placeholder image
+const localPlaceholder = require("../assets/placeholder.png");
+
+// 1. Memoized Product Card Component
+interface ProductCardProps {
+  product: any;
+  categoryName?: string;
+  quantity: number;
+  onAdd: (product: any) => void;
+}
+
+const ProductCard: React.FC<ProductCardProps> = React.memo(({
+  product,
+  categoryName,
+  quantity,
+  onAdd,
+}) => {
+  const [imageError, setImageError] = useState(false);
+
+  return (
+    <TouchableOpacity
+      style={[styles.card, quantity > 0 && styles.cardSelected]}
+      onPress={() => onAdd(product)}
+      accessibilityLabel={`Add ${product.name} to cart`}
+      accessibilityRole="button"
+      activeOpacity={0.8}
+    >
+      {/* Product Image */}
+      <View style={styles.imageContainer}>
+        <Image
+          source={
+            product.imageUrl && !imageError
+              ? { uri: product.imageUrl }
+              : localPlaceholder
+          }
+          style={styles.cardImage}
+          onError={() => setImageError(true)}
+          resizeMode="cover"
+        />
+      </View>
+
+      <View style={styles.cardBody}>
+        {categoryName ? <Text style={styles.cardCategory}>{categoryName}</Text> : null}
+        <Text style={styles.cardTitle} numberOfLines={2}>
+          {product.name}
+        </Text>
+        <Text style={styles.cardPrice}>Rp {Number(product.price).toLocaleString()}</Text>
+
+        <View style={styles.cardActions}>
+          <View style={[styles.addBtn, quantity > 0 && styles.addBtnSelected]}>
+            <Text style={[styles.addBtnText, quantity > 0 && styles.addBtnTextSelected]}>
+              {quantity > 0 ? "Added" : "Add to Cart"}
+            </Text>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+});
+
+// 2. Loading Skeleton Card
+const ProductCardSkeleton: React.FC = () => (
+  <View style={styles.skeletonCard}>
+    <View style={styles.skeletonImage} />
+    <View style={styles.cardBody}>
+      <View style={[styles.skeletonLine, { width: "40%", height: 10, marginBottom: 8 }]} />
+      <View style={[styles.skeletonLine, { width: "80%", height: 14, marginBottom: 8 }]} />
+      <View style={[styles.skeletonLine, { width: "60%", height: 12, marginBottom: 16 }]} />
+      <View style={styles.skeletonButton} />
+    </View>
+  </View>
+);
+
+export default function NewOrderScreen({ navigation }: Props) {
+  const dispatch = useAppDispatch();
+  const { showToast } = useToast();
+  const cartItems = useAppSelector(selectCartItems);
+  const totalItems = useAppSelector(selectCartTotalItems);
+  const subtotal = useAppSelector(selectCartSubtotal);
+
+  const { data: products = [], isLoading: loadingProducts } = useGetProductsQuery();
+  const { data: categories = [], isLoading: loadingCategories } = useGetCategoriesQuery();
+  const { data: tables = [], isLoading: loadingTables } = useGetTablesQuery();
+
+  const [activeCategory, setActiveCategory] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [search, setSearch] = useState("");
+  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+  const [orderType, setOrderType] = useState<OrderType>("DINE_IN");
+  const [customerName, setCustomerName] = useState("");
+
+  // Dimensions & Responsiveness
+  const [windowWidth, setWindowWidth] = useState(Dimensions.get("window").width);
+  
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener("change", ({ window }) => {
+      setWindowWidth(window.width);
+    });
+    return () => subscription.remove();
+  }, []);
+
+  const isTablet = windowWidth >= 768;
+  const numColumns = 4; // 4 rows/columns as requested
+
+  // Search Debouncing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const activeCategories = useMemo(() => categories.filter((c: any) => c.isActive), [categories]);
+  const activeTables = useMemo(() => tables.filter((t: any) => t.isActive), [tables]);
+
+  const filteredProducts = useMemo(() => {
+    return products.filter((p: any) => {
+      if (!p.isActive) return false;
+      const matchesCategory = activeCategory === "" || p.categoryId === activeCategory;
+      const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [products, activeCategory, search]);
+
+
+
+  const getQuantityInCart = useCallback((productId: string) => {
+    const item = cartItems.find((i) => i.productId === productId);
+    return item ? item.quantity : 0;
+  }, [cartItems]);
+
+  const handleAdd = useCallback((p: any) => {
+    dispatch(
+      addItem({
+        productId: p.id,
+        productName: p.name,
+        price: Number(p.price),
+        quantity: 1,
+        imageUrl: p.imageUrl,
+      })
+    );
+  }, [dispatch]);
+
+  const handleIncrease = useCallback((productId: string, currentQty: number) => {
+    dispatch(updateQuantity({ productId, quantity: currentQty + 1 }));
+  }, [dispatch]);
+
+  const handleDecrease = useCallback((productId: string, currentQty: number) => {
+    if (currentQty === 1) {
+      dispatch(removeItem({ productId }));
+    } else {
+      dispatch(updateQuantity({ productId, quantity: currentQty - 1 }));
+    }
+  }, [dispatch]);
+
+  const handleNextStep = () => {
+    if (cartItems.length === 0) {
+      showToast({
+        type: "warning",
+        title: "Kesalahan Validasi",
+        message: "Silakan tambahkan minimal satu produk untuk membuat pesanan.",
+      });
+      return;
+    }
+
+    dispatch(
+      setCustomerInfo({
+        customerName: customerName.trim() || "Pelanggan Langsung",
+        tableId: orderType === "DINE_IN" ? selectedTableId : null,
+        orderType,
+      })
+    );
+
+    navigation.navigate("Cart");
+  };
+
+  const isLoading = loadingProducts || loadingCategories || loadingTables;
+
+  // Header reset action
+  const handleReset = () => {
+    dispatch(clearCart());
+    setCustomerName("");
+    setSelectedTableId(null);
+    setOrderType("DINE_IN");
+  };
+
+  // Render Product Grid Card Item
+  const renderProductItem = ({ item }: { item: any }) => {
+    const qty = getQuantityInCart(item.id);
+    const category = categories.find((c: any) => c.id === item.categoryId);
+    return (
+      <ProductCard
+        product={item}
+        categoryName={category?.name}
+        quantity={qty}
+        onAdd={handleAdd}
+      />
+    );
+  };
+
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <FlatList
+          data={[1, 2, 4, 5, 6, 7]}
+          key={`loading-${numColumns}`}
+          keyExtractor={(item) => `skel-${item}`}
+          numColumns={numColumns}
+          renderItem={() => <ProductCardSkeleton />}
+          columnWrapperStyle={styles.gridRow}
+          contentContainerStyle={styles.listPadding}
+        />
+      );
+    }
+
+    if (filteredProducts.length === 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyIcon}>🔍</Text>
+          <Text style={styles.emptyTitle}>Produk tidak ditemukan</Text>
+          <Text style={styles.emptySubtitle}>Cobalah sesuaikan filter atau pencarian Anda</Text>
+        </View>
+      );
+    }
+
+    return (
+      <FlatList
+        data={filteredProducts}
+        key={`grid-${numColumns}`}
+        keyExtractor={(item) => item.id}
+        numColumns={numColumns}
+        renderItem={renderProductItem}
+        columnWrapperStyle={styles.gridRow}
+        contentContainerStyle={styles.listPadding}
+        removeClippedSubviews={true}
+        initialNumToRender={12}
+        maxToRenderPerBatch={16}
+        windowSize={5}
+      />
+    );
+  };
+
+  const renderCartItems = () => {
+    if (cartItems.length === 0) {
+      return (
+        <View style={styles.emptyCartContainer}>
+          <Text style={styles.emptyCartIcon}>🛒</Text>
+          <Text style={styles.emptyCartTitle}>Keranjang Anda kosong</Text>
+          <Text style={styles.emptyCartSubtitle}>Pilih produk dari katalog untuk membayar</Text>
+        </View>
+      );
+    }
+
+    return (
+      <ScrollView style={styles.cartItemsScroll} contentContainerStyle={{ gap: 8 }}>
+        {cartItems.map((item) => (
+          <View key={item.productId} style={styles.cartItemRow}>
+            <View style={styles.cartItemInfo}>
+              <Text style={styles.cartItemName} numberOfLines={1}>
+                {item.productName}
+              </Text>
+              <Text style={styles.cartItemPrice}>
+                Rp {item.price.toLocaleString()} x {item.quantity}
+              </Text>
+            </View>
+            <View style={styles.cartItemActions}>
+              <TouchableOpacity
+                style={styles.cartQtyBtn}
+                onPress={() => handleDecrease(item.productId, item.quantity)}
+              >
+                <Text style={styles.cartQtyText}>-</Text>
+              </TouchableOpacity>
+              <Text style={styles.cartQtyVal}>{item.quantity}</Text>
+              <TouchableOpacity
+                style={styles.cartQtyBtn}
+                onPress={() => handleIncrease(item.productId, item.quantity)}
+              >
+                <Text style={styles.cartQtyText}>+</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
+      </ScrollView>
+    );
+  };
+
+  // Main UI Tree
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Header bar */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Text style={styles.backText}>Batal</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>Pesanan Pelanggan Baru</Text>
+        <TouchableOpacity style={styles.clearBtn} onPress={handleReset}>
+          <Text style={styles.clearText}>Reset</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.mainLayout}>
+        {/* Left Side: Product Grid, Search, and Category Filtering */}
+        <View style={styles.catalogPane}>
+          {/* Search bar with clear action */}
+          <View style={styles.searchRow}>
+            <View style={styles.searchContainer}>
+              <Text style={styles.searchIcon}>🔍</Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Cari produk dengan kata kunci..."
+                placeholderTextColor="#71717a"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                accessibilityLabel="Search product keyword input"
+              />
+              {searchQuery !== "" && (
+                <TouchableOpacity onPress={() => setSearchQuery("")} style={styles.clearSearchBtn}>
+                  <Text style={styles.clearSearchText}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          {/* Horizontally scrollable Category Chips */}
+          <View style={styles.categoryChipsWrapper}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryChipsScroll}>
+              <TouchableOpacity
+                style={[styles.categoryChip, activeCategory === "" && styles.categoryChipActive]}
+                onPress={() => setActiveCategory("")}
+              >
+                <Text style={[styles.categoryChipText, activeCategory === "" && styles.categoryChipTextActive]}>
+                  Semua Produk
+                </Text>
+              </TouchableOpacity>
+              {activeCategories.map((cat: any) => (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={[styles.categoryChip, activeCategory === cat.id && styles.categoryChipActive]}
+                  onPress={() => setActiveCategory(cat.id)}
+                >
+                  <Text style={[styles.categoryChipText, activeCategory === cat.id && styles.categoryChipTextActive]}>
+                    {cat.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          {/* Independent product listing area */}
+          <View style={{ flex: 1 }}>{renderContent()}</View>
+        </View>
+
+        {/* Right Side: Cart Summary Panel (Tablet only) */}
+        {isTablet && (
+          <View style={styles.cartPane}>
+            <Text style={styles.paneTitle}>Pemenuhan & Detail</Text>
+            
+            {/* Customer Details Form */}
+            <View style={styles.formContainer}>
+              <TextInput
+                style={styles.formInput}
+                placeholder="Nama Pelanggan (mis. John)"
+                placeholderTextColor="#71717a"
+                value={customerName}
+                onChangeText={setCustomerName}
+              />
+
+              <View style={styles.typeTabs}>
+                <TouchableOpacity
+                  style={[styles.typeTab, orderType === "DINE_IN" && styles.typeTabActive]}
+                  onPress={() => setOrderType("DINE_IN")}
+                >
+                  <Text style={[styles.typeTabText, orderType === "DINE_IN" && styles.typeTabTextActive]}>
+                    Makan di Sini
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.typeTab, orderType === "TAKEAWAY" && styles.typeTabActive]}
+                  onPress={() => setOrderType("TAKEAWAY")}
+                >
+                  <Text style={[styles.typeTabText, orderType === "TAKEAWAY" && styles.typeTabTextActive]}>
+                    Bawa Pulang
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {orderType === "DINE_IN" && (
+                <View style={styles.tablesWrapper}>
+                  <Text style={styles.tablesLabel}>Lokasi Meja</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tableScroll}>
+                    <TouchableOpacity
+                      style={[styles.tablePill, selectedTableId === null && styles.tablePillActive]}
+                      onPress={() => setSelectedTableId(null)}
+                    >
+                      <Text style={[styles.tablePillText, selectedTableId === null && styles.tablePillTextActive]}>
+                        Langsung
+                      </Text>
+                    </TouchableOpacity>
+                    {activeTables.map((t: any) => (
+                      <TouchableOpacity
+                        key={t.id}
+                        style={[styles.tablePill, selectedTableId === t.id && styles.tablePillActive]}
+                        onPress={() => setSelectedTableId(t.id)}
+                      >
+                        <Text style={[styles.tablePillText, selectedTableId === t.id && styles.tablePillTextActive]}>
+                          {t.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
+
+            <Text style={styles.paneTitle}>Item Keranjang Terpilih ({totalItems})</Text>
+            
+            {/* Scrollable list of cart items */}
+            <View style={{ flex: 1 }}>{renderCartItems()}</View>
+
+            {/* Price estimations matching backend rules */}
+            <View style={styles.summaryContainer}>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Subtotal</Text>
+                <Text style={styles.summaryValue}>Rp {subtotal.toLocaleString()}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Pajak & Diskon</Text>
+                <Text style={styles.summaryCalculated}>Dihitung saat pembayaran</Text>
+              </View>
+              <View style={styles.divider} />
+              <View style={styles.summaryRow}>
+                <Text style={styles.grandLabel}>Estimasi Total</Text>
+                <Text style={styles.grandValue}>Rp {subtotal.toLocaleString()}</Text>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.paneCheckoutBtn, totalItems === 0 && styles.disabledBtn]}
+                onPress={handleNextStep}
+                disabled={totalItems === 0}
+              >
+                <Text style={styles.paneCheckoutBtnText}>Tinjau Pembayaran</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </View>
+
+      {/* Floating Bottom Bar (Phone layout only when items > 0) */}
+      {!isTablet && totalItems > 0 && (
+        <View style={styles.footerBar}>
+          <View>
+            <Text style={styles.footerQty}>{totalItems} item dipilih</Text>
+            <Text style={styles.footerPrice}>Subtotal: Rp {subtotal.toLocaleString()}</Text>
+          </View>
+          <TouchableOpacity style={styles.checkoutBtn} onPress={handleNextStep}>
+            <Text style={styles.checkoutText}>Tinjau Keranjang</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#09090b",
+  },
+  header: {
+    height: 56,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderBottomWidth: 1,
+    borderBottomColor: "#18181b",
+    paddingHorizontal: 16,
+    backgroundColor: "#09090b",
+    gap: 8,
+  },
+  backBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+  backText: {
+    color: "#a1a1aa",
+    fontSize: 14,
+  },
+  title: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#f4f4f5",
+    textAlign: "center",
+  },
+  clearBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+  clearText: {
+    color: "#e11d48",
+    fontSize: 14,
+  },
+  mainLayout: {
+    flex: 1,
+    flexDirection: "row",
+  },
+  catalogPane: {
+    flex: 1,
+    backgroundColor: "#09090b",
+  },
+  // Search bar styles
+  searchRow: {
+    padding: 12,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#18181b",
+    borderWidth: 1,
+    borderColor: "#27272a",
+    borderRadius: 24,
+    paddingHorizontal: 12,
+    height: 44,
+  },
+  searchIcon: {
+    fontSize: 16,
+    marginRight: 8,
+    color: "#71717a",
+  },
+  searchInput: {
+    flex: 1,
+    color: "#f4f4f5",
+    fontSize: 14,
+    paddingVertical: 8,
+  },
+  clearSearchBtn: {
+    padding: 6,
+  },
+  clearSearchText: {
+    color: "#71717a",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  // Category chip styles
+  categoryChipsWrapper: {
+    marginBottom: 12,
+  },
+  categoryChipsScroll: {
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  categoryChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: "#18181b",
+    borderWidth: 1,
+    borderColor: "#27272a",
+    borderRadius: 20,
+  },
+  categoryChipActive: {
+    backgroundColor: "#4f46e5",
+    borderColor: "#4f46e5",
+  },
+  categoryChipText: {
+    color: "#a1a1aa",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  categoryChipTextActive: {
+    color: "#ffffff",
+  },
+  // Grid layout styles
+  listPadding: {
+    paddingHorizontal: 12,
+    paddingBottom: 80,
+  },
+  gridRow: {
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  // Memoized Product Card Styles
+  card: {
+    flex: 1,
+    backgroundColor: "#ffffff", // Pure white background as requested
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "transparent",
+    overflow: "hidden",
+    marginHorizontal: 4,
+    // Soft shadow
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardSelected: {
+    borderColor: "#10b981", // Green border for visual feedback
+  },
+  imageContainer: {
+    width: "100%",
+    height: 100,
+    backgroundColor: "#f4f4f5",
+    position: "relative",
+  },
+  cardImage: {
+    width: "100%",
+    height: "100%",
+  },
+  quantityBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "#10b981",
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  quantityBadgeText: {
+    color: "#ffffff",
+    fontSize: 11,
+    fontWeight: "bold",
+  },
+  cardBody: {
+    padding: 12,
+    gap: 6,
+  },
+  cardCategory: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#71717a",
+    textTransform: "uppercase",
+  },
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#18181b", // Dark grey text for light card contrast
+    height: 38,
+    lineHeight: 18,
+  },
+  cardPrice: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#4f46e5",
+    marginVertical: 2,
+  },
+  cardActions: {
+    marginTop: 4,
+  },
+  addBtn: {
+    height: 36,
+    backgroundColor: "#4f46e5",
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addBtnText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  addBtnSelected: {
+    backgroundColor: "#10b981",
+  },
+  addBtnTextSelected: {
+    color: "#ffffff",
+  },
+  qtyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#f4f4f5",
+    borderRadius: 6,
+    padding: 2,
+  },
+  qtyBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 4,
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 1,
+    elevation: 1,
+  },
+  qtyBtnText: {
+    color: "#18181b",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  qtyText: {
+    fontSize: 13,
+    fontWeight: "bold",
+    color: "#18181b",
+  },
+  // Loading Skeleton Styles
+  skeletonCard: {
+    flex: 1,
+    backgroundColor: "#18181b",
+    borderWidth: 1,
+    borderColor: "#27272a",
+    borderRadius: 12,
+    overflow: "hidden",
+    marginHorizontal: 4,
+  },
+  skeletonImage: {
+    width: "100%",
+    height: 120,
+    backgroundColor: "#27272a",
+  },
+  skeletonLine: {
+    backgroundColor: "#27272a",
+    borderRadius: 4,
+  },
+  skeletonButton: {
+    height: 36,
+    backgroundColor: "#27272a",
+    borderRadius: 6,
+  },
+  // Empty State Styles
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 36,
+    marginTop: 48,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#f4f4f5",
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    color: "#71717a",
+    textAlign: "center",
+  },
+  // Tablet Cart Panel Styles
+  cartPane: {
+    width: 350,
+    backgroundColor: "#18181b",
+    borderLeftWidth: 1,
+    borderLeftColor: "#27272a",
+    padding: 16,
+    gap: 12,
+  },
+  paneTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#f4f4f5",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginTop: 8,
+  },
+  formContainer: {
+    gap: 12,
+    backgroundColor: "#09090b",
+    borderWidth: 1,
+    borderColor: "#27272a",
+    borderRadius: 10,
+    padding: 12,
+  },
+  formInput: {
+    height: 40,
+    backgroundColor: "#18181b",
+    borderWidth: 1,
+    borderColor: "#27272a",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    color: "#f4f4f5",
+    fontSize: 13,
+  },
+  typeTabs: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  typeTab: {
+    flex: 1,
+    height: 36,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#27272a",
+    backgroundColor: "#18181b",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  typeTabActive: {
+    borderColor: "#4f46e5",
+    backgroundColor: "rgba(79, 70, 229, 0.1)",
+  },
+  typeTabText: {
+    color: "#a1a1aa",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  typeTabTextActive: {
+    color: "#ffffff",
+  },
+  tablesWrapper: {
+    gap: 6,
+    marginTop: 4,
+  },
+  tablesLabel: {
+    fontSize: 11,
+    color: "#71717a",
+    fontWeight: "bold",
+    textTransform: "uppercase",
+  },
+  tableScroll: {
+    gap: 6,
+  },
+  tablePill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "#18181b",
+    borderWidth: 1,
+    borderColor: "#27272a",
+    borderRadius: 6,
+  },
+  tablePillActive: {
+    backgroundColor: "#4f46e5",
+    borderColor: "#4f46e5",
+  },
+  tablePillText: {
+    color: "#a1a1aa",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  tablePillTextActive: {
+    color: "#ffffff",
+  },
+  // Cart items scrolling area
+  cartItemsScroll: {
+    flex: 1,
+    backgroundColor: "#09090b",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#27272a",
+    padding: 10,
+  },
+  emptyCartContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+    backgroundColor: "#09090b",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#27272a",
+    borderStyle: "dashed",
+  },
+  emptyCartIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  emptyCartTitle: {
+    fontSize: 13,
+    fontWeight: "bold",
+    color: "#a1a1aa",
+    marginBottom: 4,
+  },
+  emptyCartSubtitle: {
+    fontSize: 11,
+    color: "#71717a",
+    textAlign: "center",
+  },
+  cartItemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#18181b",
+    padding: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#27272a",
+  },
+  cartItemInfo: {
+    flex: 1,
+    gap: 2,
+    paddingRight: 8,
+  },
+  cartItemName: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#f4f4f5",
+  },
+  cartItemPrice: {
+    fontSize: 11,
+    color: "#4f46e5",
+    fontWeight: "bold",
+  },
+  cartItemActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  cartQtyBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    backgroundColor: "#27272a",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cartQtyText: {
+    color: "#f4f4f5",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  cartQtyVal: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#f4f4f5",
+    minWidth: 16,
+    textAlign: "center",
+  },
+  // Price Summary Panel
+  summaryContainer: {
+    backgroundColor: "#09090b",
+    borderWidth: 1,
+    borderColor: "#27272a",
+    borderRadius: 10,
+    padding: 12,
+    gap: 8,
+  },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: "#a1a1aa",
+  },
+  summaryValue: {
+    fontSize: 12,
+    color: "#f4f4f5",
+    fontWeight: "600",
+  },
+  summaryCalculated: {
+    fontSize: 11,
+    color: "#71717a",
+    fontStyle: "italic",
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#27272a",
+    marginVertical: 2,
+  },
+  grandLabel: {
+    fontSize: 13,
+    fontWeight: "bold",
+    color: "#f4f4f5",
+  },
+  grandValue: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: "#10b981",
+  },
+  paneCheckoutBtn: {
+    height: 44,
+    backgroundColor: "#4f46e5",
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 6,
+  },
+  paneCheckoutBtnText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  disabledBtn: {
+    opacity: 0.5,
+  },
+  // Floating footer bar for phones
+  footerBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 72,
+    backgroundColor: "#18181b",
+    borderTopWidth: 1,
+    borderTopColor: "#27272a",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+  },
+  footerQty: {
+    color: "#a1a1aa",
+    fontSize: 12,
+  },
+  footerPrice: {
+    color: "#4f46e5",
+    fontSize: 15,
+    fontWeight: "bold",
+    marginTop: 2,
+  },
+  checkoutBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: "#4f46e5",
+    borderRadius: 8,
+  },
+  checkoutText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+});
+

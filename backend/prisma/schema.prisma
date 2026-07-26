@@ -1,0 +1,312 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  ADMIN
+  ACCOUNTING
+  CASHIER
+  KITCHEN
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEAWAY
+}
+
+enum OrderSource {
+  SELF_ORDER
+  CASHIER
+}
+
+enum OrderStatus {
+  NEW
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  QRIS
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+enum PromotionType {
+  PERCENT
+  PACKAGE
+}
+
+model User {
+  id                String          @id @default(uuid())
+  fullName          String
+  username          String          @unique
+  passwordHash      String
+  role              UserRole
+  isActive          Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  orders            Order[]
+  promotions        Promotion[]
+  auditLogs         AuditLog[]
+  orderTimelines    OrderTimeline[]
+  confirmedPayments Payment[]       @relation(name: "ConfirmedPayments")
+  cashierShifts     CashierShift[]
+
+  @@index([role])
+  @@index([isActive])
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  name      String
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+
+  @@index([isActive])
+  @@index([deletedAt])
+}
+
+model Product {
+  id             String          @id @default(uuid())
+  categoryId     String
+  category       Category        @relation(fields: [categoryId], references: [id])
+  sku            String?         @unique
+  name           String
+  imageUrl       String?
+  price          Decimal         @db.Decimal(12, 2)
+  isActive       Boolean         @default(true)
+  deletedAt      DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  promotionItems PromotionItem[]
+
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([deletedAt])
+}
+
+model Table {
+  id        String    @id @default(uuid())
+  code      String    @unique
+  name      String
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  orders    Order[]
+
+  @@index([isActive])
+  @@index([deletedAt])
+}
+
+model Tax {
+  id         String   @id @default(uuid())
+  name       String
+  percentage Decimal  @db.Decimal(5, 2)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Promotion {
+  id             String          @id @default(uuid())
+  createdById    String
+  createdBy      User            @relation(fields: [createdById], references: [id])
+  name           String
+  type           PromotionType
+  percentValue   Decimal?        @db.Decimal(5, 2)
+  packagePrice   Decimal?        @db.Decimal(12, 2)
+  startDate      DateTime?
+  endDate        DateTime?
+  isActive       Boolean         @default(true)
+  deletedAt      DateTime?
+  priority       Int             @default(0)
+  stackable      Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  items          PromotionItem[]
+}
+
+model PromotionItem {
+  id          String    @id @default(uuid())
+  promotionId String
+  promotion   Promotion @relation(fields: [promotionId], references: [id])
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+  quantity    Int
+}
+
+model Order {
+  id              String           @id @default(uuid())
+  orderNumber     String           @unique
+  dailyNumber     Int
+  displayNumber   String           @unique
+  businessDate    DateTime         @default(now())
+  customerName    String
+  source          OrderSource      @default(SELF_ORDER)
+  cashierId       String?
+  cashier         User?            @relation(fields: [cashierId], references: [id])
+  tableId         String?
+  table           Table?           @relation(fields: [tableId], references: [id])
+  orderType       OrderType
+  status          OrderStatus
+  subtotal        Decimal          @db.Decimal(12, 2)
+  discountAmount  Decimal          @db.Decimal(12, 2)
+  taxAmount       Decimal          @db.Decimal(12, 2)
+  grandTotal      Decimal          @db.Decimal(12, 2)
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  items           OrderItem[]
+  payments        Payment[]
+  orderPromotions OrderPromotion[]
+  orderTaxes      OrderTax[]
+  timelines       OrderTimeline[]
+
+  @@index([status])
+  @@index([status, businessDate])
+  @@index([createdAt])
+  @@index([businessDate])
+  @@index([source])
+  @@index([tableId])
+  @@index([cashierId])
+  @@index([customerName])
+}
+
+model OrderItem {
+  id              String   @id @default(uuid())
+  orderId         String
+  order           Order    @relation(fields: [orderId], references: [id])
+  productId       String
+  productName     String
+  productSku      String?
+  productCategory String?
+  unitPrice       Decimal  @db.Decimal(12, 2)
+  quantity        Int
+  subtotal        Decimal  @db.Decimal(12, 2)
+  promotionName   String?
+  discountAmount  Decimal  @db.Decimal(12, 2)
+  note            String?
+  createdAt       DateTime @default(now())
+
+  @@index([orderId])
+  @@index([createdAt])
+  @@index([productId])
+  @@index([productName])
+  @@index([productSku])
+}
+
+model OrderPromotion {
+  id             String        @id @default(uuid())
+  orderId        String
+  order          Order         @relation(fields: [orderId], references: [id])
+  promotionId    String
+  name           String
+  type           PromotionType
+  percentValue   Decimal?      @db.Decimal(5, 2)
+  packagePrice   Decimal?      @db.Decimal(12, 2)
+  discountAmount Decimal       @db.Decimal(12, 2)
+}
+
+model OrderTax {
+  id         String  @id @default(uuid())
+  orderId    String
+  order      Order   @relation(fields: [orderId], references: [id])
+  taxId      String
+  name       String
+  percentage Decimal @db.Decimal(5, 2)
+  amount     Decimal @db.Decimal(12, 2)
+}
+
+model OrderTimeline {
+  id          String      @id @default(uuid())
+  orderId     String
+  order       Order       @relation(fields: [orderId], references: [id])
+  status      OrderStatus
+  description String?
+  createdById String?
+  createdBy   User?       @relation(fields: [createdById], references: [id])
+  metadata    Json?
+  createdAt   DateTime    @default(now())
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  orderId         String
+  order           Order         @relation(fields: [orderId], references: [id])
+  method          PaymentMethod
+  status          PaymentStatus
+  amount          Decimal       @db.Decimal(12, 2)
+  estimatedCash   Decimal?      @db.Decimal(12, 2)
+  receivedCash    Decimal?      @db.Decimal(12, 2)
+  changeAmount    Decimal?      @db.Decimal(12, 2)
+  referenceNumber String?
+  confirmedById   String?
+  confirmedBy     User?         @relation(name: "ConfirmedPayments", fields: [confirmedById], references: [id])
+  confirmedAt     DateTime?
+  cashierShiftId  String?
+  cashierShift    CashierShift? @relation(fields: [cashierShiftId], references: [id])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+  @@index([method])
+  @@index([confirmedAt])
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([method, createdAt])
+  @@index([confirmedById])
+  @@index([cashierShiftId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String
+  payload   Json?
+  createdAt DateTime @default(now())
+}
+
+enum CashierShiftStatus {
+  OPEN
+  CLOSED
+}
+
+model CashierShift {
+  id           String             @id @default(uuid())
+  userId       String
+  user         User               @relation(fields: [userId], references: [id])
+  businessDate DateTime           @default(now())
+  status       CashierShiftStatus @default(OPEN)
+  openedAt     DateTime           @default(now())
+  closedAt     DateTime?
+  openingCash  Decimal            @db.Decimal(12, 2)
+  expectedCash Decimal            @db.Decimal(12, 2) @default(0)
+  actualCash   Decimal?           @db.Decimal(12, 2)
+  difference   Decimal?           @db.Decimal(12, 2)
+  notes        String?
+  payments     Payment[]
+
+  @@index([userId])
+  @@index([businessDate])
+  @@index([status])
+}
