@@ -3,7 +3,7 @@ import { io, Socket } from "socket.io-client";
 class SocketService {
   private socket: Socket | null = null;
 
-  connect(url: string = "http://localhost:5001") {
+  connect(url: string = process.env.NEXT_PUBLIC_WS_URL || "http://localhost:5001") {
     if (!this.socket) {
       this.socket = io(url, {
         autoConnect: false,

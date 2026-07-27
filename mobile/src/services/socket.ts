@@ -4,7 +4,9 @@ import { Platform } from "react-native";
 class SocketService {
   private socket: Socket | null = null;
 
-  connect(url: string = Platform.OS === "android" ? "http://10.0.2.2:5001" : "http://localhost:5001") {
+  connect(url: string = __DEV__
+    ? (Platform.OS === "android" ? "http://10.0.2.2:5001" : "http://localhost:5001")
+    : "https://concession.168billiard.online") {
     if (!this.socket) {
       this.socket = io(url, {
         autoConnect: false,

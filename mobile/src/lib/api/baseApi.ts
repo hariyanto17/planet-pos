@@ -2,10 +2,9 @@ import { createApi, fetchBaseQuery, BaseQueryFn, FetchArgs, FetchBaseQueryError 
 import { Platform } from "react-native";
 import { RootState } from "../store/store";
 import { logout } from "../store/features/auth/slice";
-
-const baseUrl = Platform.OS === "android" 
-  ? "http://10.0.2.2:5001/api" 
-  : "http://localhost:5001/api";
+const baseUrl = __DEV__
+  ? (Platform.OS === "android" ? "http://10.0.2.2:5001/api" : "http://localhost:5001/api")
+  : "https://concession.168billiard.online/api";
 
 const baseQuery = fetchBaseQuery({
   baseUrl,
