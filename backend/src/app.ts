@@ -19,6 +19,8 @@ import dashboardRouter from "./modules/dashboard/router";
 import reportsRouter from "./modules/reports/router";
 import shiftsRouter from "./modules/shifts/router";
 import inventoryRouter from "./modules/inventory/router";
+import unitsRouter from "./modules/units/router";
+import warehousesRouter from "./modules/warehouses/router";
 
 const app = express();
 
@@ -46,6 +48,8 @@ app.use("/api/dashboard", dashboardRouter);
 app.use("/api/reports", reportsRouter);
 app.use("/api/shifts", shiftsRouter);
 app.use("/api/inventory", inventoryRouter);
+app.use("/api/units", unitsRouter);
+app.use("/api/warehouses", warehousesRouter);
 
 // Global Error Handler Middleware
 app.use(errorHandler);

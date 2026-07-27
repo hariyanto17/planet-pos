@@ -1,4 +1,5 @@
 import { PrismaClient, Prisma, StockMovementType, StockReferenceType } from "@prisma/client";
+import { getInventoryStatus } from "@shared/types";
 import { createLedgerEntry } from "./stock.service";
 import {
   GetProductStockListFilters,
@@ -39,9 +40,10 @@ export const getInventorySummary = async () => {
     const totalQty = p.warehouseStocks.reduce((sum, s) => sum + Number(s.quantity), 0);
     totalValue += totalQty * Number(p.price);
 
-    if (totalQty <= 0) {
+    const status = getInventoryStatus(true, totalQty, Number(p.minimumStock));
+    if (status === "OUT_OF_STOCK") {
       outOfStockProducts++;
-    } else if (totalQty <= Number(p.minimumStock)) {
+    } else if (status === "LOW_STOCK") {
       lowStockProducts++;
     }
   }
@@ -122,15 +124,7 @@ export const getProductStockList = async (filters: GetProductStockListFilters) =
     const ws = p.warehouseStocks[0];
     const quantity = ws ? Number(ws.quantity) : 0;
     const minimumStock = Number(p.minimumStock);
-
-    let status: "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK" = "IN_STOCK";
-    if (p.trackInventory) {
-      if (quantity <= 0) {
-        status = "OUT_OF_STOCK";
-      } else if (quantity <= minimumStock) {
-        status = "LOW_STOCK";
-      }
-    }
+    const status = getInventoryStatus(p.trackInventory, quantity, minimumStock);
 
     return {
       id: p.id,
@@ -307,5 +301,86 @@ export const getActiveUnits = async () => {
   return await prisma.unit.findMany({
     where: { isActive: true },
     orderBy: { name: "asc" },
+  });
+};
+
+export interface OpeningStockItem {
+  productId: string;
+  quantity: number;
+  remarks?: string;
+}
+
+export interface RecordOpeningStockPayload {
+  warehouseId: string;
+  items: OpeningStockItem[];
+}
+
+export const recordOpeningStock = async (userId: string, payload: RecordOpeningStockPayload) => {
+  const { warehouseId, items } = payload;
+
+  return await prisma.$transaction(async (tx) => {
+    // 1. Verify warehouse exists and is active
+    const warehouse = await tx.warehouse.findUnique({
+      where: { id: warehouseId },
+    });
+    if (!warehouse || !warehouse.isActive) {
+      throw new AppError("BAD_REQUEST", "Warehouse does not exist or is inactive");
+    }
+
+    // 2. Prevent duplicate products in the request
+    const productIdsInRequest = items.map((item) => item.productId);
+    const uniqueProductIds = new Set(productIdsInRequest);
+    if (uniqueProductIds.size !== productIdsInRequest.length) {
+      throw new AppError("BAD_REQUEST", "Duplicate products are not allowed in Opening Stock.");
+    }
+
+    // 3. Process each line item
+    const results = [];
+    for (const item of items) {
+      const { productId, quantity, remarks } = item;
+
+      // Validate quantity > 0
+      if (quantity <= 0) {
+        throw new AppError("BAD_REQUEST", "Quantity must be greater than zero");
+      }
+
+      // Fetch product and verify active & tracks inventory
+      const product = await tx.product.findUnique({
+        where: { id: productId },
+      });
+      if (!product || product.deletedAt !== null || !product.isActive) {
+        throw new AppError("BAD_REQUEST", `Product ${productId} not found or inactive`);
+      }
+      if (!product.trackInventory) {
+        throw new AppError("BAD_REQUEST", `Product '${product.name}' is not configured to track inventory.`);
+      }
+
+      // Validate duplicate opening stock: Check if an OPENING movement already exists in StockLedger for this (warehouseId, productId) pair
+      const existingOpening = await tx.stockLedger.findFirst({
+        where: {
+          warehouseId,
+          productId,
+          movementType: StockMovementType.OPENING,
+        },
+      });
+      if (existingOpening) {
+        throw new AppError("BAD_REQUEST", "Opening stock already exists.");
+      }
+
+      // Create ledger entry using gatekeeper createLedgerEntry
+      const newBalance = await createLedgerEntry(tx, {
+        productId,
+        warehouseId,
+        movementType: StockMovementType.OPENING,
+        quantity,
+        referenceType: StockReferenceType.OPENING,
+        remarks: remarks || "Stok Awal",
+        createdById: userId,
+      });
+
+      results.push({ productId, name: product.name, newBalance });
+    }
+
+    return results;
   });
 };

@@ -8,6 +8,7 @@ import {
   receiveStockSchema,
   adjustStockSchema,
   removeAsWasteSchema,
+  recordOpeningStockSchema,
 } from "./validation";
 import { AppError } from "../../utils/errorHandler";
 
@@ -81,4 +82,17 @@ export const getWarehouses = catchAsync(async (req: Request, res: Response) => {
 export const getUnits = catchAsync(async (req: Request, res: Response) => {
   const units = await inventoryService.getActiveUnits();
   return responseHandler.ok(res, units);
+});
+
+export const recordOpening = catchAsync(async (req: Request, res: Response) => {
+  const { error, value } = recordOpeningStockSchema.validate(req.body);
+  if (error) {
+    throw new AppError("BAD_REQUEST", error.details[0].message);
+  }
+  const userId = req.user?.id;
+  if (!userId) {
+    throw new AppError("UNAUTHORIZED", "Not authenticated");
+  }
+  const result = await inventoryService.recordOpeningStock(userId, value);
+  return responseHandler.created(res, result, "Opening stock recorded successfully");
 });

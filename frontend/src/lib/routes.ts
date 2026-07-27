@@ -52,6 +52,9 @@ export const ROUTES_CONFIG: RouteConfig[] = [
   // Warehouse Workspace Routes
   { path: "/warehouse/dashboard", workspace: "WAREHOUSE" },
   { path: "/warehouse/current-stock", workspace: "WAREHOUSE" },
+  { path: "/warehouse/opening", workspace: "WAREHOUSE" },
+  { path: "/warehouse/settings/units", workspace: "WAREHOUSE" },
+  { path: "/warehouse/settings/warehouses", workspace: "WAREHOUSE" },
 
   // Cashier Workspace Routes
   { path: "/shifts", workspace: "CASHIER" },
@@ -72,28 +75,31 @@ export interface SidebarItemConfig {
 export const SIDEBAR_CONFIGS: Record<WorkspaceType, SidebarItemConfig[]> = {
   ADMIN: [
     { name: "Dashboard", href: "/dashboard", iconName: "dashboard" },
-    { name: "Orders", href: "/orders", iconName: "orders" },
-    { name: "Kitchen", href: "/kitchen", iconName: "kitchen" },
-    { name: "Products", href: "/products", iconName: "products" },
-    { name: "Categories", href: "/categories", iconName: "categories" },
-    { name: "Promotions", href: "/promotions", iconName: "promotions" },
-    { name: "Tables", href: "/tables", iconName: "tables" },
-    { name: "Inventory", href: "/inventory", iconName: "inventory" },
-    { name: "Reports", href: "/reports", iconName: "reports" },
-    { name: "Users", href: "/users", iconName: "users" },
+    { name: "Pesanan", href: "/orders", iconName: "orders" },
+    { name: "Dapur", href: "/kitchen", iconName: "kitchen" },
+    { name: "Produk", href: "/products", iconName: "products" },
+    { name: "Kategori", href: "/categories", iconName: "categories" },
+    { name: "Promosi", href: "/promotions", iconName: "promotions" },
+    { name: "Meja", href: "/tables", iconName: "tables" },
+    { name: "Stok Admin", href: "/inventory", iconName: "inventory" },
+    { name: "Laporan", href: "/reports", iconName: "reports" },
+    { name: "Staf", href: "/users", iconName: "users" },
   ],
   WAREHOUSE: [
-    { name: "Warehouse Dashboard", href: "/warehouse/dashboard", iconName: "dashboard" },
-    { name: "Current Stock", href: "/warehouse/current-stock", iconName: "inventory" },
+    { name: "Dashboard Gudang", href: "/warehouse/dashboard", iconName: "dashboard" },
+    { name: "Stok Saat Ini", href: "/warehouse/current-stock", iconName: "inventory" },
+    { name: "Stok Awal", href: "/warehouse/opening", iconName: "shifts" },
+    { name: "Pengaturan Satuan", href: "/warehouse/settings/units", iconName: "categories" },
+    { name: "Pengaturan Gudang", href: "/warehouse/settings/warehouses", iconName: "tables" },
   ],
   CASHIER: [
-    { name: "Cashier Workspace", href: "/shifts", iconName: "shifts" },
+    { name: "Laci Kasir", href: "/shifts", iconName: "shifts" },
   ],
   KITCHEN: [
-    { name: "Kitchen Workspace", href: "/kitchen", iconName: "kitchen" },
+    { name: "Layar Dapur", href: "/kitchen", iconName: "kitchen" },
   ],
   ACCOUNTING: [
-    { name: "Reports Workspace", href: "/reports", iconName: "reports" },
+    { name: "Rincian Laporan", href: "/reports", iconName: "reports" },
   ],
 };
 

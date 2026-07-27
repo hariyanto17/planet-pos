@@ -9,6 +9,7 @@ import {
   removeWaste,
   getWarehouses,
   getUnits,
+  recordOpening,
 } from "./controller";
 
 const router = Router();
@@ -24,6 +25,7 @@ router.get("/warehouses", requireRoles(["ADMIN", "WAREHOUSE", "ACCOUNTING", "CAS
 router.get("/units", requireRoles(["ADMIN", "WAREHOUSE", "ACCOUNTING", "CASHIER"]), getUnits);
 
 // Mutating endpoints: WAREHOUSE and ADMIN only
+router.post("/opening", requireRoles(["ADMIN", "WAREHOUSE"]), recordOpening);
 router.post("/receive", requireRoles(["ADMIN", "WAREHOUSE"]), receiveStock);
 router.post("/adjust", requireRoles(["ADMIN", "WAREHOUSE"]), adjustStock);
 router.post("/waste", requireRoles(["ADMIN", "WAREHOUSE"]), removeWaste);

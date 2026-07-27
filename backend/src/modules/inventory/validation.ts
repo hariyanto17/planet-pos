@@ -39,3 +39,14 @@ export const movementListQuerySchema = Joi.object({
   page: Joi.number().integer().min(1).optional(),
   limit: Joi.number().integer().min(1).max(100).optional(),
 });
+
+export const openingStockItemSchema = Joi.object({
+  productId: Joi.string().required(),
+  quantity: Joi.number().precision(3).positive().required(),
+  remarks: Joi.string().allow("", null).optional(),
+});
+
+export const recordOpeningStockSchema = Joi.object({
+  warehouseId: Joi.string().required(),
+  items: Joi.array().items(openingStockItemSchema).min(1).required(),
+});

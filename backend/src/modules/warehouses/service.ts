@@ -1,0 +1,157 @@
+import { prisma } from "../../utils/prisma";
+import { AppError } from "../../utils/errorHandler";
+
+interface CreateWarehouseInput {
+  code: string;
+  name: string;
+}
+
+interface UpdateWarehouseInput {
+  code?: string;
+  name?: string;
+  isActive?: boolean;
+}
+
+interface WarehouseListFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
+
+export const getWarehousesList = async (filters: WarehouseListFilters) => {
+  const page = Number(filters.page || 1);
+  const limit = Number(filters.limit || 10);
+  const skip = (page - 1) * limit;
+  const search = filters.search || "";
+  const sortBy = filters.sortBy || "createdAt";
+  const sortOrder = filters.sortOrder || "desc";
+
+  const whereClause: any = {};
+
+  if (search) {
+    whereClause.OR = [
+      { code: { contains: search, mode: "insensitive" } },
+      { name: { contains: search, mode: "insensitive" } },
+    ];
+  }
+
+  const total = await prisma.warehouse.count({ where: whereClause });
+
+  const data = await prisma.warehouse.findMany({
+    where: whereClause,
+    orderBy: { [sortBy]: sortOrder },
+    skip,
+    take: limit,
+  });
+
+  return {
+    data,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
+export const getWarehouseById = async (id: string) => {
+  return await prisma.warehouse.findUnique({
+    where: { id },
+  });
+};
+
+export const createWarehouse = async (input: CreateWarehouseInput) => {
+  // Check duplicates
+  const existingCode = await prisma.warehouse.findFirst({
+    where: { code: { equals: input.code, mode: "insensitive" } },
+  });
+  if (existingCode) {
+    throw new AppError("BAD_REQUEST", "Warehouse code already exists");
+  }
+
+  return await prisma.warehouse.create({
+    data: {
+      code: input.code,
+      name: input.name,
+      isActive: true,
+    },
+  });
+};
+
+export const updateWarehouse = async (id: string, input: UpdateWarehouseInput) => {
+  const existing = await prisma.warehouse.findUnique({
+    where: { id },
+  });
+  if (!existing) {
+    throw new AppError("NOT_FOUND", "Warehouse not found");
+  }
+
+  // Check unique constraints if code changed
+  if (input.code && input.code.toLowerCase() !== existing.code.toLowerCase()) {
+    const dupCode = await prisma.warehouse.findFirst({
+      where: { code: { equals: input.code, mode: "insensitive" } },
+    });
+    if (dupCode) {
+      throw new AppError("BAD_REQUEST", "Warehouse code already exists");
+    }
+  }
+
+  // If attempting to deactivate via PUT
+  if (input.isActive === false && existing.isActive) {
+    // Check stock quantity > 0
+    const activeStock = await prisma.warehouseStock.findFirst({
+      where: { warehouseId: id, quantity: { gt: 0 } },
+    });
+    if (activeStock) {
+      throw new AppError("BAD_REQUEST", "Cannot deactivate Warehouse because inventory records still exist.");
+    }
+
+    // Check ledger history exists
+    const ledgerCount = await prisma.stockLedger.count({
+      where: { warehouseId: id },
+    });
+    if (ledgerCount > 0) {
+      throw new AppError("BAD_REQUEST", "Cannot deactivate Warehouse because inventory records still exist.");
+    }
+  }
+
+  return await prisma.warehouse.update({
+    where: { id },
+    data: input,
+  });
+};
+
+export const deactivateWarehouse = async (id: string) => {
+  return await prisma.$transaction(async (tx) => {
+    const existing = await tx.warehouse.findUnique({
+      where: { id },
+    });
+    if (!existing) {
+      throw new AppError("NOT_FOUND", "Warehouse not found");
+    }
+
+    // Check stock quantity > 0
+    const activeStock = await tx.warehouseStock.findFirst({
+      where: { warehouseId: id, quantity: { gt: 0 } },
+    });
+    if (activeStock) {
+      throw new AppError("BAD_REQUEST", "Cannot deactivate Warehouse because inventory records still exist.");
+    }
+
+    // Check ledger history exists
+    const ledgerCount = await tx.stockLedger.count({
+      where: { warehouseId: id },
+    });
+    if (ledgerCount > 0) {
+      throw new AppError("BAD_REQUEST", "Cannot deactivate Warehouse because inventory records still exist.");
+    }
+
+    return await tx.warehouse.update({
+      where: { id },
+      data: { isActive: false },
+    });
+  });
+};

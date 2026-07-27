@@ -59,6 +59,14 @@ export const inventoryApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Inventory"],
     }),
+    recordOpeningStock: builder.mutation<any, { warehouseId: string; items: Array<{ productId: string; quantity: number; remarks?: string }> }>({
+      query: (body) => ({
+        url: "/inventory/opening",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Inventory"],
+    }),
     getWarehouses: builder.query<any[], void>({
       query: () => "/inventory/warehouses",
       providesTags: ["Inventory"],
@@ -77,6 +85,7 @@ export const {
   useReceiveStockMutation,
   useAdjustStockMutation,
   useRemoveWasteMutation,
+  useRecordOpeningStockMutation,
   useGetWarehousesQuery,
   useGetUnitsQuery,
 } = inventoryApi;

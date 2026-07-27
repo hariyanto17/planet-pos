@@ -39,6 +39,10 @@ export interface CreateProductInput {
   name: string;
   imageUrl?: string;
   price: number;
+  trackInventory?: boolean;
+  inventoryType?: "FINISHED_GOOD" | "RAW_MATERIAL" | "PACKAGING";
+  minimumStock?: number;
+  unitId?: string;
 }
 
 export interface UpdateProductInput {
@@ -48,6 +52,10 @@ export interface UpdateProductInput {
   imageUrl?: string;
   price?: number;
   isActive?: boolean;
+  trackInventory?: boolean;
+  inventoryType?: "FINISHED_GOOD" | "RAW_MATERIAL" | "PACKAGING";
+  minimumStock?: number;
+  unitId?: string;
 }
 
 // Table Types
@@ -132,4 +140,15 @@ export interface CreatePaymentInput {
   estimatedCash?: number;
   receivedCash?: number;
   referenceNumber?: string;
+}
+
+export function getInventoryStatus(
+  trackInventory: boolean,
+  quantity: number,
+  minimumStock: number
+): "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK" {
+  if (!trackInventory) return "IN_STOCK";
+  if (quantity <= 0) return "OUT_OF_STOCK";
+  if (quantity <= minimumStock) return "LOW_STOCK";
+  return "IN_STOCK";
 }
