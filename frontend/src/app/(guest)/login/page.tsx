@@ -7,12 +7,14 @@ import * as zod from "zod";
 import { useLoginMutation } from "@/lib/api/authApi";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { setCredentials } from "@/lib/store/features/auth/slice";
-import { selectIsAuthenticated } from "@/lib/store/features/auth/selectors";
+import { selectIsAuthenticated, selectCurrentUser } from "@/lib/store/features/auth/selectors";
 import { Input } from "@/components/Input";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/Button";
 import { useRouter } from "next/navigation";
 import { authCookie } from "@/utils/authCookie";
+import { getDefaultRouteByRole } from "@/lib/routes";
+import { TEXT } from "@/lib/i18n/id";
 
 const loginSchema = zod.object({
   username: zod.string().min(1, "Username is required"),
@@ -25,14 +27,16 @@ export default function LoginPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const currentUser = useAppSelector(selectCurrentUser);
   const [login, { isLoading, error: apiError }] = useLoginMutation();
 
   // Reactive redirect based on authentication state
   useEffect(() => {
-    if (isAuthenticated) {
-      router.replace("/dashboard");
+    if (isAuthenticated && currentUser) {
+      const targetRoute = getDefaultRouteByRole(currentUser.role);
+      router.replace(targetRoute);
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, currentUser, router]);
 
   const {
     register,
@@ -60,17 +64,17 @@ export default function LoginPage() {
   const getErrorMessage = (error: any): string => {
     if (!error) return "";
     if ("data" in error) {
-      return (error.data as any)?.message || "Invalid login credentials";
+      return (error.data as any)?.message || TEXT.auth.loginFailed;
     }
-    return "Something went wrong. Please try again.";
+    return "Terjadi kesalahan. Silakan coba lagi.";
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-4">
       <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-xl flex flex-col gap-6">
         <div className="flex flex-col gap-1 text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-zinc-100">Planet Concessions POS</h2>
-          <p className="text-zinc-500 text-sm">Log in to your retail console</p>
+          <h2 className="text-2xl font-bold tracking-tight text-zinc-100">{TEXT.auth.loginTitle}</h2>
+          <p className="text-zinc-500 text-sm">{TEXT.auth.loginSubtitle}</p>
         </div>
 
         {apiError ? (
@@ -81,21 +85,21 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <Input
-            label="Username"
-            placeholder="Enter username"
+            label={TEXT.auth.usernameLabel}
+            placeholder={TEXT.auth.usernamePlaceholder}
             error={errors.username?.message}
             {...register("username")}
           />
           
           <PasswordInput
-            label="Password"
-            placeholder="Enter password"
+            label={TEXT.auth.passwordLabel}
+            placeholder={TEXT.auth.passwordPlaceholder}
             error={errors.password?.message}
             {...register("password")}
           />
 
           <Button type="submit" isLoading={isLoading} className="w-full py-2.5 mt-2">
-            Log In
+            {TEXT.auth.loginButton}
           </Button>
         </form>
       </div>

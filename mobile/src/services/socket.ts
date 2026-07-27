@@ -5,7 +5,7 @@ class SocketService {
   private socket: Socket | null = null;
 
   connect(url: string = __DEV__
-    ? (Platform.OS === "android" ? "http://10.0.2.2:5001" : "http://localhost:5001")
+    ? (Platform.OS === "android" ? "https://concession.168billiard.online" : "http://localhost:5001")
     : "https://concession.168billiard.online") {
     if (!this.socket) {
       this.socket = io(url, {

@@ -15,6 +15,7 @@ import { ShiftSummary } from "./components/ShiftSummary";
 import { CashReconciliation } from "./components/CashReconciliation";
 import { CloseShiftModal } from "./components/CloseShiftModal";
 import { Button } from "@/components/Button";
+import { TEXT } from "@/lib/i18n/id";
 
 export default function ShiftsPage() {
   const currentUser = useAppSelector(selectCurrentUser);
@@ -52,20 +53,20 @@ export default function ShiftsPage() {
       {/* Header section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/60 pb-6">
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-3xl font-black tracking-tight text-zinc-100">Cashier Drawer Shift</h1>
+          <h1 className="text-3xl font-black tracking-tight text-zinc-100">{TEXT.shifts.title}</h1>
           <p className="text-zinc-500 text-sm">
-            Track currency tenders, reconcile opening balances, and audit cash drawer closes.
+            {TEXT.shifts.subtitle}
           </p>
         </div>
         <div className="flex items-center gap-2">
           {!isOpen && !isShiftLoading && (
             <Button variant="primary" onClick={() => setOpenModalOpen(true)}>
-              Open Cashier Shift
+              {TEXT.shifts.openBtn}
             </Button>
           )}
           {isOpen && (
             <Button variant="danger" onClick={() => setCloseModalOpen(true)}>
-              Close Shift Drawer
+              {TEXT.shifts.closeBtn}
             </Button>
           )}
         </div>
@@ -77,13 +78,13 @@ export default function ShiftsPage() {
         <div className="p-8 border border-zinc-800 bg-zinc-900/30 text-center rounded-2xl flex flex-col items-center justify-center gap-4 max-w-md mx-auto mt-6 shadow-md">
           <span className="text-3xl">🔒</span>
           <div className="flex flex-col gap-1">
-            <h3 className="text-zinc-200 font-bold">No active cashier shift open</h3>
+            <h3 className="text-zinc-200 font-bold">{TEXT.shifts.noActiveShiftTitle}</h3>
             <p className="text-zinc-500 text-xs">
-              To proceed with taking concession orders or collecting payments at the cashier terminal, you must open a new cash drawer shift.
+              {TEXT.shifts.noActiveShiftDesc}
             </p>
           </div>
           <Button variant="primary" onClick={() => setOpenModalOpen(true)}>
-            Open Shift Now
+            {TEXT.shifts.openShiftNow}
           </Button>
         </div>
       ) : (

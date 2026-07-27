@@ -3,6 +3,7 @@ import { Modal } from "@/components/Modal";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { useAdjustStockMutation } from "@/lib/api/inventoryApi";
+import { TEXT } from "@/lib/i18n/id";
 
 interface Props {
   isOpen: boolean;
@@ -33,16 +34,16 @@ export const AdjustStockModal: React.FC<Props> = ({
     setErrorMsg("");
 
     if (!productId) {
-      setErrorMsg("Please select a product");
+      setErrorMsg("Silakan pilih produk");
       return;
     }
     if (!warehouseId) {
-      setErrorMsg("Please select a warehouse");
+      setErrorMsg("Silakan pilih gudang");
       return;
     }
     const qtyNum = parseFloat(quantity);
     if (isNaN(qtyNum) || qtyNum <= 0) {
-      setErrorMsg("Please enter a positive decimal quantity");
+      setErrorMsg("Silakan masukkan jumlah desimal positif");
       return;
     }
 
@@ -63,12 +64,12 @@ export const AdjustStockModal: React.FC<Props> = ({
       setRemarks("");
       onClose();
     } catch (err: any) {
-      setErrorMsg(err?.data?.message || "Failed to adjust stock");
+      setErrorMsg(err?.data?.message || "Gagal menyesuaikan stok");
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Stock Adjustment">
+    <Modal isOpen={isOpen} onClose={onClose} title="Penyesuaian Stok">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {errorMsg && (
           <div className="p-3 bg-red-950/40 border border-red-900/50 rounded-lg text-red-400 text-xs font-semibold">
@@ -77,14 +78,14 @@ export const AdjustStockModal: React.FC<Props> = ({
         )}
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Product</label>
+          <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Produk</label>
           <select
             value={productId}
             onChange={(e) => setProductId(e.target.value)}
             className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-300 outline-none focus:border-indigo-500 text-sm font-semibold"
             required
           >
-            <option value="">Select Product...</option>
+            <option value="">Pilih Produk...</option>
             {products.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name} ({p.sku})
@@ -94,14 +95,14 @@ export const AdjustStockModal: React.FC<Props> = ({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Warehouse</label>
+          <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Gudang</label>
           <select
             value={warehouseId}
             onChange={(e) => setWarehouseId(e.target.value)}
             className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-300 outline-none focus:border-indigo-500 text-sm font-semibold"
             required
           >
-            <option value="">Select Warehouse...</option>
+            <option value="">Pilih Gudang...</option>
             {warehouses.map((w) => (
               <option key={w.id} value={w.id}>
                 {w.name} ({w.code})
@@ -111,7 +112,7 @@ export const AdjustStockModal: React.FC<Props> = ({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Adjustment Type</label>
+          <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Tipe Penyesuaian</label>
           <div className="flex gap-2">
             <button
               type="button"
@@ -122,7 +123,7 @@ export const AdjustStockModal: React.FC<Props> = ({
                   : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-zinc-200"
               }`}
             >
-              ➕ Increase (+Qty)
+              ➕ Tambah (+Jml)
             </button>
             <button
               type="button"
@@ -133,39 +134,39 @@ export const AdjustStockModal: React.FC<Props> = ({
                   : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-zinc-200"
               }`}
             >
-              ➖ Decrease (-Qty)
+              ➖ Kurang (-Jml)
             </button>
           </div>
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Quantity</label>
+          <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Jumlah</label>
           <Input
             type="number"
             step="0.001"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
-            placeholder="e.g. 10 or 2.5"
+            placeholder="Misal: 10 atau 2.5"
             required
           />
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Reason / Remarks</label>
+          <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Alasan / Keterangan</label>
           <Input
             type="text"
             value={remarks}
             onChange={(e) => setRemarks(e.target.value)}
-            placeholder="Correction, lost, broken, etc."
+            placeholder="Koreksi, hilang, rusak, dll."
           />
         </div>
 
         <div className="flex justify-end gap-2 mt-2 border-t border-zinc-800/80 pt-4">
           <Button variant="secondary" onClick={onClose} type="button">
-            Cancel
+            {TEXT.common.cancel}
           </Button>
           <Button variant="primary" type="submit" isLoading={isLoading}>
-            Apply Adjustment
+            Terapkan Penyesuaian
           </Button>
         </div>
       </form>

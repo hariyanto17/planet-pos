@@ -1,6 +1,7 @@
 import React from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { CashierShiftData } from "../types";
+import { TEXT } from "@/lib/i18n/id";
 
 interface ShiftStatusProps {
   data?: CashierShiftData;
@@ -29,16 +30,16 @@ export const ShiftStatusCard: React.FC<ShiftStatusProps> = ({ data, isLoading })
     >
       <span className="text-3xl select-none">{isOpen ? "🟢" : "⚪"}</span>
       <div className="flex flex-col gap-1.5 w-full">
-        <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-          Cashier Drawer status
+        <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">
+          {TEXT.shifts.statusTitle}
         </span>
         <h2 className="text-xl font-black tracking-tight">
-          {isOpen ? `Shift OPEN — Operating by ${data.cashier}` : "Shift CLOSED — Cash drawer locked"}
+          {isOpen ? `${TEXT.shifts.statusOpen} ${data.cashier}` : TEXT.shifts.statusClosed}
         </h2>
         {isOpen && (
           <div className="flex flex-wrap gap-x-6 gap-y-2 mt-2 text-xs font-semibold text-zinc-400">
-            <span>Opened At: <strong className="text-zinc-200">{new Date(data.openedAt!).toLocaleString()}</strong></span>
-            <span>Opening Balance: <strong className="text-zinc-200">{formatCurrency(data.openingCash || 0)}</strong></span>
+            <span>Waktu Dibuka: <strong className="text-zinc-200">{new Date(data.openedAt!).toLocaleString()}</strong></span>
+            <span>Saldo Awal: <strong className="text-zinc-200">{formatCurrency(data.openingCash || 0)}</strong></span>
           </div>
         )}
       </div>

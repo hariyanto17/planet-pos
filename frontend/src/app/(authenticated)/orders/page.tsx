@@ -12,6 +12,7 @@ import { DataTable } from "@/components/DataTable";
 import { Button } from "@/components/Button";
 import { Pagination } from "@/components/Pagination";
 import { formatCurrency, formatOrderNumber, formatRelativeTime } from "@/utils/formatters";
+import { TEXT } from "@/lib/i18n/id";
 
 export default function OrdersPage() {
   const router = useRouter();
@@ -48,13 +49,13 @@ export default function OrdersPage() {
       {/* Header section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/60 pb-6">
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-3xl font-black tracking-tight text-zinc-100">Orders Terminal</h1>
+          <h1 className="text-3xl font-black tracking-tight text-zinc-100">{TEXT.orders.title}</h1>
           <p className="text-zinc-500 text-sm">
-            Monitor, search, and audit concession active and historic transaction logs.
+            {TEXT.orders.subtitle}
           </p>
         </div>
         <Button variant="secondary" onClick={refetch} isLoading={isLoading}>
-          Refresh Queue
+          Perbarui Antrean
         </Button>
       </div>
 
@@ -63,13 +64,13 @@ export default function OrdersPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Text Search */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Search</label>
+            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">{TEXT.common.search}</label>
             <input
               type="text"
-              placeholder="Display No, customer, item..."
+              placeholder={TEXT.orders.searchPlaceholder}
               value={filters.search}
               onChange={(e) => updateFilter("search", e.target.value)}
-              className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 placeholder-zinc-600 outline-none focus:border-indigo-500 text-sm"
+              className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 placeholder-zinc-650 outline-none focus:border-indigo-500 text-sm"
             />
           </div>
 
@@ -79,24 +80,24 @@ export default function OrdersPage() {
             <select
               value={filters.status}
               onChange={(e) => updateFilter("status", e.target.value)}
-              className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none focus:border-indigo-500 text-sm"
+              className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none focus:border-indigo-500 text-sm animate-fade-in"
             >
-              <option value="">ALL STATUSES</option>
-              <option value="PREPARING">PREPARING</option>
-              <option value="READY">READY</option>
-              <option value="COMPLETED">COMPLETED</option>
+              <option value="">{TEXT.orders.allStatuses}</option>
+              <option value="PREPARING">DISIAPKAN</option>
+              <option value="READY">SIAP</option>
+              <option value="COMPLETED">SELESAI</option>
             </select>
           </div>
 
           {/* Payment Status */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Payment Status</label>
+            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Status Pembayaran</label>
             <select
               value={filters.paymentStatus}
               onChange={(e) => updateFilter("paymentStatus", e.target.value)}
               className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none focus:border-indigo-500 text-sm"
             >
-              <option value="">ALL STATUSES</option>
+              <option value="">{TEXT.orders.allStatuses}</option>
               <option value="PENDING">PENDING</option>
               <option value="PAID">PAID</option>
               <option value="CANCELLED">CANCELLED</option>
@@ -105,13 +106,13 @@ export default function OrdersPage() {
 
           {/* Payment Method */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Payment Method</label>
+            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Metode Pembayaran</label>
             <select
               value={filters.paymentMethod}
               onChange={(e) => updateFilter("paymentMethod", e.target.value)}
               className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none focus:border-indigo-500 text-sm"
             >
-              <option value="">ALL METHODS</option>
+              <option value="">SEMUA METODE</option>
               <option value="CASH">CASH</option>
               <option value="QRIS">QRIS</option>
             </select>
@@ -119,13 +120,13 @@ export default function OrdersPage() {
 
           {/* Source */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Order Source</label>
+            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Sumber Pesanan</label>
             <select
               value={filters.source}
               onChange={(e) => updateFilter("source", e.target.value)}
               className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none focus:border-indigo-500 text-sm"
             >
-              <option value="">ALL SOURCES</option>
+              <option value="">{TEXT.orders.allSources}</option>
               <option value="SELF_ORDER">SELF ORDER</option>
               <option value="CASHIER">CASHIER</option>
             </select>
@@ -133,51 +134,51 @@ export default function OrdersPage() {
 
           {/* Business Date */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Business Date</label>
+            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Tanggal Operasional</label>
             <select
               value={filters.businessDate}
               onChange={(e) => updateFilter("businessDate", e.target.value as any)}
               className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none focus:border-indigo-500 text-sm"
             >
-              <option value="ALL">ALL DATES</option>
-              <option value="TODAY">TODAY</option>
-              <option value="YESTERDAY">YESTERDAY</option>
-              <option value="CUSTOM">CUSTOM DATE</option>
+              <option value="ALL">SEMUA TANGGAL</option>
+              <option value="TODAY">HARI INI</option>
+              <option value="YESTERDAY">KEMARIN</option>
+              <option value="CUSTOM">PILIH TANGGAL</option>
             </select>
           </div>
 
           {/* Sorting Field */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Sort Column</label>
+            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Urutkan Berdasarkan</label>
             <select
               value={filters.sortBy}
               onChange={(e) => updateFilter("sortBy", e.target.value as any)}
               className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none focus:border-indigo-500 text-sm"
             >
-              <option value="createdAt">CREATED TIME</option>
-              <option value="displayNumber">DISPLAY CODE</option>
+              <option value="createdAt">WAKTU DIBUAT</option>
+              <option value="displayNumber">KODE TAMPILAN</option>
               <option value="grandTotal">GRAND TOTAL</option>
-              <option value="businessDate">BUSINESS DATE</option>
+              <option value="businessDate">TANGGAL BISNIS</option>
             </select>
           </div>
 
           {/* Sorting Direction */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Sort Order</label>
+            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Arah Urutan</label>
             <select
               value={filters.sortOrder}
               onChange={(e) => updateFilter("sortOrder", e.target.value as any)}
               className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none focus:border-indigo-500 text-sm"
             >
-              <option value="desc">NEWEST / LARGEST FIRST</option>
-              <option value="asc">OLDEST / SMALLEST FIRST</option>
+              <option value="desc">TERBARU / TERBESAR PERTAMA</option>
+              <option value="asc">TERLAMA / TERKECIL PERTAMA</option>
             </select>
           </div>
 
           {/* Reset Action */}
           <div className="flex items-end">
             <Button variant="secondary" onClick={resetFilters} className="w-full">
-              Reset Filters
+              Reset Filter
             </Button>
           </div>
         </div>
@@ -186,7 +187,7 @@ export default function OrdersPage() {
         {filters.businessDate === "CUSTOM" && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-zinc-800/60 pt-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Start Date</label>
+              <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Tanggal Mulai</label>
               <input
                 type="date"
                 value={filters.customDateStart || ""}
@@ -195,7 +196,7 @@ export default function OrdersPage() {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">End Date</label>
+              <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Tanggal Selesai</label>
               <input
                 type="date"
                 value={filters.customDateEnd || ""}
@@ -210,7 +211,7 @@ export default function OrdersPage() {
       {/* Showing pagination numbers summary */}
       {!isError && (
         <div className="text-xs text-zinc-500 font-bold uppercase tracking-widest pl-2">
-          Showing {startIdx}-{endIdx} of {pagination.totalItems} transactions
+          Menampilkan {startIdx}-{endIdx} dari {pagination.totalItems} transaksi
         </div>
       )}
 
@@ -219,27 +220,27 @@ export default function OrdersPage() {
         <div className="flex flex-col items-center justify-center p-12 bg-zinc-900 border border-zinc-800 rounded-2xl text-center shadow-lg max-w-md mx-auto mt-6 gap-4">
           <span className="text-xl">⚠️</span>
           <div className="flex flex-col gap-1">
-            <h2 className="text-zinc-200 font-bold">Unable to load orders queue</h2>
-            <p className="text-zinc-500 text-xs">Please verify your server connection and retry.</p>
+            <h2 className="text-zinc-200 font-bold">Gagal memuat antrean pesanan</h2>
+            <p className="text-zinc-500 text-xs">Silakan verifikasi koneksi server Anda dan coba lagi.</p>
           </div>
           <Button variant="primary" onClick={refetch}>
-            Retry Load
+            Coba Lagi
           </Button>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
           <DataTable
             headers={[
-              "Display Number",
-              "Customer Name",
-              "Table",
-              "Source",
-              "Type",
-              "Payment",
-              "Payment Status",
+              "Nomor Tampilan",
+              "Nama Pelanggan",
+              "Meja",
+              "Sumber",
+              "Tipe",
+              "Pembayaran",
+              "Status Pembayaran",
               "Fulfillment",
               "Grand Total",
-              "Created Time",
+              "Waktu Pembuatan",
             ]}
             isLoading={isLoading}
           >
@@ -270,7 +271,7 @@ export default function OrdersPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-zinc-400">
-                    {order.orderType === "DINE_IN" ? "Dine In" : "Takeaway"}
+                    {order.orderType === "DINE_IN" ? "Makan di Tempat" : "Bawa Pulang"}
                   </td>
                   <td className="px-6 py-4 text-sm font-semibold text-zinc-300">
                     {paymentMethod}
@@ -294,7 +295,7 @@ export default function OrdersPage() {
 
           {orders.length === 0 && !isLoading && (
             <div className="p-12 border border-zinc-800 bg-zinc-900/40 rounded-xl text-center text-zinc-500 text-sm">
-              No historic or active orders match the current filter selection.
+              {TEXT.orders.noOrders}
             </div>
           )}
 

@@ -6,6 +6,8 @@ import { useGetOrderQuery } from "@/lib/api/orderApi";
 import { Button } from "@/components/Button";
 import { OrderStatus } from "@shared/types";
 
+import { TEXT } from "@/lib/i18n/id";
+
 function WaitingContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -21,8 +23,8 @@ function WaitingContent() {
       <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-6 text-center text-zinc-100">
         <div className="max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-xl flex flex-col items-center gap-4">
           <div className="w-12 h-12 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center text-xl font-bold">!</div>
-          <h2 className="text-xl font-bold text-zinc-100">Missing Order Reference</h2>
-          <p className="text-zinc-400 text-sm">Please check your invoice receipt or contact theatrical staff to locate status summaries.</p>
+          <h2 className="text-xl font-bold text-zinc-100">Referensi Pesanan Tidak Ada</h2>
+          <p className="text-zinc-400 text-sm">Silakan periksa tanda terima faktur Anda atau hubungi staf teater untuk menemukan ringkasan status.</p>
         </div>
       </div>
     );
@@ -35,7 +37,7 @@ function WaitingContent() {
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
-        <span className="text-zinc-400 text-sm font-medium">Fetching order status details...</span>
+        <span className="text-zinc-400 text-sm font-medium">Mengambil detail status pesanan...</span>
       </div>
     );
   }
@@ -45,8 +47,8 @@ function WaitingContent() {
       <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-6 text-center text-zinc-100">
         <div className="max-w-md bg-zinc-900 border border-rose-500/20 rounded-2xl p-8 shadow-xl flex flex-col items-center gap-4">
           <div className="w-12 h-12 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center text-xl font-bold">X</div>
-          <h2 className="text-xl font-bold text-zinc-100">Order Not Found</h2>
-          <p className="text-zinc-400 text-sm">We are unable to locate this order code in the concessions database. Please consult theatrical staff.</p>
+          <h2 className="text-xl font-bold text-zinc-100">Pesanan Tidak Ditemukan</h2>
+          <p className="text-zinc-400 text-sm">Kami tidak dapat menemukan kode pesanan ini di database konsesi. Silakan berkonsultasi dengan staf teater.</p>
         </div>
       </div>
     );
@@ -54,9 +56,9 @@ function WaitingContent() {
 
   // Steps tracking display: Preparing -> Ready -> Completed
   const steps: { key: OrderStatus; label: string; desc: string }[] = [
-    { key: "PREPARING", label: "Preparing", desc: "Kitchen is preparing your concessions" },
-    { key: "READY", label: "Ready", desc: "Concessions ready! Delivered to table / pick up at counter" },
-    { key: "COMPLETED", label: "Completed", desc: "Enjoy your movie snacks!" },
+    { key: "PREPARING", label: "Sedang Disiapkan", desc: "Dapur sedang menyiapkan pesanan Anda" },
+    { key: "READY", label: "Siap", desc: "Pesanan siap! Diantar ke meja / ambil di konter" },
+    { key: "COMPLETED", label: "Selesai", desc: "Nikmati camilan nonton Anda!" },
   ];
 
   const getStepIndex = (status: OrderStatus) => {
@@ -67,13 +69,13 @@ function WaitingContent() {
   const currentStepIdx = getStepIndex(order.status as OrderStatus);
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col text-zinc-100 max-w-lg mx-auto border-x border-zinc-900 shadow-2xl p-5 gap-6">
+    <div className="min-h-screen bg-zinc-950 flex flex-col text-zinc-100 max-w-lg mx-auto border-x border-zinc-900 shadow-2xl p-5 gap-6 animate-fade-in">
       <div className="flex flex-col items-center text-center gap-2 mt-4">
         <div className="w-16 h-16 rounded-full bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 font-extrabold text-2xl animate-pulse">
           {order.displayNumber.split("-")[0]}
         </div>
-        <h1 className="text-2xl font-black tracking-tight mt-2">Ticket: {order.displayNumber.split("-")[0]}</h1>
-        <p className="text-zinc-400 text-sm">Keep this page open. It updates automatically when kitchen reports ready.</p>
+        <h1 className="text-2xl font-black tracking-tight mt-2">Tiket: {order.displayNumber.split("-")[0]}</h1>
+        <p className="text-zinc-400 text-sm">Biarkan halaman ini tetap terbuka. Halaman ini diperbarui secara otomatis setelah dapur melaporkan siap.</p>
       </div>
 
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 flex flex-col gap-6">
@@ -81,8 +83,8 @@ function WaitingContent() {
           <div className="flex items-center gap-3 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-lg p-3">
             <span className="text-lg font-bold">!</span>
             <div className="flex flex-col">
-              <span className="text-sm font-semibold">Order Cancelled</span>
-              <span className="text-xs opacity-80">This concessions order has been cancelled by staff.</span>
+              <span className="text-sm font-semibold">Pesanan Dibatalkan</span>
+              <span className="text-xs opacity-80">Pesanan konsesi ini telah dibatalkan oleh staf.</span>
             </div>
           </div>
         ) : (
@@ -119,33 +121,33 @@ function WaitingContent() {
       </div>
 
       <div className="flex flex-col gap-4">
-        <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Fulfillment Summary</h3>
+        <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Ringkasan Pemenuhan</h3>
         <div className="bg-zinc-900/50 border border-zinc-900 rounded-2xl p-4 flex flex-col gap-3 text-sm">
           <div className="flex justify-between">
-            <span className="text-zinc-400">Customer Name</span>
+            <span className="text-zinc-400">Nama Pelanggan</span>
             <span className="text-zinc-200 font-medium">{order.customerName}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-zinc-400">Fulfillment Method</span>
+            <span className="text-zinc-400">Metode Pemenuhan</span>
             <span className="text-zinc-200 font-medium font-semibold capitalize">
-              {order.orderType === "DINE_IN" ? "Deliver to Table" : "Pick Up at Concession"}
+              {order.orderType === "DINE_IN" ? "Diantar ke Meja" : "Ambil di Konter"}
             </span>
           </div>
           {order.table && (
             <div className="flex justify-between">
-              <span className="text-zinc-400">Table Location</span>
+              <span className="text-zinc-400">Lokasi Meja</span>
               <span className="text-zinc-200 font-medium">{order.table.name}</span>
             </div>
           )}
           <div className="flex justify-between">
-            <span className="text-zinc-400">Grand Total Billing</span>
+            <span className="text-zinc-400">Total Tagihan</span>
             <span className="text-indigo-400 font-extrabold">Rp {Number(order.grandTotal).toLocaleString()}</span>
           </div>
         </div>
       </div>
 
       <div className="flex flex-col gap-3">
-        <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Items Ordered</h3>
+        <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Item yang Dipesan</h3>
         <div className="bg-zinc-900/30 border border-zinc-900 rounded-xl p-4 flex flex-col gap-2.5">
           {order.items?.map((item: any) => (
             <div key={item.id} className="flex justify-between text-sm">
@@ -160,7 +162,7 @@ function WaitingContent() {
 
       <div className="mt-auto pt-6 flex flex-col gap-3">
         <Button variant="ghost" onClick={() => refetch()} className="w-full py-2.5">
-          Refresh Status
+          Perbarui Status
         </Button>
         <Button
           onClick={() => {
@@ -168,7 +170,7 @@ function WaitingContent() {
           }}
           className="w-full py-3 font-semibold"
         >
-          Order More Food
+          Pesan Makanan Lagi
         </Button>
       </div>
     </div>
@@ -179,7 +181,7 @@ export default function WaitingPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-950">
-        <span className="text-zinc-400 text-sm font-medium">Loading status ticket...</span>
+        <span className="text-zinc-400 text-sm font-medium">Memuat status tiket...</span>
       </div>
     }>
       <WaitingContent />

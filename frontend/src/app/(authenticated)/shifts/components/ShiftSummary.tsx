@@ -1,6 +1,7 @@
 import React from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { CashierShiftData } from "../types";
+import { TEXT } from "@/lib/i18n/id";
 
 interface ShiftSummaryProps {
   data?: CashierShiftData;
@@ -20,21 +21,21 @@ export const ShiftSummary: React.FC<ShiftSummaryProps> = ({ data, isLoading }) =
 
   const items = [
     {
-      title: "Total Paid Sales",
+      title: "Total Penjualan Sukses",
       value: formatCurrency(data?.sales || 0),
-      desc: "All transaction checkouts aggregated",
+      desc: "Akumulasi dari semua transaksi checkout",
       color: "text-indigo-400",
     },
     {
-      title: "Cash Payments Received",
+      title: "Pembayaran Kas Diterima",
       value: formatCurrency(data?.cashSales || 0),
-      desc: "Total physical cash collections",
+      desc: "Total pengumpulan uang kas fisik",
       color: "text-emerald-400",
     },
     {
-      title: "QRIS Payments Cleared",
+      title: "Pembayaran QRIS Sukses",
       value: formatCurrency(data?.qrisSales || 0),
-      desc: "Digital gateway settlements",
+      desc: "Penyelesaian gateway digital",
       color: "text-zinc-200",
     },
   ];

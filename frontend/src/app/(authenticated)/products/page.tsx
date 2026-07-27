@@ -21,12 +21,14 @@ import { Button } from "@/components/Button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 
+import { TEXT } from "@/lib/i18n/id";
+
 const productSchema = zod.object({
-  name: zod.string().min(1, "Product name is required"),
-  sku: zod.string().min(1, "SKU is required"),
-  categoryId: zod.string().min(1, "Category is required"),
-  price: zod.number().positive("Price must be greater than zero"),
-  imageUrl: zod.string().url("Must be a valid URL").or(zod.string().length(0)).optional(),
+  name: zod.string().min(1, "Nama produk wajib diisi"),
+  sku: zod.string().min(1, "SKU wajib diisi"),
+  categoryId: zod.string().min(1, "Kategori wajib diisi"),
+  price: zod.number().positive("Harga harus lebih besar dari nol"),
+  imageUrl: zod.string().url("Harus berupa URL yang valid").or(zod.string().length(0)).optional(),
 });
 
 type ProductSchemaInput = zod.infer<typeof productSchema>;
@@ -164,16 +166,16 @@ export default function ProductsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Products Directory"
-        description="Add, remove, and configure concessions product items and pricing."
+        title={TEXT.products.title}
+        description={TEXT.products.subtitle}
         actionButton={
-          <Button onClick={() => setIsAddModalOpen(true)}>Add Product</Button>
+          <Button onClick={() => setIsAddModalOpen(true)}>{TEXT.products.addBtn}</Button>
         }
       />
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <SearchInput
-          placeholder="Search products by name or SKU..."
+          placeholder="Cari produk berdasarkan nama atau SKU..."
           onSearchChange={(val) => {
             setSearch(val);
             setPage(1);
@@ -188,7 +190,7 @@ export default function ProductsPage() {
           }}
           className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm w-full md:w-48"
         >
-          <option value="">All Categories</option>
+          <option value="">Semua Kategori</option>
           {categories.map((cat: Category) => (
             <option key={cat.id} value={cat.id}>
               {cat.name}
@@ -198,10 +200,10 @@ export default function ProductsPage() {
       </div>
 
       {!isLoading && filteredProducts.length === 0 ? (
-        <EmptyState title="No products found" description="Try resetting your filters or search keywords." />
+        <EmptyState title={TEXT.products.emptyState} description="Silakan sesuaikan filter atau kata kunci pencarian Anda." />
       ) : (
         <div className="flex flex-col gap-4">
-          <DataTable headers={["SKU", "Name", "Category", "Price", "Status", "Actions"]} isLoading={isLoading}>
+          <DataTable headers={["SKU", TEXT.products.nameCol, "Kategori", "Harga", TEXT.common.status, TEXT.common.actions]} isLoading={isLoading}>
             {paginatedProducts.map((p: Product) => (
               <tr key={p.id} className="border-b border-zinc-800/50 hover:bg-zinc-900/20 transition">
                 <td className="px-6 py-4 text-sm font-semibold text-zinc-400">{p.sku || "-"}</td>
@@ -217,7 +219,7 @@ export default function ProductsPage() {
                     <span className="text-sm font-medium text-zinc-200">{p.name}</span>
                   </div>
                 </td>
-                <td className="px-6 py-4 text-sm text-zinc-400">{p.category?.name || "Uncategorized"}</td>
+                <td className="px-6 py-4 text-sm text-zinc-400">{p.category?.name || "Tanpa Kategori"}</td>
                 <td className="px-6 py-4 text-sm font-medium text-zinc-200">
                   Rp {Number(p.price).toLocaleString()}
                 </td>
@@ -229,19 +231,19 @@ export default function ProductsPage() {
                     onClick={() => openEditModal(p)}
                     className="text-indigo-400 hover:text-indigo-300 font-medium transition"
                   >
-                    Edit
+                    {TEXT.common.edit}
                   </button>
                   <button
                     onClick={() => handleToggleActive(p)}
                     className="text-amber-400 hover:text-amber-300 font-medium transition"
                   >
-                    {p.isActive ? "Disable" : "Enable"}
+                    {p.isActive ? "Nonaktifkan" : "Aktifkan"}
                   </button>
                   <button
                     onClick={() => setDeletingProductId(p.id)}
                     className="text-rose-400 hover:text-rose-300 font-medium transition"
                   >
-                    Delete
+                    {TEXT.common.delete}
                   </button>
                 </td>
               </tr>
@@ -251,14 +253,14 @@ export default function ProductsPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-zinc-800 pt-4">
               <span className="text-sm text-zinc-400">
-                Page {page} of {totalPages} ({filteredProducts.length} items)
+                Halaman {page} dari {totalPages} ({filteredProducts.length} item)
               </span>
               <div className="flex items-center gap-2">
                 <Button variant="ghost" onClick={() => setPage(page - 1)} disabled={page === 1}>
-                  Previous
+                  Sebelumnya
                 </Button>
                 <Button variant="ghost" onClick={() => setPage(page + 1)} disabled={page === totalPages}>
-                  Next
+                  Berikutnya
                 </Button>
               </div>
             </div>
@@ -266,18 +268,18 @@ export default function ProductsPage() {
         </div>
       )}
 
-      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Create Product">
+      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title={TEXT.products.addTitle}>
         <form onSubmit={handleSubmitAdd(handleAdd)} className="flex flex-col gap-4">
-          <Input label="Product Name" placeholder="e.g. Salted Popcorn XL" error={errorsAdd.name?.message} {...registerAdd("name")} />
-          <Input label="SKU Code" placeholder="e.g. POP-SLT-XL" error={errorsAdd.sku?.message} {...registerAdd("sku")} />
+          <Input label={TEXT.products.nameCol} placeholder="Misal: Salted Popcorn XL" error={errorsAdd.name?.message} {...registerAdd("name")} />
+          <Input label="Kode SKU" placeholder="Misal: POP-SLT-XL" error={errorsAdd.sku?.message} {...registerAdd("sku")} />
           
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-zinc-300">Category</label>
+            <label className="text-sm font-medium text-zinc-300">Kategori</label>
             <select
               {...registerAdd("categoryId")}
               className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
             >
-              <option value="">Select category...</option>
+              <option value="">Pilih kategori...</option>
               {categories.map((cat: Category) => (
                 <option key={cat.id} value={cat.id}>
                   {cat.name}
@@ -287,27 +289,27 @@ export default function ProductsPage() {
             {errorsAdd.categoryId ? <p className="text-xs text-rose-500 mt-0.5">{errorsAdd.categoryId.message}</p> : null}
           </div>
 
-          <Input label="Price (Rp)" type="number" placeholder="e.g. 35000" error={errorsAdd.price?.message} {...registerAdd("price", { valueAsNumber: true })} />
-          <Input label="Image URL" placeholder="e.g. https://example.com/popcorn.jpg" error={errorsAdd.imageUrl?.message} {...registerAdd("imageUrl")} />
+          <Input label="Harga (Rp)" type="number" placeholder="Misal: 35000" error={errorsAdd.price?.message} {...registerAdd("price", { valueAsNumber: true })} />
+          <Input label="URL Gambar" placeholder="Misal: https://example.com/popcorn.jpg" error={errorsAdd.imageUrl?.message} {...registerAdd("imageUrl")} />
 
           <div className="flex items-center justify-end gap-3 pt-2">
             <Button variant="ghost" type="button" onClick={() => setIsAddModalOpen(false)}>
-              Cancel
+              {TEXT.common.cancel}
             </Button>
             <Button type="submit" isLoading={isCreating}>
-              Create
+              {TEXT.common.add}
             </Button>
           </div>
         </form>
       </Modal>
 
-      <Modal isOpen={!!editingProduct} onClose={() => setEditingProduct(null)} title="Edit Product">
+      <Modal isOpen={!!editingProduct} onClose={() => setEditingProduct(null)} title={TEXT.products.editTitle}>
         <form onSubmit={handleSubmitEdit(handleEdit)} className="flex flex-col gap-4">
-          <Input label="Product Name" error={errorsEdit.name?.message} {...registerEdit("name")} />
-          <Input label="SKU Code" error={errorsEdit.sku?.message} {...registerEdit("sku")} />
+          <Input label={TEXT.products.nameCol} error={errorsEdit.name?.message} {...registerEdit("name")} />
+          <Input label="Kode SKU" error={errorsEdit.sku?.message} {...registerEdit("sku")} />
           
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-zinc-300">Category</label>
+            <label className="text-sm font-medium text-zinc-300">Kategori</label>
             <select
               {...registerEdit("categoryId")}
               className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
@@ -321,15 +323,15 @@ export default function ProductsPage() {
             {errorsEdit.categoryId ? <p className="text-xs text-rose-500 mt-0.5">{errorsEdit.categoryId.message}</p> : null}
           </div>
 
-          <Input label="Price (Rp)" type="number" error={errorsEdit.price?.message} {...registerEdit("price", { valueAsNumber: true })} />
-          <Input label="Image URL" error={errorsEdit.imageUrl?.message} {...registerEdit("imageUrl")} />
+          <Input label="Harga (Rp)" type="number" error={errorsEdit.price?.message} {...registerEdit("price", { valueAsNumber: true })} />
+          <Input label="URL Gambar" error={errorsEdit.imageUrl?.message} {...registerEdit("imageUrl")} />
 
           <div className="flex items-center justify-end gap-3 pt-2">
             <Button variant="ghost" type="button" onClick={() => setEditingProduct(null)}>
-              Cancel
+              {TEXT.common.cancel}
             </Button>
             <Button type="submit" isLoading={isUpdating}>
-              Save Changes
+              {TEXT.common.save}
             </Button>
           </div>
         </form>
@@ -339,8 +341,8 @@ export default function ProductsPage() {
         isOpen={!!deletingProductId}
         onClose={() => setDeletingProductId(null)}
         onConfirm={handleDelete}
-        title="Delete Product"
-        message="Are you sure you want to delete this product? It will be removed from cashier consoles immediately."
+        title={TEXT.products.deleteConfirmTitle}
+        message={TEXT.products.deleteConfirmMsg}
         isConfirming={isDeleting}
       />
     </div>

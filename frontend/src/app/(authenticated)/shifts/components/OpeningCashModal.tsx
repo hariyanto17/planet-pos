@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Button } from "@/components/Button";
+import { TEXT } from "@/lib/i18n/id";
 
 interface OpeningCashModalProps {
   isOpen: boolean;
@@ -25,12 +26,12 @@ export const OpeningCashModal: React.FC<OpeningCashModalProps> = ({
     try {
       const amount = Number(openingCash);
       if (isNaN(amount) || amount < 0) {
-        throw new Error("Opening cash must be a valid positive number");
+        throw new Error("Kas awal laci harus berupa angka positif yang valid");
       }
       await onSubmit(amount);
       onClose();
     } catch (err: any) {
-      setError(err?.message || "Failed to open shift");
+      setError(err?.message || "Gagal membuka shift");
     } finally {
       setLoading(false);
     }
@@ -40,16 +41,16 @@ export const OpeningCashModal: React.FC<OpeningCashModalProps> = ({
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md p-6 flex flex-col gap-4 shadow-xl animate-scale-in">
         <div className="flex flex-col gap-1">
-          <h3 className="text-zinc-100 text-lg font-black tracking-tight">Open Cashier Drawer Shift</h3>
+          <h3 className="text-zinc-100 text-lg font-black tracking-tight">{TEXT.shifts.openShiftModalTitle}</h3>
           <p className="text-zinc-500 text-xs font-medium">
-            Enter the starting currency balance physically present inside the cashier cash drawer.
+            {TEXT.shifts.openShiftModalDesc}
           </p>
         </div>
 
         <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">
-              Opening Cash Drawer Balance (Rp)
+              {TEXT.shifts.startingCashLabel} (Rp)
             </label>
             <input
               type="number"
@@ -68,10 +69,10 @@ export const OpeningCashModal: React.FC<OpeningCashModalProps> = ({
 
           <div className="flex justify-end gap-2.5 mt-2">
             <Button variant="secondary" type="button" onClick={onClose} disabled={loading}>
-              Cancel
+              {TEXT.common.cancel}
             </Button>
             <Button variant="primary" type="submit" isLoading={loading}>
-              Open Shift
+              Buka Shift
             </Button>
           </div>
         </form>

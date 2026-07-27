@@ -2,6 +2,8 @@ import React from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { ShiftReconciliationData } from "../types";
 
+import { TEXT } from "@/lib/i18n/id";
+
 interface CashReconciliationProps {
   data?: ShiftReconciliationData;
   isLoading: boolean;
@@ -15,10 +17,10 @@ export const CashReconciliation: React.FC<CashReconciliationProps> = ({ data, is
   }
 
   const items = [
-    { label: "Opening Drawer Cash", val: data?.openingCash || 0, color: "text-zinc-300" },
-    { label: "Cash Sales Collected", val: data?.cashSales || 0, color: "text-emerald-400" },
-    { label: "Expected Cash Drawer Balance", val: data?.expectedCash || 0, color: "text-indigo-400 font-extrabold" },
-    { label: "Actual Cash Counted", val: data?.actualCash || 0, color: "text-zinc-200" },
+    { label: TEXT.shifts.startingCashLabel, val: data?.openingCash || 0, color: "text-zinc-300" },
+    { label: "Kas Penjualan Terkumpul", val: data?.cashSales || 0, color: "text-emerald-400" },
+    { label: TEXT.shifts.expectedCashLabel, val: data?.expectedCash || 0, color: "text-indigo-400 font-extrabold" },
+    { label: TEXT.shifts.actualCashLabel, val: data?.actualCash || 0, color: "text-zinc-200" },
   ];
 
   const diff = data?.difference || 0;
@@ -27,7 +29,7 @@ export const CashReconciliation: React.FC<CashReconciliationProps> = ({ data, is
   return (
     <div className="p-6 bg-zinc-900 border border-zinc-800/80 rounded-2xl shadow-md flex flex-col gap-5">
       <span className="text-zinc-400 text-xs font-bold uppercase tracking-wider">
-        Shift Cash Drawer Reconciliation
+        {TEXT.shifts.reconTitle}
       </span>
 
       <div className="flex flex-col border border-zinc-800/60 rounded-xl divide-y divide-zinc-800/50 overflow-hidden bg-zinc-950/20">
@@ -48,9 +50,9 @@ export const CashReconciliation: React.FC<CashReconciliationProps> = ({ data, is
             : "border-rose-500/30 bg-rose-950/15 text-rose-400"
         }`}
       >
-        <span>Drawer Difference Offset</span>
+        <span>{TEXT.shifts.diffLabel}</span>
         <span>
-          {isBalanced ? "Drawer Balanced (Rp 0)" : `${diff > 0 ? "+" : ""}${formatCurrency(diff)}`}
+          {isBalanced ? "Laci Seimbang (Rp 0)" : `${diff > 0 ? "+" : ""}${formatCurrency(diff)}`}
         </span>
       </div>
     </div>

@@ -22,6 +22,7 @@ import { ProductRankingTable } from "./components/ProductRankingTable";
 import { ReportsShiftTable } from "./components/ReportsShiftTable";
 import { Button } from "@/components/Button";
 import { formatCurrency } from "@/utils/formatters";
+import { TEXT } from "@/lib/i18n/id";
 
 type ActiveTab = "OVERVIEW" | "SALES" | "COLLECTION" | "RECONCILIATION" | "SHIFTS" | "PRODUCTS";
 
@@ -169,21 +170,21 @@ export default function ReportsPage() {
   const apiWarning = summaryData?.meta?.warning || reconciliationData?.meta?.warning;
 
   return (
-    <div className="flex flex-col gap-6 max-w-7xl mx-auto px-4 py-6">
+    <div className="flex flex-col gap-6 max-w-7xl mx-auto px-4 py-6 animate-fade-in">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/60 pb-6">
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-3xl font-black tracking-tight text-zinc-100">Financial & Operational Reports</h1>
+          <h1 className="text-3xl font-black tracking-tight text-zinc-100">{TEXT.reports.title}</h1>
           <p className="text-zinc-500 text-sm">
-            Auditable accounting balances, transaction summaries, and cashier shifts history.
+            {TEXT.reports.subtitle}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={() => router.push("/reports/audit")}>
-            Audit Log
+            Log Audit
           </Button>
           <Button variant="primary" onClick={handleRetryAll} isLoading={isAnyLoading}>
-            Sync Ledger
+            Sinkronisasi Buku Besar
           </Button>
         </div>
       </div>
@@ -193,7 +194,7 @@ export default function ReportsPage() {
         <div className="p-4 bg-red-950/40 border border-red-900/50 rounded-xl flex items-start gap-3">
           <span className="text-sm">⚠️</span>
           <div className="flex flex-col gap-0.5">
-            <h4 className="text-zinc-200 text-xs font-bold uppercase tracking-wider">Accounting Discrepancy Alert</h4>
+            <h4 className="text-zinc-200 text-xs font-bold uppercase tracking-wider">Peringatan Selisih Akuntansi</h4>
             <p className="text-red-300/80 text-xs font-medium">{apiWarning}</p>
           </div>
         </div>
@@ -214,12 +215,12 @@ export default function ReportsPage() {
       {/* Tab Select Navigation */}
       <div className="flex border-b border-zinc-800/80 gap-1 overflow-x-auto pb-px">
         {[
-          { id: "OVERVIEW", label: "Financial Overview" },
-          { id: "SALES", label: "Sales Analysis" },
-          { id: "COLLECTION", label: "Payment Collection" },
-          { id: "RECONCILIATION", label: "Reconciliation Log" },
-          { id: "SHIFTS", label: "Cashier Shifts" },
-          { id: "PRODUCTS", label: "Product Ranking" },
+          { id: "OVERVIEW", label: "Ikhtisar Keuangan" },
+          { id: "SALES", label: "Analisis Penjualan" },
+          { id: "COLLECTION", label: "Penerimaan Pembayaran" },
+          { id: "RECONCILIATION", label: "Log Rekonsiliasi" },
+          { id: "SHIFTS", label: "Shift Kasir" },
+          { id: "PRODUCTS", label: "Peringkat Produk" },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -240,11 +241,11 @@ export default function ReportsPage() {
         <div className="flex flex-col items-center justify-center p-12 bg-zinc-900 border border-zinc-800 rounded-2xl text-center shadow-lg max-w-md mx-auto mt-6 gap-4 animate-fade-in">
           <span className="text-xl">⚠️</span>
           <div className="flex flex-col gap-1">
-            <h2 className="text-zinc-200 font-bold">Failed to compile reports</h2>
-            <p className="text-zinc-500 text-xs">Verify your database connection and date filters range bounds.</p>
+            <h2 className="text-zinc-200 font-bold">Gagal menyusun laporan</h2>
+            <p className="text-zinc-500 text-xs">Verifikasi koneksi database Anda dan batas rentang filter tanggal.</p>
           </div>
           <Button variant="primary" onClick={handleRetryAll}>
-            Retry Sync
+            Ulangi Sinkronisasi
           </Button>
         </div>
       ) : (
@@ -275,29 +276,29 @@ export default function ReportsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Cash parameters summary */}
                 <div className="p-5 bg-zinc-900 border border-zinc-800/80 rounded-2xl flex flex-col gap-4">
-                  <h3 className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Cash Collection Audit</h3>
+                  <h3 className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Audit Penerimaan Kas</h3>
                   <div className="flex justify-between items-center border-b border-zinc-800/50 pb-3">
-                    <span className="text-zinc-500 text-xs font-bold uppercase">Estimated Cash Total</span>
+                    <span className="text-zinc-500 text-xs font-bold uppercase">Estimasi Total Kas</span>
                     <span className="text-zinc-200 text-sm font-extrabold">
                       {formatCurrency((paymentData?.data?.cash?.paid || 0) + (paymentData?.data?.cash?.pending || 0))}
                     </span>
                   </div>
                   <div className="text-zinc-500 text-xs leading-relaxed font-medium">
-                    This total reconciles currency tendered to staff runners during physical delivery. Compare physical drawer contents at shift close.
+                    Total ini mencocokkan mata uang yang diberikan kepada staf selama pengiriman fisik. Bandingkan isi laci fisik saat shift ditutup.
                   </div>
                 </div>
 
                 {/* QRIS parameters summary */}
                 <div className="p-5 bg-zinc-900 border border-zinc-800/80 rounded-2xl flex flex-col gap-4">
-                  <h3 className="text-zinc-400 text-xs font-bold uppercase tracking-wider">QRIS Bank Settlement</h3>
+                  <h3 className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Penyelesaian Bank QRIS</h3>
                   <div className="flex justify-between items-center border-b border-zinc-800/50 pb-3">
-                    <span className="text-zinc-500 text-xs font-bold uppercase">Digital Gateway Settled</span>
+                    <span className="text-zinc-500 text-xs font-bold uppercase">Penyelesaian Digital Gateway</span>
                     <span className="text-indigo-400 text-sm font-extrabold">
                       {formatCurrency(paymentData?.data?.qris?.paid || 0)}
                     </span>
                   </div>
                   <div className="text-zinc-500 text-xs leading-relaxed font-medium">
-                    These collections reflect settled bank queries from QR payments. Cross check transactions list against payment gateway bank portal statements.
+                    Penerimaan ini mencerminkan pertanyaan bank yang diselesaikan dari pembayaran QR. Periksa silang daftar transaksi dengan rekening koran portal bank gateway pembayaran.
                   </div>
                 </div>
               </div>
@@ -308,33 +309,33 @@ export default function ReportsPage() {
           {activeTab === "RECONCILIATION" && (
             <div className="p-6 bg-zinc-900 border border-zinc-800/80 rounded-2xl shadow-md flex flex-col gap-6">
               <div className="flex flex-col gap-1">
-                <h3 className="text-zinc-200 text-sm font-bold uppercase tracking-wider">Reconciliation Ledger Summary</h3>
-                <p className="text-zinc-500 text-xs">Compare expected revenue from order checkouts against PAID collections.</p>
+                <h3 className="text-zinc-200 text-sm font-bold uppercase tracking-wider">Ringkasan Buku Besar Rekonsiliasi</h3>
+                <p className="text-zinc-500 text-xs">Bandingkan pendapatan yang diharapkan dari checkout pesanan dengan penerimaan LUNAS.</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="p-5 bg-zinc-950 border border-zinc-800 rounded-xl flex flex-col gap-1.5">
-                  <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">Expected Order Sales</span>
+                  <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">Ekspektasi Penjualan Pesanan</span>
                   <span className="text-zinc-200 text-2xl font-black">
                     {formatCurrency(reconciliationData?.data?.expectedRevenue || 0)}
                   </span>
-                  <p className="text-zinc-600 text-xs mt-1">Sum of subtotal/tax checkouts (PREPARING, READY, COMPLETED)</p>
+                  <p className="text-zinc-600 text-xs mt-1">Jumlah subtotal/pajak dari checkout (DISIAPKAN, SIAP, SELESAI)</p>
                 </div>
 
                 <div className="p-5 bg-zinc-950 border border-zinc-800 rounded-xl flex flex-col gap-1.5">
-                  <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">Collected Paid Revenue</span>
+                  <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">Pendapatan Lunas Terkumpul</span>
                   <span className="text-emerald-400 text-2xl font-black">
                     {formatCurrency(reconciliationData?.data?.collectedRevenue || 0)}
                   </span>
-                  <p className="text-zinc-600 text-xs mt-1">Sum of cleared cash/QR payments marked PAID</p>
+                  <p className="text-zinc-600 text-xs mt-1">Jumlah pembayaran kas/QR yang ditandai LUNAS</p>
                 </div>
 
                 <div className="p-5 bg-zinc-950 border border-zinc-800 rounded-xl flex flex-col gap-1.5">
-                  <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">Uncollected / Discrepancy Difference</span>
+                  <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">Selisih Belum Terkumpul / Perbedaan</span>
                   <span className="text-rose-400 text-2xl font-black">
                     {formatCurrency(reconciliationData?.data?.outstandingAmount || 0)}
                   </span>
-                  <p className="text-zinc-600 text-xs mt-1">Expected sales total subtract settled paid collections</p>
+                  <p className="text-zinc-600 text-xs mt-1">Total ekspektasi penjualan dikurangi penerimaan lunas yang diselesaikan</p>
                 </div>
               </div>
             </div>
@@ -377,9 +378,9 @@ export default function ReportsPage() {
           {/* Audit Metadata Info */}
           {!isAnyLoading && (
             <div className="flex flex-wrap items-center justify-between text-[10px] text-zinc-500 font-bold uppercase tracking-widest border-t border-zinc-800/40 pt-4 mt-2 px-1">
-              <span>Timezone: {summaryData?.meta?.timezone || "UTC"}</span>
-              <span>Generated At: {new Date(summaryData?.meta?.generatedAt || "").toLocaleString()}</span>
-              <span>Report Base Currency: {summaryData?.meta?.currency || "Rp"}</span>
+              <span>Zona Waktu: {summaryData?.meta?.timezone || "UTC"}</span>
+              <span>Dibuat Pada: {new Date(summaryData?.meta?.generatedAt || "").toLocaleString()}</span>
+              <span>Mata Uang Dasar Laporan: {summaryData?.meta?.currency || "Rp"}</span>
             </div>
           )}
         </div>

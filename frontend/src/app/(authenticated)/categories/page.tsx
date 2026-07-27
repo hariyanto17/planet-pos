@@ -19,9 +19,10 @@ import { Input } from "@/components/Input";
 import { Button } from "@/components/Button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
+import { TEXT } from "@/lib/i18n/id";
 
 const categorySchema = zod.object({
-  name: zod.string().min(1, "Category name is required"),
+  name: zod.string().min(1, "Nama kategori wajib diisi"),
 });
 
 type CategorySchemaInput = zod.infer<typeof categorySchema>;
@@ -125,16 +126,16 @@ export default function CategoriesPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Product Categories"
-        description="Organize your concession products in custom groups."
+        title={TEXT.categories.title}
+        description={TEXT.categories.subtitle}
         actionButton={
-          <Button onClick={() => setIsAddModalOpen(true)}>Add Category</Button>
+          <Button onClick={() => setIsAddModalOpen(true)}>{TEXT.categories.addBtn}</Button>
         }
       />
 
       <div className="flex items-center justify-between gap-4">
         <SearchInput
-          placeholder="Search categories..."
+          placeholder={TEXT.categories.searchPlaceholder}
           onSearchChange={(val) => {
             setSearch(val);
             setPage(1);
@@ -143,10 +144,10 @@ export default function CategoriesPage() {
       </div>
 
       {!isLoading && filteredCategories.length === 0 ? (
-        <EmptyState title="No categories found" description="Try searching for another category name." />
+        <EmptyState title={TEXT.categories.emptyState} description="Silakan cari nama kategori lain." />
       ) : (
         <div className="flex flex-col gap-4">
-          <DataTable headers={["Name", "Status", "Created At", "Actions"]} isLoading={isLoading}>
+          <DataTable headers={[TEXT.categories.nameCol, TEXT.common.status, "Tanggal Dibuat", TEXT.common.actions]} isLoading={isLoading}>
             {paginatedCategories.map((c: Category) => (
               <tr key={c.id} className="border-b border-zinc-800/50 hover:bg-zinc-900/20 transition">
                 <td className="px-6 py-4 text-sm font-medium text-zinc-200">{c.name}</td>
@@ -163,19 +164,19 @@ export default function CategoriesPage() {
                     onClick={() => openEditModal(c)}
                     className="text-indigo-400 hover:text-indigo-300 font-medium transition"
                   >
-                    Edit
+                    {TEXT.common.edit}
                   </button>
                   <button
                     onClick={() => handleToggleActive(c)}
                     className="text-amber-400 hover:text-amber-300 font-medium transition"
                   >
-                    {c.isActive ? "Disable" : "Enable"}
+                    {c.isActive ? "Nonaktifkan" : "Aktifkan"}
                   </button>
                   <button
                     onClick={() => setDeletingCategoryId(c.id)}
                     className="text-rose-400 hover:text-rose-300 font-medium transition"
                   >
-                    Delete
+                    {TEXT.common.delete}
                   </button>
                 </td>
               </tr>
@@ -185,14 +186,14 @@ export default function CategoriesPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-zinc-800 pt-4">
               <span className="text-sm text-zinc-400">
-                Page {page} of {totalPages} ({filteredCategories.length} items)
+                Halaman {page} dari {totalPages} ({filteredCategories.length} item)
               </span>
               <div className="flex items-center gap-2">
                 <Button variant="ghost" onClick={() => setPage(page - 1)} disabled={page === 1}>
-                  Previous
+                  Sebelumnya
                 </Button>
                 <Button variant="ghost" onClick={() => setPage(page + 1)} disabled={page === totalPages}>
-                  Next
+                  Berikutnya
                 </Button>
               </div>
             </div>
@@ -200,29 +201,29 @@ export default function CategoriesPage() {
         </div>
       )}
 
-      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Create Category">
+      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title={TEXT.categories.addTitle}>
         <form onSubmit={handleSubmitAdd(handleAdd)} className="flex flex-col gap-4">
-          <Input label="Category Name" placeholder="e.g. Popcorn" error={errorsAdd.name?.message} {...registerAdd("name")} />
+          <Input label={TEXT.categories.nameCol} placeholder="Misal: Popcorn" error={errorsAdd.name?.message} {...registerAdd("name")} />
           <div className="flex items-center justify-end gap-3 pt-2">
             <Button variant="ghost" type="button" onClick={() => setIsAddModalOpen(false)}>
-              Cancel
+              {TEXT.common.cancel}
             </Button>
             <Button type="submit" isLoading={isCreating}>
-              Create
+              {TEXT.common.add}
             </Button>
           </div>
         </form>
       </Modal>
 
-      <Modal isOpen={!!editingCategory} onClose={() => setEditingCategory(null)} title="Edit Category">
+      <Modal isOpen={!!editingCategory} onClose={() => setEditingCategory(null)} title={TEXT.categories.editTitle}>
         <form onSubmit={handleSubmitEdit(handleEdit)} className="flex flex-col gap-4">
-          <Input label="Category Name" error={errorsEdit.name?.message} {...registerEdit("name")} />
+          <Input label={TEXT.categories.nameCol} error={errorsEdit.name?.message} {...registerEdit("name")} />
           <div className="flex items-center justify-end gap-3 pt-2">
             <Button variant="ghost" type="button" onClick={() => setEditingCategory(null)}>
-              Cancel
+              {TEXT.common.cancel}
             </Button>
             <Button type="submit" isLoading={isUpdating}>
-              Save Changes
+              {TEXT.common.save}
             </Button>
           </div>
         </form>
@@ -232,8 +233,8 @@ export default function CategoriesPage() {
         isOpen={!!deletingCategoryId}
         onClose={() => setDeletingCategoryId(null)}
         onConfirm={handleDelete}
-        title="Delete Category"
-        message="Are you sure you want to delete this category? All products under this category will need update."
+        title={TEXT.categories.deleteConfirmTitle}
+        message="Apakah Anda yakin ingin menghapus kategori ini? Semua produk di bawah kategori ini perlu diperbarui."
         isConfirming={isDeleting}
       />
     </div>

@@ -3,20 +3,18 @@
 import React from "react";
 import { useAppSelector } from "@/lib/store/hooks";
 import { selectCurrentUser } from "@/lib/store/features/auth/selectors";
-import { useDashboard } from "@/features/dashboard/hooks/useDashboard";
+import { useGetInventorySummaryQuery } from "@/lib/api/inventoryApi";
 import { DashboardStatCard } from "@/features/dashboard/components/DashboardStatCard";
-import { PaymentSummaryCard } from "@/features/dashboard/components/PaymentSummaryCard";
-import { RecentOrdersTable } from "@/features/dashboard/components/RecentOrdersTable";
 import { DashboardSection } from "@/features/dashboard/components/DashboardSection";
 import { Button } from "@/components/Button";
 import { formatCurrency } from "@/utils/formatters";
+import Link from "next/link";
 import { TEXT } from "@/lib/i18n/id";
 
-export default function DashboardPage() {
+export default function WarehouseDashboardPage() {
   const currentUser = useAppSelector(selectCurrentUser);
-  const { stats, isLoading, isError, refetch } = useDashboard();
+  const { data: summary, isLoading, isError, refetch } = useGetInventorySummaryQuery();
 
-  // Get current hour for a contextual greeting
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return TEXT.dashboard.greetingMorning;
@@ -47,10 +45,10 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/60 pb-6">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-black tracking-tight text-zinc-100">
-            {getGreeting()}, {currentUser?.fullName || "Admin"}
+            {getGreeting()}, {currentUser?.fullName || "Warehouse Manager"}
           </h1>
           <p className="text-zinc-500 text-sm">
-            {TEXT.dashboard.overviewSubtitle}
+            {TEXT.warehouse.dashboardSubtitle}
           </p>
         </div>
         <Button variant="secondary" onClick={refetch} isLoading={isLoading}>
@@ -58,12 +56,12 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      {/* Operational Summary Section */}
-      <DashboardSection title={TEXT.dashboard.statsTitle}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+      {/* Stats Summary Section */}
+      <DashboardSection title={TEXT.warehouse.overviewSectionTitle}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <DashboardStatCard
-            title={TEXT.dashboard.revenueToday}
-            value={formatCurrency(stats.todayRevenue)}
+            title={TEXT.inventory.valuationCard}
+            value={formatCurrency(summary?.inventoryValue || 0)}
             color="text-indigo-400"
             loading={isLoading}
             icon={
@@ -73,64 +71,54 @@ export default function DashboardPage() {
             }
           />
           <DashboardStatCard
-            title={TEXT.dashboard.ordersToday}
-            value={stats.todayOrders}
-            color="text-zinc-100"
+            title={TEXT.inventory.lowStockCard}
+            value={summary?.lowStockProducts || 0}
+            color={summary?.lowStockProducts > 0 ? "text-amber-500 font-extrabold animate-pulse" : "text-zinc-300"}
             loading={isLoading}
             icon={
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 002-2h2a2 2 0 002 2" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             }
           />
           <DashboardStatCard
-            title={TEXT.dashboard.preparing}
-            value={stats.preparingOrders}
-            color="text-amber-500"
+            title={TEXT.inventory.outOfStockCard}
+            value={summary?.outOfStockProducts || 0}
+            color={summary?.outOfStockProducts > 0 ? "text-rose-500 font-extrabold animate-pulse" : "text-zinc-300"}
             loading={isLoading}
             icon={
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
               </svg>
             }
           />
           <DashboardStatCard
-            title={TEXT.dashboard.ready}
-            value={stats.readyOrders}
-            color="text-indigo-400"
-            loading={isLoading}
-            icon={
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            }
-          />
-          <DashboardStatCard
-            title={TEXT.dashboard.completed}
-            value={stats.completedOrders}
+            title={TEXT.inventory.movementsCard}
+            value={summary?.todayMovements || 0}
             color="text-emerald-500"
             loading={isLoading}
             icon={
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
               </svg>
             }
           />
         </div>
       </DashboardSection>
 
-      {/* Payment Summary */}
-      <DashboardSection title={TEXT.dashboard.paymentBreakdowns}>
-        <PaymentSummaryCard
-          cashAmount={stats.cashRevenue}
-          qrisAmount={stats.qrisRevenue}
-          loading={isLoading}
-        />
-      </DashboardSection>
-
-      {/* Recent Activity Table */}
-      <DashboardSection title={TEXT.dashboard.recentOrdersTitle}>
-        <RecentOrdersTable orders={stats.recentOrders} loading={isLoading} />
+      {/* Quick Actions / Navigation link */}
+      <DashboardSection title={TEXT.warehouse.quickAccessCardTitle}>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow animate-fade-in">
+          <div className="flex flex-col gap-1">
+            <h3 className="text-zinc-200 font-bold text-base">{TEXT.warehouse.quickAccessCardTitle}</h3>
+            <p className="text-zinc-500 text-xs">
+              {TEXT.warehouse.quickAccessCardDesc}
+            </p>
+          </div>
+          <Link href="/warehouse/current-stock">
+            <Button variant="primary">{TEXT.warehouse.quickAccessBtn}</Button>
+          </Link>
+        </div>
       </DashboardSection>
     </div>
   );

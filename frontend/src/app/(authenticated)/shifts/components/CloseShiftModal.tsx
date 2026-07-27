@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Button } from "@/components/Button";
+import { TEXT } from "@/lib/i18n/id";
 
 interface CloseShiftModalProps {
   isOpen: boolean;
@@ -28,12 +29,12 @@ export const CloseShiftModal: React.FC<CloseShiftModalProps> = ({
     try {
       const amount = Number(actualCash);
       if (isNaN(amount) || amount < 0) {
-        throw new Error("Actual cash counted must be a valid positive number");
+        throw new Error("Uang kas fisik aktual harus berupa angka positif yang valid");
       }
       await onSubmit(amount, notes);
       onClose();
     } catch (err: any) {
-      setError(err?.data?.message || err?.message || "Failed to close shift");
+      setError(err?.data?.message || err?.message || "Gagal menutup shift");
     } finally {
       setLoading(false);
     }
@@ -43,16 +44,16 @@ export const CloseShiftModal: React.FC<CloseShiftModalProps> = ({
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md p-6 flex flex-col gap-4 shadow-xl animate-scale-in">
         <div className="flex flex-col gap-1">
-          <h3 className="text-zinc-100 text-lg font-black tracking-tight">Close Cashier Drawer Shift</h3>
+          <h3 className="text-zinc-100 text-lg font-black tracking-tight">{TEXT.shifts.closeShiftModalTitle}</h3>
           <p className="text-zinc-500 text-xs font-medium">
-            After closing, you will not be able to process new transactions on this shift.
+            {TEXT.shifts.closeShiftModalDesc}
           </p>
         </div>
 
         <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">
-              Actual Cash Drawer Count (Rp)
+              {TEXT.shifts.actualCashLabel} (Rp)
             </label>
             <input
               type="number"
@@ -65,13 +66,13 @@ export const CloseShiftModal: React.FC<CloseShiftModalProps> = ({
 
           <div className="flex flex-col gap-2">
             <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">
-              Shift Closing Notes / Discrepancy explanation
+              {TEXT.shifts.notesLabel}
             </label>
             <textarea
               rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g. Cash balanced or difference explanation..."
+              placeholder="Misal: Kas seimbang atau penjelasan selisih..."
               className="px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 text-sm outline-none focus:border-indigo-500 resize-none"
             />
           </div>
@@ -84,10 +85,10 @@ export const CloseShiftModal: React.FC<CloseShiftModalProps> = ({
 
           <div className="flex justify-end gap-2.5 mt-2">
             <Button variant="secondary" type="button" onClick={onClose} disabled={loading}>
-              Cancel
+              {TEXT.common.cancel}
             </Button>
             <Button variant="primary" type="submit" isLoading={loading}>
-              Close Shift
+              {TEXT.shifts.closeBtn}
             </Button>
           </div>
         </form>

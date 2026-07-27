@@ -26,6 +26,7 @@ import {
 import { Input } from "@/components/Input";
 import { Button } from "@/components/Button";
 import { OrderType, PaymentMethod } from "@shared/types";
+import { TEXT } from "@/lib/i18n/id";
 
 interface Product {
   id: string;
@@ -106,8 +107,8 @@ function SelfOrderContent() {
       <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-6 text-center">
         <div className="max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-xl flex flex-col items-center gap-4">
           <div className="w-12 h-12 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center text-xl font-bold">!</div>
-          <h2 className="text-xl font-bold text-zinc-100">QR Code Required</h2>
-          <p className="text-zinc-400 text-sm">Please scan the physical QR Code located on your movie theater seat or concession table to begin ordering.</p>
+          <h2 className="text-xl font-bold text-zinc-100">Kode QR Diperlukan</h2>
+          <p className="text-zinc-400 text-sm">Silakan pindai Kode QR fisik yang terletak di kursi bioskop atau meja konsesi Anda untuk mulai memesan.</p>
         </div>
       </div>
     );
@@ -120,7 +121,7 @@ function SelfOrderContent() {
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
-        <span className="text-zinc-400 text-sm font-medium">Verifying your location table...</span>
+        <span className="text-zinc-400 text-sm font-medium">Memverifikasi meja lokasi Anda...</span>
       </div>
     );
   }
@@ -130,8 +131,8 @@ function SelfOrderContent() {
       <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-6 text-center">
         <div className="max-w-md bg-zinc-900 border border-rose-500/20 rounded-2xl p-8 shadow-xl flex flex-col items-center gap-4">
           <div className="w-12 h-12 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center text-xl font-bold">X</div>
-          <h2 className="text-xl font-bold text-zinc-100">Invalid Location Code</h2>
-          <p className="text-zinc-400 text-sm">This table selection is invalid or currently offline. Please seek assistance or scan the QR code again.</p>
+          <h2 className="text-xl font-bold text-zinc-100">Kode Lokasi Tidak Valid</h2>
+          <p className="text-zinc-400 text-sm">Pilihan meja ini tidak valid atau sedang offline. Silakan minta bantuan atau pindai kode QR lagi.</p>
         </div>
       </div>
     );
@@ -151,18 +152,18 @@ function SelfOrderContent() {
           <div className="flex flex-col text-center gap-1.5">
             <span className="text-xs uppercase font-bold tracking-widest text-indigo-500">Planet Cinema Concessions</span>
             <h2 className="text-2xl font-black text-zinc-100">{tableData.name}</h2>
-            <p className="text-zinc-400 text-sm">Welcome! Please enter your name to start browsing the catalog.</p>
+            <p className="text-zinc-400 text-sm">Selamat datang! Silakan masukkan nama Anda untuk mulai menjelajahi katalog.</p>
           </div>
           <form onSubmit={handleNameSubmit} className="flex flex-col gap-4">
             <Input
-              label="Your Name"
-              placeholder="e.g. John Doe"
+              label="Nama Anda"
+              placeholder="Misal: John Doe"
               value={nameInput}
               onChange={(e) => setNameInput(e.target.value)}
               required
             />
             <Button type="submit" className="py-3">
-              Browse Concessions
+              Jelajahi Menu
             </Button>
           </form>
         </div>
@@ -193,7 +194,7 @@ function SelfOrderContent() {
       router.push(`/self-order/waiting?orderId=${result.orderId}`);
     } catch (err) {
       console.error("Order submission failed:", err);
-      alert("Something went wrong placing your order. Please check selection or try again.");
+      alert("Terjadi kesalahan saat membuat pesanan Anda. Silakan periksa pilihan atau coba lagi.");
     }
   };
 
@@ -215,7 +216,7 @@ function SelfOrderContent() {
           }}
           className="text-xs text-zinc-500 hover:text-zinc-300"
         >
-          Change Name
+          Ganti Nama
         </button>
       </header>
 
@@ -228,14 +229,14 @@ function SelfOrderContent() {
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Back to menu
+            Kembali ke menu
           </button>
 
-          <h2 className="text-xl font-bold tracking-tight text-zinc-100">Checkout Selection</h2>
+          <h2 className="text-xl font-bold tracking-tight text-zinc-100">Pilihan Checkout</h2>
 
           <div className="flex flex-col gap-5 bg-zinc-900 border border-zinc-800 rounded-xl p-4">
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Fulfillment Method</label>
+              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Metode Pemenuhan</label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
@@ -246,7 +247,7 @@ function SelfOrderContent() {
                       : "border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-zinc-300"
                   }`}
                 >
-                  Deliver to Table
+                  Diantar ke Meja
                 </button>
                 <button
                   type="button"
@@ -257,13 +258,13 @@ function SelfOrderContent() {
                       : "border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-zinc-300"
                   }`}
                 >
-                  Pick Up at Concessions
+                  Ambil di Konter
                 </button>
               </div>
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Payment Option</label>
+              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Opsi Pembayaran</label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
@@ -285,15 +286,15 @@ function SelfOrderContent() {
                       : "border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-zinc-300"
                   }`}
                 >
-                  Cash Payment
+                  Pembayaran Tunai
                 </button>
               </div>
             </div>
 
             {orderType === "DINE_IN" && paymentMethod === "CASH" && (
               <Input
-                label="Cash Available for Change (Rp)"
-                placeholder="e.g. 100000"
+                label="Uang Tunai untuk Kembalian (Rp)"
+                placeholder="Misal: 100000"
                 type="number"
                 value={cashAvailable}
                 onChange={(e) => setCashAvailable(e.target.value)}
@@ -302,15 +303,15 @@ function SelfOrderContent() {
             )}
 
             <Input
-              label="Order Notes (Optional)"
-              placeholder="e.g. Popcorn unsalted please, extra napkins"
+              label="Catatan Pesanan (Opsional)"
+              placeholder="Misal: Popcorn tanpa garam, tisu ekstra"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
           </div>
 
           <div className="flex flex-col gap-3">
-            <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Order Summary</h3>
+            <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Ringkasan Pesanan</h3>
             <div className="flex flex-col gap-2 bg-zinc-900/50 border border-zinc-900 rounded-xl p-4">
               {cartItems.map((item: CartItem) => (
                 <div key={item.productId} className="flex justify-between items-center text-sm">
@@ -319,10 +320,10 @@ function SelfOrderContent() {
                 </div>
               ))}
               <div className="border-t border-zinc-800 mt-2 pt-2 flex justify-between items-center text-base font-bold text-zinc-100">
-                <span>Estimated Subtotal</span>
+                <span>Estimasi Subtotal</span>
                 <span>Rp {cartSubtotal.toLocaleString()}</span>
               </div>
-              <p className="text-xs text-zinc-500 leading-normal mt-1">Taxes, service charges, and any valid discount packages will be verified and added in full by the billing engine.</p>
+              <p className="text-xs text-zinc-500 leading-normal mt-1">Pajak, biaya layanan, dan paket diskon yang valid akan diverifikasi dan ditambahkan secara penuh oleh sistem penagihan.</p>
             </div>
           </div>
 
@@ -331,7 +332,7 @@ function SelfOrderContent() {
             isLoading={isSubmitting}
             className="w-full py-3.5 mt-2 text-base font-bold"
           >
-            Place Order
+            Buat Pesanan
           </Button>
         </div>
       ) : (
@@ -339,17 +340,17 @@ function SelfOrderContent() {
           <div className="flex items-center gap-2 overflow-x-auto p-4 border-b border-zinc-900 scrollbar-none">
             <button
               onClick={() => setActiveCategory("")}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition duration-250 ${
+              className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition duration-255 ${
                 activeCategory === "" ? "bg-indigo-600 text-white" : "bg-zinc-900 text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              All Items
+              Semua Menu
             </button>
             {activeCategories.map((c: Category) => (
               <button
                 key={c.id}
                 onClick={() => setActiveCategory(c.id)}
-                className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition duration-250 ${
+                className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition duration-255 ${
                   activeCategory === c.id ? "bg-indigo-600 text-white" : "bg-zinc-900 text-zinc-400 hover:text-zinc-200"
                 }`}
               >
@@ -361,7 +362,7 @@ function SelfOrderContent() {
           <div className="p-4 border-b border-zinc-900">
             <input
               type="text"
-              placeholder="Search food, soft drinks, snacks..."
+              placeholder="Cari makanan, minuman, camilan..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full px-4 py-2 bg-zinc-900 border border-zinc-800 focus:border-indigo-500 rounded-lg text-zinc-200 text-sm outline-none transition"
@@ -385,8 +386,8 @@ function SelfOrderContent() {
               <svg className="w-12 h-12 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              <span className="text-sm font-semibold">No products available</span>
-              <span className="text-xs">Try selecting a different tab filter or searching keyword.</span>
+              <span className="text-sm font-semibold">Produk tidak tersedia</span>
+              <span className="text-xs">Silakan pilih filter kategori lain atau masukkan kata kunci pencarian baru.</span>
             </div>
           ) : (
             <div className="flex flex-col gap-4 p-4">
@@ -447,7 +448,7 @@ function SelfOrderContent() {
                             }}
                             className="px-3.5 py-1 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 active:scale-95 rounded-lg transition duration-200 shadow-md shadow-indigo-600/25"
                           >
-                            Add
+                            Tambah
                           </button>
                         )}
                       </div>
@@ -463,14 +464,14 @@ function SelfOrderContent() {
       {totalItems > 0 && !checkoutStep && (
         <div className="fixed bottom-0 inset-x-0 bg-zinc-950 border-t border-zinc-900 max-w-lg mx-auto p-4 flex items-center justify-between z-40 shadow-xl shadow-indigo-600/10">
           <div className="flex flex-col">
-            <span className="text-xs text-zinc-400 font-semibold">{totalItems} items in cart</span>
+            <span className="text-xs text-zinc-400 font-semibold">{totalItems} item di keranjang</span>
             <span className="text-base font-bold text-indigo-400">Rp {cartSubtotal.toLocaleString()}</span>
           </div>
           <button
             onClick={() => setIsCartOpen(true)}
             className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 active:scale-98 rounded-lg text-sm font-bold text-white shadow-lg shadow-indigo-600/35 transition"
           >
-            Review Cart
+            Lihat Keranjang
           </button>
         </div>
       )}
@@ -479,12 +480,12 @@ function SelfOrderContent() {
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center p-4">
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md p-5 flex flex-col gap-4 shadow-2xl animate-in slide-in-from-bottom duration-255">
             <div className="flex items-center justify-between border-b border-zinc-850 pb-3">
-              <h3 className="text-base font-bold text-zinc-100">Review Shopping Cart</h3>
+              <h3 className="text-base font-bold text-zinc-100">Keranjang Belanja</h3>
               <button
                 onClick={() => setIsCartOpen(false)}
                 className="text-xs text-zinc-400 hover:text-zinc-200"
               >
-                Close
+                Tutup
               </button>
             </div>
 
@@ -523,7 +524,7 @@ function SelfOrderContent() {
             </div>
 
             <div className="flex justify-between items-center border-t border-zinc-850 pt-3">
-              <span className="text-sm font-semibold text-zinc-400">Total Price</span>
+              <span className="text-sm font-semibold text-zinc-400">Total Harga</span>
               <span className="text-lg font-black text-indigo-400">Rp {cartSubtotal.toLocaleString()}</span>
             </div>
 
@@ -534,7 +535,7 @@ function SelfOrderContent() {
               }}
               className="w-full py-3 text-sm font-bold"
             >
-              Continue to Checkout
+              Lanjutkan ke Checkout
             </Button>
           </div>
         </div>
@@ -547,7 +548,7 @@ export default function SelfOrderPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-950">
-        <span className="text-zinc-400 text-sm font-medium">Loading checkout console...</span>
+        <span className="text-zinc-400 text-sm font-medium">Memuat konsol checkout...</span>
       </div>
     }>
       <SelfOrderContent />

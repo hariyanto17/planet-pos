@@ -12,6 +12,7 @@ import { TimelineCard } from "@/features/orders/components/TimelineCard";
 import { Button } from "@/components/Button";
 import { formatOrderNumber } from "@/utils/formatters";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { TEXT } from "@/lib/i18n/id";
 
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -48,15 +49,15 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       <div className="flex flex-col items-center justify-center p-12 bg-zinc-900 border border-zinc-800 rounded-2xl text-center shadow-lg max-w-md mx-auto mt-12 gap-4">
         <span className="text-xl">⚠️</span>
         <div className="flex flex-col gap-1">
-          <h2 className="text-zinc-200 font-bold">Unable to retrieve order details</h2>
-          <p className="text-zinc-500 text-xs">Verify the identifier or check server logs.</p>
+          <h2 className="text-zinc-200 font-bold">Gagal memuat detail pesanan</h2>
+          <p className="text-zinc-500 text-xs">Verifikasi pengidentifikasi atau periksa log server.</p>
         </div>
         <div className="flex gap-3">
           <Button variant="secondary" onClick={() => router.push("/orders")}>
-            Back to Queue
+            {TEXT.orders.backToOrders}
           </Button>
           <Button variant="primary" onClick={refetch}>
-            Retry Load
+            Coba Lagi
           </Button>
         </div>
       </div>
@@ -73,15 +74,15 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               onClick={() => router.push("/orders")}
               className="text-zinc-500 hover:text-zinc-300 transition text-sm font-medium"
             >
-              ← Back to Queue
+              ← {TEXT.orders.backToOrders}
             </button>
           </div>
           <h1 className="text-3xl font-black tracking-tight text-zinc-100 mt-2">
-            Details • {formatOrderNumber(order.displayNumber)}
+            Detail • {formatOrderNumber(order.displayNumber)}
           </h1>
         </div>
         <Button variant="secondary" onClick={refetch}>
-          Refresh Details
+          Perbarui Detail
         </Button>
       </div>
 
