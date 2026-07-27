@@ -29,7 +29,12 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       return next(new AppError("UNAUTHORIZED", "User no longer exists or is inactive"));
     }
 
-    req.user = decoded;
+    req.user = {
+      id: user.id,
+      fullName: user.fullName,
+      username: user.username,
+      role: user.role,
+    };
     next();
   } catch (error) {
     return next(new AppError("UNAUTHORIZED", "Token validation failed"));
@@ -50,7 +55,12 @@ export const optionalAuthenticate = async (req: Request, res: Response, next: Ne
       where: { id: decoded.id }
     });
     if (user && user.isActive) {
-      req.user = decoded;
+      req.user = {
+        id: user.id,
+        fullName: user.fullName,
+        username: user.username,
+        role: user.role,
+      };
     }
     next();
   } catch (error) {
