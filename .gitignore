@@ -86,3 +86,11 @@ local.properties
 # Testing
 /coverage
 **/coverage/
+
+# Runtime logs
+logs/
+**/logs/
+backend/logs/
+
+# Prisma migrations
+backend/prisma/migrations/
