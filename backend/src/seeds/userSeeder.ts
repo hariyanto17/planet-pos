@@ -30,6 +30,11 @@ async function main() {
       fullName: "Kitchen Staff",
       role: UserRole.KITCHEN,
     },
+    {
+      username: "warehouse",
+      fullName: "Warehouse Officer",
+      role: UserRole.WAREHOUSE,
+    },
   ];
 
   for (const u of usersToSeed) {
@@ -54,6 +59,8 @@ async function main() {
   console.log("User seeding completed successfully.");
 
   console.log("Cleaning up old concessions data...");
+  await prisma.stockLedger.deleteMany({});
+  await prisma.warehouseStock.deleteMany({});
   await prisma.promotionItem.deleteMany({});
   await prisma.promotion.deleteMany({});
   await prisma.product.deleteMany({});
