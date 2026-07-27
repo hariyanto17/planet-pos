@@ -82,9 +82,10 @@ export const createPayment = async (
       const activeShift = await tx.cashierShift.findFirst({
         where: { userId: cashierId, status: "OPEN" },
       });
-      if (activeShift) {
-        cashierShiftId = activeShift.id;
+      if (!activeShift) {
+        throw new AppError("BAD_REQUEST", "Active cashier shift is required for cashier payments");
       }
+      cashierShiftId = activeShift.id;
     }
 
     const payment = await tx.payment.create({

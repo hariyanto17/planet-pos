@@ -9,7 +9,6 @@ import {
   FlatList,
   Image,
   Dimensions,
-  ActivityIndicator,
   SafeAreaView,
 } from "react-native";
 import { StackScreenProps } from "@react-navigation/stack";

@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from "react";
-import { StyleSheet, Text, View, Animated, TouchableOpacity, Dimensions } from "react-native";
+import React, { useEffect, useRef, useCallback } from "react";
+import { StyleSheet, Text, View, Animated, TouchableOpacity } from "react-native";
 import { ALERT_THEME } from "../lib/theme/alert";
 
 interface ToastProps {
@@ -16,7 +16,7 @@ export const Toast: React.FC<ToastProps> = ({ id, type, title, message, onDismis
   
   const theme = ALERT_THEME[type] || ALERT_THEME.info;
 
-  const handleDismiss = () => {
+  const handleDismiss = useCallback(() => {
     Animated.parallel([
       Animated.timing(slideAnim, {
         toValue: 300,
@@ -31,7 +31,7 @@ export const Toast: React.FC<ToastProps> = ({ id, type, title, message, onDismis
     ]).start(() => {
       onDismiss(id);
     });
-  };
+  }, [id, onDismiss, slideAnim, opacityAnim]);
 
   useEffect(() => {
     Animated.parallel([
@@ -52,7 +52,7 @@ export const Toast: React.FC<ToastProps> = ({ id, type, title, message, onDismis
     }, 3500);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [handleDismiss, slideAnim, opacityAnim]);
 
   return (
     <Animated.View

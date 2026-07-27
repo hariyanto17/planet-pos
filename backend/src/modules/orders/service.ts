@@ -1,8 +1,9 @@
 import { prisma } from "../../utils/prisma";
 import { AppError } from "../../utils/errorHandler";
 import { CreateOrderInput } from "./interface";
-import { OrderStatus, Prisma, Tax, Promotion } from "@prisma/client";
+import { OrderStatus, Prisma, Tax, Promotion, StockMovementType, StockReferenceType } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
+import { createLedgerEntry } from "../inventory/stock.service";
 import { isValidOrderTransition } from "../../utils/statusValidator";
 import { domainEvents, DOMAIN_EVENTS } from "../../utils/eventEmitter";
 
@@ -36,6 +37,15 @@ export const createOrder = async (
 
   const execute = async (tx: Prisma.TransactionClient) => {
     const isCashier = !!cashierId;
+
+    if (cashierId) {
+      const activeShift = await tx.cashierShift.findFirst({
+        where: { userId: cashierId, status: "OPEN" },
+      });
+      if (!activeShift) {
+        throw new AppError("BAD_REQUEST", "Active cashier shift is required to place orders");
+      }
+    }
 
     // Validate table if provided or required
     if (!input.tableId && !isCashier) {
@@ -334,6 +344,10 @@ export const updateOrderStatus = async (id: string, status: OrderStatus, userId:
       },
     });
 
+    if (targetStatus === OrderStatus.COMPLETED) {
+      await deductInventoryForCompletedOrder(tx, id, userId);
+    }
+
     const updatedOrder = await tx.order.update({
       where: { id },
       data: { status: targetStatus },
@@ -396,6 +410,8 @@ export const confirmPayment = async (
 
   if (totalPaid.gte(order.grandTotal)) {
     if (order.status === OrderStatus.READY) {
+      await deductInventoryForCompletedOrder(tx, orderId, cashierId);
+
       await tx.order.update({
         where: { id: orderId },
         data: { status: OrderStatus.COMPLETED },
@@ -430,6 +446,55 @@ export const confirmPayment = async (
             grandTotal: order.grandTotal.toString(),
           },
         },
+      });
+    }
+  }
+};
+
+export const deductInventoryForCompletedOrder = async (
+  tx: Prisma.TransactionClient,
+  orderId: string,
+  userId: string | null
+) => {
+  const order = await tx.order.findUnique({
+    where: { id: orderId },
+    include: {
+      items: true,
+    },
+  });
+
+  if (!order) return;
+
+  const defaultWarehouseCode = process.env.DEFAULT_SALES_WAREHOUSE_CODE || "CONCESSION";
+  const warehouse = await tx.warehouse.findFirst({
+    where: { code: defaultWarehouseCode },
+  });
+
+  if (!warehouse) {
+    throw new AppError("BAD_REQUEST", `Default sales warehouse '${defaultWarehouseCode}' not found`);
+  }
+
+  const productIds = order.items.map((item) => item.productId);
+  const products = await tx.product.findMany({
+    where: { id: { in: productIds } },
+  });
+  const productsMap = new Map(products.map((p) => [p.id, p]));
+
+  for (const item of order.items) {
+    const product = productsMap.get(item.productId);
+    if (!product) continue;
+
+    if (product.trackInventory && product.inventoryType === "FINISHED_GOOD") {
+      const deductionQty = -Number(item.quantity);
+      await createLedgerEntry(tx, {
+        productId: product.id,
+        warehouseId: warehouse.id,
+        movementType: StockMovementType.SALE,
+        quantity: deductionQty,
+        referenceType: StockReferenceType.SALE,
+        referenceId: order.id,
+        remarks: `Auto stock deduction from POS Order ${order.displayNumber}`,
+        createdById: userId,
       });
     }
   }

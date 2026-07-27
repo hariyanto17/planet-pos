@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   StyleSheet,
   Text,
@@ -8,7 +8,6 @@ import {
   RefreshControl,
   TextInput,
   ScrollView,
-  ActivityIndicator,
 } from "react-native";
 import { StackScreenProps } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
@@ -35,13 +34,11 @@ export default function OrdersScreen({ navigation }: Props) {
     data,
     isLoading: isOrdersLoading,
     isFetching: isOrdersFetching,
-    isError: isOrdersError,
     refetch: refetchOrders,
   } = useGetOrdersQuery(filters);
 
   const {
     data: shiftData,
-    isLoading: isShiftLoading,
     refetch: refetchShift,
   } = useGetCurrentShiftQuery();
 

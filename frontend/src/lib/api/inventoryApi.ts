@@ -1,0 +1,83 @@
+import { baseApi } from "./baseApi";
+
+export const inventoryApi = baseApi.injectEndpoints({
+  endpoints: (builder) => ({
+    getInventorySummary: builder.query<any, void>({
+      query: () => "/inventory/summary",
+      providesTags: ["Inventory"],
+    }),
+    getInventoryProducts: builder.query<
+      any,
+      { search?: string; warehouseId?: string; stockStatus?: string; page?: number; limit?: number }
+    >({
+      query: (params) => ({
+        url: "/inventory/products",
+        params,
+      }),
+      providesTags: ["Inventory"],
+    }),
+    getStockMovements: builder.query<
+      any,
+      {
+        search?: string;
+        warehouseId?: string;
+        movementType?: string;
+        productId?: string;
+        dateFrom?: string;
+        dateTo?: string;
+        page?: number;
+        limit?: number;
+      }
+    >({
+      query: (params) => ({
+        url: "/inventory/movements",
+        params,
+      }),
+      providesTags: ["Inventory"],
+    }),
+    receiveStock: builder.mutation<any, { productId: string; warehouseId: string; quantity: number; remarks?: string }>({
+      query: (body) => ({
+        url: "/inventory/receive",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Inventory"],
+    }),
+    adjustStock: builder.mutation<any, { productId: string; warehouseId: string; quantity: number; remarks?: string }>({
+      query: (body) => ({
+        url: "/inventory/adjust",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Inventory"],
+    }),
+    removeWaste: builder.mutation<any, { productId: string; warehouseId: string; quantity: number; remarks?: string }>({
+      query: (body) => ({
+        url: "/inventory/waste",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Inventory"],
+    }),
+    getWarehouses: builder.query<any[], void>({
+      query: () => "/inventory/warehouses",
+      providesTags: ["Inventory"],
+    }),
+    getUnits: builder.query<any[], void>({
+      query: () => "/inventory/units",
+      providesTags: ["Inventory"],
+    }),
+  }),
+});
+
+export const {
+  useGetInventorySummaryQuery,
+  useGetInventoryProductsQuery,
+  useGetStockMovementsQuery,
+  useReceiveStockMutation,
+  useAdjustStockMutation,
+  useRemoveWasteMutation,
+  useGetWarehousesQuery,
+  useGetUnitsQuery,
+} = inventoryApi;
+export default inventoryApi;

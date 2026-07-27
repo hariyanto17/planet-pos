@@ -1,4 +1,4 @@
-export type UserRole = "ADMIN" | "ACCOUNTING" | "CASHIER" | "KITCHEN";
+export type UserRole = "ADMIN" | "ACCOUNTING" | "CASHIER" | "KITCHEN" | "WAREHOUSE";
 export type OrderType = "DINE_IN" | "TAKEAWAY";
 export type OrderSource = "SELF_ORDER" | "CASHIER";
 export type OrderStatus = "NEW" | "PREPARING" | "READY" | "COMPLETED" | "CANCELLED";

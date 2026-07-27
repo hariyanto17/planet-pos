@@ -22,7 +22,7 @@ export default function HomeScreen({ navigation }: Props) {
   // Fetch metrics using optimized dedicated endpoints
   const { data: pendingOrders = [] } = useGetPendingPaymentsQuery();
   const { data: queueOrders = [] } = useGetOrdersQueueQuery();
-  const { data: shiftData, refetch: refetchShift } = useGetCurrentShiftQuery();
+  const { data: shiftData } = useGetCurrentShiftQuery();
 
   const isShiftOpen = shiftData?.status === "OPEN";
 

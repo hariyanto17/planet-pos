@@ -12,6 +12,7 @@ enum UserRole {
   ACCOUNTING
   CASHIER
   KITCHEN
+  WAREHOUSE
 }
 
 enum OrderType {
@@ -63,6 +64,7 @@ model User {
   orderTimelines    OrderTimeline[]
   confirmedPayments Payment[]       @relation(name: "ConfirmedPayments")
   cashierShifts     CashierShift[]
+  stockLedgers      StockLedger[]
 
   @@index([role])
   @@index([isActive])
@@ -94,6 +96,15 @@ model Product {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   promotionItems PromotionItem[]
+
+  inventoryType  InventoryType   @default(FINISHED_GOOD)
+  trackInventory Boolean         @default(false)
+  minimumStock   Decimal         @default(0) @db.Decimal(14, 3)
+  unitId         String?
+  unit           Unit?           @relation(fields: [unitId], references: [id])
+
+  warehouseStocks WarehouseStock[]
+  stockLedgers    StockLedger[]
 
   @@index([categoryId])
   @@index([isActive])
@@ -309,4 +320,86 @@ model CashierShift {
   @@index([userId])
   @@index([businessDate])
   @@index([status])
+}
+
+enum InventoryType {
+  FINISHED_GOOD
+  RAW_MATERIAL
+  PACKAGING
+}
+
+enum StockMovementType {
+  OPENING
+  RECEIVE
+  SALE
+  ADJUSTMENT
+  WASTE
+}
+
+enum StockReferenceType {
+  OPENING
+  RECEIVE
+  SALE
+  ADJUSTMENT
+  WASTE
+}
+
+model Unit {
+  id        String    @id @default(uuid())
+  name      String
+  symbol    String    @unique
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+}
+
+model Warehouse {
+  id              String           @id @default(uuid())
+  code            String           @unique
+  name            String
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  warehouseStocks WarehouseStock[]
+  stockLedgers    StockLedger[]
+}
+
+model WarehouseStock {
+  id          String    @id @default(uuid())
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+  quantity    Decimal   @default(0) @db.Decimal(14, 3)
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([warehouseId, productId])
+  @@index([warehouseId])
+  @@index([productId])
+}
+
+model StockLedger {
+  id             String             @id @default(uuid())
+  warehouseId    String
+  warehouse      Warehouse          @relation(fields: [warehouseId], references: [id])
+  productId      String
+  product        Product            @relation(fields: [productId], references: [id])
+  movementType   StockMovementType
+  quantity       Decimal            @db.Decimal(14, 3)
+  quantityBefore Decimal            @db.Decimal(14, 3)
+  quantityAfter  Decimal            @db.Decimal(14, 3)
+  referenceType  StockReferenceType
+  referenceId    String?
+  remarks        String?
+  createdById    String?
+  createdBy      User?              @relation(fields: [createdById], references: [id])
+  createdAt      DateTime           @default(now())
+
+  @@index([warehouseId])
+  @@index([productId])
+  @@index([movementType])
+  @@index([createdAt])
+  @@index([referenceType])
+  @@index([referenceId])
 }

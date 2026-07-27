@@ -64,7 +64,7 @@ export const OrderSummaryCard: React.FC<OrderSummaryCardProps> = ({ order }) => 
           <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">
             Customer Instructions
           </span>
-          <span className="text-zinc-300 text-xs italic">"{order.notes}"</span>
+          <span className="text-zinc-300 text-xs italic">&ldquo;{order.notes}&rdquo;</span>
         </div>
       ) : null}
 

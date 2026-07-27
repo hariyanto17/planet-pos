@@ -85,6 +85,7 @@ function SelfOrderContent() {
   useEffect(() => {
     const activeCats = categories.filter((c: Category) => c.isActive);
     if (activeCats.length > 0 && !activeCategory) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveCategory(activeCats[0].id);
     }
   }, [categories, activeCategory]);

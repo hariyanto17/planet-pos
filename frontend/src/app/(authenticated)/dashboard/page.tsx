@@ -49,7 +49,7 @@ export default function DashboardPage() {
             {getGreeting()}, {currentUser?.fullName || "Admin"}
           </h1>
           <p className="text-zinc-500 text-sm">
-            Here is today's operations overview for the concessions terminal.
+            Here is today&apos;s operations overview for the concessions terminal.
           </p>
         </div>
         <Button variant="secondary" onClick={refetch} isLoading={isLoading}>

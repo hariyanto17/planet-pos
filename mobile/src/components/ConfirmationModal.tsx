@@ -75,7 +75,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         setShouldRender(false);
       });
     }
-  }, [visible]);
+  }, [visible, backdropOpacity, sheetTranslateY]);
 
   if (!shouldRender) return null;
 

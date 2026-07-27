@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal, Alert } from "react-native";
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal } from "react-native";
 import { StackScreenProps } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { useAppDispatch, useAppSelector } from "../lib/store/hooks";
@@ -8,7 +8,6 @@ import {
   selectCartSubtotal,
   selectCartTotalItems,
   selectCartCustomerName,
-  selectCartValidatedTable,
   selectCartOrderType,
   selectCartTableId,
 } from "../lib/store/features/cart/selectors";
