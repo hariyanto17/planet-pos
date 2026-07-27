@@ -6,8 +6,6 @@ import { useGetWarehousesQuery, useRecordOpeningStockMutation } from "@/lib/api/
 import { useGetProductsQuery } from "@/lib/api/productApi";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/Button";
-import { Input } from "@/components/Input";
-import { TEXT } from "@/lib/i18n/id";
 
 interface RowItem {
   productId: string;

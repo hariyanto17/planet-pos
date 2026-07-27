@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { useAppSelector } from "@/lib/store/hooks";
 import { selectCurrentUser } from "@/lib/store/features/auth/selectors";
 import {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as zod from "zod";
@@ -41,7 +41,7 @@ export default function UnitsPage() {
   const [page, setPage] = useState(1);
   const limit = 8;
 
-  const { data: unitsData, isLoading, refetch } = useGetUnitsListQuery({
+  const { data: unitsData, isLoading } = useGetUnitsListQuery({
     search: search || undefined,
     page,
     limit,
