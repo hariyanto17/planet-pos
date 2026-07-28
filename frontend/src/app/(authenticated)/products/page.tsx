@@ -4,6 +4,7 @@ import React, { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as zod from "zod";
+import Link from "next/link";
 import {
   useGetProductsQuery,
   useCreateProductMutation,
@@ -23,17 +24,40 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { TEXT } from "@/lib/i18n/id";
 
-const productSchema = zod.object({
-  name: zod.string().min(1, "Nama produk wajib diisi"),
-  sku: zod.string().min(1, "SKU wajib diisi"),
-  categoryId: zod.string().min(1, "Kategori wajib diisi"),
-  price: zod.number().positive("Harga harus lebih besar dari nol"),
-  imageUrl: zod.string().url("Harus berupa URL yang valid").or(zod.string().length(0)).optional(),
-  trackInventory: zod.boolean().optional(),
-  inventoryType: zod.string().optional(),
-  minimumStock: zod.number().min(0).optional(),
-  unitId: zod.string().optional(),
-});
+const productSchema = zod
+  .object({
+    name: zod.string().min(1, "Product Name is required"),
+    sku: zod.string().optional(),
+    categoryId: zod.string().min(1, "Category is required"),
+    price: zod.number().positive("Price must be greater than zero"),
+    imageUrl: zod.string().url("Must be a valid URL").or(zod.string().length(0)).optional(),
+    trackInventory: zod.boolean().optional(),
+    inventoryType: zod.string().optional(),
+    minimumStock: zod
+      .number()
+      .min(0, "Low Stock Alert cannot be negative")
+      .or(zod.nan())
+      .optional(),
+    unitId: zod.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.trackInventory) {
+      if (!data.inventoryType) {
+        ctx.addIssue({
+          code: zod.ZodIssueCode.custom,
+          path: ["inventoryType"],
+          message: "Product Type is required when tracking stock & inventory",
+        });
+      }
+      if (!data.unitId) {
+        ctx.addIssue({
+          code: zod.ZodIssueCode.custom,
+          path: ["unitId"],
+          message: "Unit is required when tracking stock & inventory",
+        });
+      }
+    }
+  });
 
 type ProductSchemaInput = zod.infer<typeof productSchema>;
 
@@ -63,6 +87,39 @@ interface Category {
   name: string;
 }
 
+const LiveImagePreview = ({ url }: { url?: string }) => {
+  const [hasError, setHasError] = useState(false);
+
+  React.useEffect(() => {
+    setHasError(false);
+  }, [url]);
+
+  if (!url) return null;
+
+  return (
+    <div className="mt-2 flex flex-col gap-1">
+      <span className="text-xs font-medium text-zinc-400">Live Preview:</span>
+      <div className="w-28 h-28 rounded-lg border border-zinc-850 overflow-hidden bg-zinc-900 flex items-center justify-center">
+        {hasError ? (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900 text-zinc-500 text-center p-2">
+            <svg className="w-8 h-8 text-zinc-600 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span className="text-[10px] text-zinc-500 font-medium">Invalid Image</span>
+          </div>
+        ) : (
+          <img
+            src={url}
+            alt="Product Preview"
+            className="w-full h-full object-cover"
+            onError={() => setHasError(true)}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
 export default function ProductsPage() {
   const { data: products = [], isLoading: isLoadingProducts } = useGetProductsQuery();
   const { data: categories = [], isLoading: isLoadingCategories } = useGetCategoriesQuery();
@@ -84,7 +141,6 @@ export default function ProductsPage() {
     register: registerAdd,
     handleSubmit: handleSubmitAdd,
     reset: resetAdd,
-    setError: setErrorAdd,
     formState: { errors: errorsAdd },
     watch: watchAdd,
   } = useForm<ProductSchemaInput>({
@@ -101,7 +157,6 @@ export default function ProductsPage() {
     register: registerEdit,
     handleSubmit: handleSubmitEdit,
     reset: resetEdit,
-    setError: setErrorEdit,
     formState: { errors: errorsEdit },
     watch: watchEdit,
   } = useForm<ProductSchemaInput>({
@@ -116,6 +171,14 @@ export default function ProductsPage() {
 
   const trackInventoryAdd = watchAdd("trackInventory", false);
   const trackInventoryEdit = watchEdit("trackInventory", false);
+  const imageUrlAdd = watchAdd("imageUrl");
+  const imageUrlEdit = watchEdit("imageUrl");
+  const inventoryTypeAdd = watchAdd("inventoryType");
+  const inventoryTypeEdit = watchEdit("inventoryType");
+
+  const activeUnits = useMemo(() => {
+    return units.filter((u: any) => u.isActive);
+  }, [units]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((p: Product) => {
@@ -135,29 +198,17 @@ export default function ProductsPage() {
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
 
   const handleAdd = async (data: ProductSchemaInput) => {
-    if (data.trackInventory) {
-      let hasError = false;
-      if (!data.inventoryType) {
-        setErrorAdd("inventoryType", { type: "manual", message: "Tipe inventaris wajib diisi jika lacak inventaris aktif" });
-        hasError = true;
-      }
-      if (!data.unitId) {
-        setErrorAdd("unitId", { type: "manual", message: "Satuan wajib diisi jika lacak inventaris aktif" });
-        hasError = true;
-      }
-      if (hasError) return;
-    }
     try {
       await createProduct({
         categoryId: data.categoryId,
-        sku: data.sku,
+        sku: data.sku || undefined,
         name: data.name,
         price: data.price,
         imageUrl: data.imageUrl || undefined,
         trackInventory: data.trackInventory || false,
         inventoryType: data.trackInventory ? (data.inventoryType as any) : undefined,
         unitId: data.trackInventory ? data.unitId : undefined,
-        minimumStock: data.trackInventory ? data.minimumStock : undefined,
+        minimumStock: data.trackInventory ? data.minimumStock : 0,
       }).unwrap();
       setIsAddModalOpen(false);
       resetAdd();
@@ -168,31 +219,19 @@ export default function ProductsPage() {
 
   const handleEdit = async (data: ProductSchemaInput) => {
     if (!editingProduct) return;
-    if (data.trackInventory) {
-      let hasError = false;
-      if (!data.inventoryType) {
-        setErrorEdit("inventoryType", { type: "manual", message: "Tipe inventaris wajib diisi jika lacak inventaris aktif" });
-        hasError = true;
-      }
-      if (!data.unitId) {
-        setErrorEdit("unitId", { type: "manual", message: "Satuan wajib diisi jika lacak inventaris aktif" });
-        hasError = true;
-      }
-      if (hasError) return;
-    }
     try {
       await updateProduct({
         id: editingProduct.id,
         body: {
           categoryId: data.categoryId,
-          sku: data.sku,
+          sku: data.sku || undefined,
           name: data.name,
           price: data.price,
           imageUrl: data.imageUrl || undefined,
           trackInventory: data.trackInventory || false,
           inventoryType: data.trackInventory ? (data.inventoryType as any) : undefined,
           unitId: data.trackInventory ? data.unitId : undefined,
-          minimumStock: data.trackInventory ? data.minimumStock : undefined,
+          minimumStock: data.trackInventory ? data.minimumStock : 0,
         },
       }).unwrap();
       setEditingProduct(null);
@@ -349,81 +388,167 @@ export default function ProductsPage() {
         </div>
       )}
 
-      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title={TEXT.products.addTitle}>
-        <form onSubmit={handleSubmitAdd(handleAdd)} className="flex flex-col gap-4">
-          <Input label={TEXT.products.nameCol} placeholder="Misal: Salted Popcorn XL" error={errorsAdd.name?.message} {...registerAdd("name")} />
-          <Input label="Kode SKU" placeholder="Misal: POP-SLT-XL" error={errorsAdd.sku?.message} {...registerAdd("sku")} />
-          
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-zinc-300">Kategori</label>
-            <select
-              {...registerAdd("categoryId")}
-              className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
-            >
-              <option value="">Pilih kategori...</option>
-              {categories.map((cat: Category) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-            {errorsAdd.categoryId ? <p className="text-xs text-rose-500 mt-0.5">{errorsAdd.categoryId.message}</p> : null}
-          </div>
-
-          <Input label="Harga (Rp)" type="number" placeholder="Misal: 35000" error={errorsAdd.price?.message} {...registerAdd("price", { valueAsNumber: true })} />
-          <Input label="URL Gambar" placeholder="Misal: https://example.com/popcorn.jpg" error={errorsAdd.imageUrl?.message} {...registerAdd("imageUrl")} />
-
-          <div className="flex items-center gap-3 py-2 border-t border-zinc-800 mt-2">
-            <input
-              type="checkbox"
-              id="trackInventoryAdd"
-              {...registerAdd("trackInventory")}
-              className="w-4 h-4 rounded border-zinc-800 text-indigo-600 focus:ring-indigo-500 bg-zinc-900"
-            />
-            <label htmlFor="trackInventoryAdd" className="text-sm font-semibold text-zinc-200 cursor-pointer">
-              Lacak Inventaris & Stok
-            </label>
-          </div>
-
-          {trackInventoryAdd && (
-            <div className="flex flex-col gap-4 p-4 rounded-xl bg-zinc-900/50 border border-zinc-800/80">
+      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title={TEXT.products.addTitle} maxWidth="max-w-2xl">
+        <form onSubmit={handleSubmitAdd(handleAdd)} className="flex flex-col gap-6">
+          {/* Product Information Section */}
+          <div>
+            <h4 className="text-sm font-semibold text-zinc-200 border-b border-zinc-800 pb-2 mb-4">
+              Product Information
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                id="addName"
+                label="Product Name"
+                placeholder="e.g. Salted Popcorn XL"
+                error={errorsAdd.name?.message}
+                {...registerAdd("name")}
+              />
+              <Input
+                id="addSku"
+                label="SKU"
+                placeholder="e.g. POP-SLT-XL"
+                helperText="Leave empty to generate later or manage manually."
+                error={errorsAdd.sku?.message}
+                {...registerAdd("sku")}
+              />
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-zinc-300">Tipe Inventaris</label>
+                <label htmlFor="addCategoryId" className="text-sm font-medium text-zinc-300">
+                  Category
+                </label>
                 <select
-                  {...registerAdd("inventoryType")}
-                  className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
+                  id="addCategoryId"
+                  {...registerAdd("categoryId")}
+                  className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
                 >
-                  <option value="">Pilih tipe...</option>
-                  <option value="FINISHED_GOOD">Barang Jadi (Finished Good)</option>
-                  <option value="RAW_MATERIAL">Bahan Baku (Raw Material)</option>
-                  <option value="PACKAGING">Kemasan (Packaging)</option>
-                </select>
-                {errorsAdd.inventoryType ? <p className="text-xs text-rose-500 mt-0.5">{errorsAdd.inventoryType.message}</p> : null}
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-zinc-300">Satuan (Unit)</label>
-                <select
-                  {...registerAdd("unitId")}
-                  className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
-                >
-                  <option value="">Pilih satuan...</option>
-                  {units.map((u: any) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name} ({u.symbol})
+                  <option value="">Select category...</option>
+                  {categories.map((cat: Category) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
                     </option>
                   ))}
                 </select>
-                {errorsAdd.unitId ? <p className="text-xs text-rose-500 mt-0.5">{errorsAdd.unitId.message}</p> : null}
+                {errorsAdd.categoryId ? <p className="text-xs text-rose-500 mt-0.5">{errorsAdd.categoryId.message}</p> : null}
               </div>
-
               <Input
-                label="Stok Minimum"
+                id="addPrice"
+                label="Selling Price"
                 type="number"
-                placeholder="Misal: 10"
-                error={errorsAdd.minimumStock?.message}
-                {...registerAdd("minimumStock", { valueAsNumber: true })}
+                placeholder="e.g. 35000"
+                error={errorsAdd.price?.message}
+                {...registerAdd("price", { valueAsNumber: true })}
               />
+              <div className="md:col-span-2">
+                <Input
+                  id="addImageUrl"
+                  label="Image URL"
+                  placeholder="e.g. https://example.com/popcorn.jpg"
+                  helperText="Optional. Paste an image URL to display a product preview."
+                  error={errorsAdd.imageUrl?.message}
+                  {...registerAdd("imageUrl")}
+                />
+                <LiveImagePreview url={imageUrlAdd} />
+              </div>
+            </div>
+          </div>
+
+          {/* Track Stock & Inventory checkbox */}
+          <div className="flex flex-col gap-1 py-4 border-t border-zinc-800">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="trackInventoryAdd"
+                {...registerAdd("trackInventory")}
+                className="w-4 h-4 rounded border-zinc-800 text-indigo-600 focus:ring-indigo-500 bg-zinc-900 cursor-pointer"
+              />
+              <label htmlFor="trackInventoryAdd" className="text-sm font-semibold text-zinc-200 cursor-pointer">
+                Track Stock & Inventory
+              </label>
+            </div>
+            <p className="text-xs text-zinc-400 ml-7">
+              Enable this if this product has physical stock that must be monitored.
+            </p>
+          </div>
+
+          {/* Inventory Settings Section */}
+          {trackInventoryAdd && (
+            <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+              <h4 className="text-sm font-semibold text-zinc-200 border-b border-zinc-800 pb-2 mb-4">
+                Inventory Settings
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="addInventoryType" className="text-sm font-medium text-zinc-300">
+                    Product Type *
+                  </label>
+                  <select
+                    id="addInventoryType"
+                    {...registerAdd("inventoryType")}
+                    className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
+                  >
+                    <option value="">Choose a type...</option>
+                    <option value="FINISHED_GOOD">Produk Jadi</option>
+                    <option value="RAW_MATERIAL">Bahan Baku</option>
+                    <option value="PACKAGING">Material Kemasan</option>
+                  </select>
+                  {errorsAdd.inventoryType ? <p className="text-xs text-rose-500 mt-0.5">{errorsAdd.inventoryType.message}</p> : null}
+                  {/* Dynamic descriptions for selected type */}
+                  {inventoryTypeAdd === "FINISHED_GOOD" && (
+                    <p className="text-xs text-zinc-400 mt-1">
+                      <strong>Produk Jadi:</strong> Finished products sold directly to customers. Examples: Popcorn, Coca Cola, Nachos
+                    </p>
+                  )}
+                  {inventoryTypeAdd === "RAW_MATERIAL" && (
+                    <p className="text-xs text-zinc-400 mt-1">
+                      <strong>Bahan Baku:</strong> Ingredients used for recipes. Examples: Corn, Salt, Butter
+                    </p>
+                  )}
+                  {inventoryTypeAdd === "PACKAGING" && (
+                    <p className="text-xs text-zinc-400 mt-1">
+                      <strong>Material Kemasan:</strong> Packaging materials. Examples: Popcorn Bucket, Paper Cup, Plastic Lid
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="addUnitId" className="text-sm font-medium text-zinc-300">
+                    Unit *
+                  </label>
+                  {activeUnits.length === 0 ? (
+                    <div className="flex items-center justify-between gap-2 p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-400">
+                      <span>No active units found.</span>
+                      <Link href="/warehouse/settings/units" className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-200 rounded transition duration-200">
+                        Manage Units
+                      </Link>
+                    </div>
+                  ) : (
+                    <select
+                      id="addUnitId"
+                      {...registerAdd("unitId")}
+                      className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
+                    >
+                      <option value="">Select a unit...</option>
+                      {activeUnits.map((u: any) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name} ({u.symbol})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {errorsAdd.unitId ? <p className="text-xs text-rose-500 mt-0.5">{errorsAdd.unitId.message}</p> : null}
+                </div>
+
+                <div className="md:col-span-2">
+                  <Input
+                    id="addMinimumStock"
+                    label="Low Stock Alert"
+                    type="number"
+                    placeholder="e.g. 10"
+                    helperText="Set to 0 to disable low stock alerts."
+                    error={errorsAdd.minimumStock?.message}
+                    {...registerAdd("minimumStock", { valueAsNumber: true })}
+                  />
+                </div>
+              </div>
             </div>
           )}
 
@@ -438,80 +563,163 @@ export default function ProductsPage() {
         </form>
       </Modal>
 
-      <Modal isOpen={!!editingProduct} onClose={() => setEditingProduct(null)} title={TEXT.products.editTitle}>
-        <form onSubmit={handleSubmitEdit(handleEdit)} className="flex flex-col gap-4">
-          <Input label={TEXT.products.nameCol} error={errorsEdit.name?.message} {...registerEdit("name")} />
-          <Input label="Kode SKU" error={errorsEdit.sku?.message} {...registerEdit("sku")} />
-          
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-zinc-300">Kategori</label>
-            <select
-              {...registerEdit("categoryId")}
-              className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
-            >
-              {categories.map((cat: Category) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-            {errorsEdit.categoryId ? <p className="text-xs text-rose-500 mt-0.5">{errorsEdit.categoryId.message}</p> : null}
-          </div>
-
-          <Input label="Harga (Rp)" type="number" error={errorsEdit.price?.message} {...registerEdit("price", { valueAsNumber: true })} />
-          <Input label="URL Gambar" error={errorsEdit.imageUrl?.message} {...registerEdit("imageUrl")} />
-
-          <div className="flex items-center gap-3 py-2 border-t border-zinc-800 mt-2">
-            <input
-              type="checkbox"
-              id="trackInventoryEdit"
-              {...registerEdit("trackInventory")}
-              className="w-4 h-4 rounded border-zinc-800 text-indigo-600 focus:ring-indigo-500 bg-zinc-900"
-            />
-            <label htmlFor="trackInventoryEdit" className="text-sm font-semibold text-zinc-200 cursor-pointer">
-              Lacak Inventaris & Stok
-            </label>
-          </div>
-
-          {trackInventoryEdit && (
-            <div className="flex flex-col gap-4 p-4 rounded-xl bg-zinc-900/50 border border-zinc-800/80">
+      <Modal isOpen={!!editingProduct} onClose={() => setEditingProduct(null)} title={TEXT.products.editTitle} maxWidth="max-w-2xl">
+        <form onSubmit={handleSubmitEdit(handleEdit)} className="flex flex-col gap-6">
+          {/* Product Information Section */}
+          <div>
+            <h4 className="text-sm font-semibold text-zinc-200 border-b border-zinc-800 pb-2 mb-4">
+              Product Information
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                id="editName"
+                label="Product Name"
+                error={errorsEdit.name?.message}
+                {...registerEdit("name")}
+              />
+              <Input
+                id="editSku"
+                label="SKU"
+                placeholder="e.g. POP-SLT-XL"
+                helperText="Leave empty to generate later or manage manually."
+                error={errorsEdit.sku?.message}
+                {...registerEdit("sku")}
+              />
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-zinc-300">Tipe Inventaris</label>
+                <label htmlFor="editCategoryId" className="text-sm font-medium text-zinc-300">
+                  Category
+                </label>
                 <select
-                  {...registerEdit("inventoryType")}
-                  className="px-3 py-2 bg-zinc-955 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
+                  id="editCategoryId"
+                  {...registerEdit("categoryId")}
+                  className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
                 >
-                  <option value="">Pilih tipe...</option>
-                  <option value="FINISHED_GOOD">Barang Jadi (Finished Good)</option>
-                  <option value="RAW_MATERIAL">Bahan Baku (Raw Material)</option>
-                  <option value="PACKAGING">Kemasan (Packaging)</option>
-                </select>
-                {errorsEdit.inventoryType ? <p className="text-xs text-rose-500 mt-0.5">{errorsEdit.inventoryType.message}</p> : null}
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-zinc-300">Satuan (Unit)</label>
-                <select
-                  {...registerEdit("unitId")}
-                  className="px-3 py-2 bg-zinc-955 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
-                >
-                  <option value="">Pilih satuan...</option>
-                  {units.map((u: any) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name} ({u.symbol})
+                  {categories.map((cat: Category) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
                     </option>
                   ))}
                 </select>
-                {errorsEdit.unitId ? <p className="text-xs text-rose-500 mt-0.5">{errorsEdit.unitId.message}</p> : null}
+                {errorsEdit.categoryId ? <p className="text-xs text-rose-500 mt-0.5">{errorsEdit.categoryId.message}</p> : null}
               </div>
-
               <Input
-                label="Stok Minimum"
+                id="editPrice"
+                label="Selling Price"
                 type="number"
-                placeholder="Misal: 10"
-                error={errorsEdit.minimumStock?.message}
-                {...registerEdit("minimumStock", { valueAsNumber: true })}
+                error={errorsEdit.price?.message}
+                {...registerEdit("price", { valueAsNumber: true })}
               />
+              <div className="md:col-span-2">
+                <Input
+                  id="editImageUrl"
+                  label="Image URL"
+                  helperText="Optional. Paste an image URL to display a product preview."
+                  error={errorsEdit.imageUrl?.message}
+                  {...registerEdit("imageUrl")}
+                />
+                <LiveImagePreview url={imageUrlEdit} />
+              </div>
+            </div>
+          </div>
+
+          {/* Track Stock & Inventory checkbox */}
+          <div className="flex flex-col gap-1 py-4 border-t border-zinc-800">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="trackInventoryEdit"
+                {...registerEdit("trackInventory")}
+                className="w-4 h-4 rounded border-zinc-800 text-indigo-600 focus:ring-indigo-500 bg-zinc-900 cursor-pointer"
+              />
+              <label htmlFor="trackInventoryEdit" className="text-sm font-semibold text-zinc-200 cursor-pointer">
+                Track Stock & Inventory
+              </label>
+            </div>
+            <p className="text-xs text-zinc-400 ml-7">
+              Enable this if this product has physical stock that must be monitored.
+            </p>
+          </div>
+
+          {/* Inventory Settings Section */}
+          {trackInventoryEdit && (
+            <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+              <h4 className="text-sm font-semibold text-zinc-200 border-b border-zinc-800 pb-2 mb-4">
+                Inventory Settings
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="editInventoryType" className="text-sm font-medium text-zinc-300">
+                    Product Type *
+                  </label>
+                  <select
+                    id="editInventoryType"
+                    {...registerEdit("inventoryType")}
+                    className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
+                  >
+                    <option value="">Choose a type...</option>
+                    <option value="FINISHED_GOOD">Produk Jadi</option>
+                    <option value="RAW_MATERIAL">Bahan Baku</option>
+                    <option value="PACKAGING">Material Kemasan</option>
+                  </select>
+                  {errorsEdit.inventoryType ? <p className="text-xs text-rose-500 mt-0.5">{errorsEdit.inventoryType.message}</p> : null}
+                  {/* Dynamic descriptions for selected type */}
+                  {inventoryTypeEdit === "FINISHED_GOOD" && (
+                    <p className="text-xs text-zinc-400 mt-1">
+                      <strong>Produk Jadi:</strong> Finished products sold directly to customers. Examples: Popcorn, Coca Cola, Nachos
+                    </p>
+                  )}
+                  {inventoryTypeEdit === "RAW_MATERIAL" && (
+                    <p className="text-xs text-zinc-400 mt-1">
+                      <strong>Bahan Baku:</strong> Ingredients used for recipes. Examples: Corn, Salt, Butter
+                    </p>
+                  )}
+                  {inventoryTypeEdit === "PACKAGING" && (
+                    <p className="text-xs text-zinc-400 mt-1">
+                      <strong>Material Kemasan:</strong> Packaging materials. Examples: Popcorn Bucket, Paper Cup, Plastic Lid
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="editUnitId" className="text-sm font-medium text-zinc-300">
+                    Unit *
+                  </label>
+                  {activeUnits.length === 0 ? (
+                    <div className="flex items-center justify-between gap-2 p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-400">
+                      <span>No active units found.</span>
+                      <Link href="/warehouse/settings/units" className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-200 rounded transition duration-200">
+                        Manage Units
+                      </Link>
+                    </div>
+                  ) : (
+                    <select
+                      id="editUnitId"
+                      {...registerEdit("unitId")}
+                      className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
+                    >
+                      <option value="">Select a unit...</option>
+                      {activeUnits.map((u: any) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name} ({u.symbol})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {errorsEdit.unitId ? <p className="text-xs text-rose-500 mt-0.5">{errorsEdit.unitId.message}</p> : null}
+                </div>
+
+                <div className="md:col-span-2">
+                  <Input
+                    id="editMinimumStock"
+                    label="Low Stock Alert"
+                    type="number"
+                    placeholder="e.g. 10"
+                    helperText="Set to 0 to disable low stock alerts."
+                    error={errorsEdit.minimumStock?.message}
+                    {...registerEdit("minimumStock", { valueAsNumber: true })}
+                  />
+                </div>
+              </div>
             </div>
           )}
 
