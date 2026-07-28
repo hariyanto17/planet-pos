@@ -237,7 +237,7 @@ export default function WarehouseDashboardPage() {
                     <div className="flex flex-col gap-0.5">
                       <div className="font-semibold text-zinc-200">{m.productName}</div>
                       <div className="text-[10px] text-zinc-500">
-                        {m.warehouseName} | {m.createdBy} | {new Date(m.createdAt).toLocaleDateString(undefined, { dateStyle: "short", timeStyle: "short" })}
+                        {m.warehouseName} | {m.createdBy} | {new Date(m.createdAt).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" })}
                       </div>
                       {m.remarks && <div className="text-[9px] text-zinc-400 font-medium mt-0.5">Note: {m.remarks}</div>}
                     </div>
