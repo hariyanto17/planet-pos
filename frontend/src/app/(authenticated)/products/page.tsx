@@ -90,10 +90,6 @@ interface Category {
 const LiveImagePreview = ({ url }: { url?: string }) => {
   const [hasError, setHasError] = useState(false);
 
-  React.useEffect(() => {
-    setHasError(false);
-  }, [url]);
-
   if (!url) return null;
 
   return (
@@ -448,7 +444,7 @@ export default function ProductsPage() {
                       error={errorsAdd.imageUrl?.message}
                       {...registerAdd("imageUrl")}
                     />
-                    <LiveImagePreview url={imageUrlAdd} />
+                    <LiveImagePreview key={imageUrlAdd} url={imageUrlAdd} />
                   </div>
                 </div>
               </div>
@@ -619,7 +615,7 @@ export default function ProductsPage() {
                   error={errorsEdit.imageUrl?.message}
                   {...registerEdit("imageUrl")}
                 />
-                <LiveImagePreview url={imageUrlEdit} />
+                <LiveImagePreview key={imageUrlEdit} url={imageUrlEdit} />
               </div>
             </div>
           </div>

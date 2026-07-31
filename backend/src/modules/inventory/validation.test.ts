@@ -1,9 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createRequire } from "module";
-
-const require = createRequire(import.meta.url);
-const { createStockTransferSchema } = require("./validation.ts");
+import { createStockTransferSchema } from "./validation";
 
 test("createStockTransferSchema rejects identical source and destination warehouses", () => {
   const { error } = createStockTransferSchema.validate({
