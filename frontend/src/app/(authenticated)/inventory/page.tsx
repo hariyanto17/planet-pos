@@ -17,6 +17,7 @@ import { InventoryMovementTable } from "./components/InventoryMovementTable";
 import ReceiveStockModal from "./components/ReceiveStockModal";
 import AdjustStockModal from "./components/AdjustStockModal";
 import WasteStockModal from "./components/WasteStockModal";
+import TransferStockModal from "./components/TransferStockModal";
 import { TEXT } from "@/lib/i18n/id";
 
 type Tab = "STOCK" | "MOVEMENTS";
@@ -37,6 +38,7 @@ export default function InventoryPage() {
   const [isReceiveOpen, setIsReceiveOpen] = useState(false);
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
   const [isWasteOpen, setIsWasteOpen] = useState(false);
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
 
   // Queries
   const { data: summary, isLoading: isSummaryLoading, refetch: refetchSummary } = useGetInventorySummaryQuery();
@@ -96,6 +98,9 @@ export default function InventoryPage() {
             <>
               <Button variant="secondary" onClick={() => setIsWasteOpen(true)}>
                 {TEXT.inventory.wasteBtn}
+              </Button>
+              <Button variant="secondary" onClick={() => setIsTransferOpen(true)}>
+                Transfer
               </Button>
               <Button variant="secondary" onClick={() => setIsAdjustOpen(true)}>
                 {TEXT.inventory.adjustBtn}
@@ -210,6 +215,16 @@ export default function InventoryPage() {
         <WasteStockModal
           isOpen={isWasteOpen}
           onClose={() => setIsWasteOpen(false)}
+          products={productsList}
+          warehouses={warehouses}
+          onSuccess={handleRefresh}
+        />
+      )}
+
+      {isTransferOpen && (
+        <TransferStockModal
+          isOpen={isTransferOpen}
+          onClose={() => setIsTransferOpen(false)}
           products={productsList}
           warehouses={warehouses}
           onSuccess={handleRefresh}

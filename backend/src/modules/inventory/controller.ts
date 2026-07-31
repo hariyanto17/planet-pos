@@ -9,6 +9,8 @@ import {
   adjustStockSchema,
   removeAsWasteSchema,
   recordOpeningStockSchema,
+  createStockTransferSchema,
+  completeStockTransferSchema,
 } from "./validation";
 import { AppError } from "../../utils/errorHandler";
 
@@ -95,4 +97,29 @@ export const recordOpening = catchAsync(async (req: Request, res: Response) => {
   }
   const result = await inventoryService.recordOpeningStock(userId, value);
   return responseHandler.created(res, result, "Opening stock recorded successfully");
+});
+
+export const createStockTransferHandler = catchAsync(async (req: Request, res: Response) => {
+  const { error, value } = createStockTransferSchema.validate(req.body);
+  if (error) {
+    throw new AppError("BAD_REQUEST", error.details[0].message);
+  }
+  const userId = req.user?.id;
+  if (!userId) throw new AppError("UNAUTHORIZED", "Not authenticated");
+
+  const transfer = await inventoryService.createStockTransfer(userId, value);
+  return responseHandler.created(res, transfer, "Stock transfer created");
+});
+
+export const completeStockTransferHandler = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { error } = completeStockTransferSchema.validate(req.body || {});
+  if (error) {
+    throw new AppError("BAD_REQUEST", error.details[0].message);
+  }
+  const userId = req.user?.id;
+  if (!userId) throw new AppError("UNAUTHORIZED", "Not authenticated");
+
+  const result = await inventoryService.completeStockTransfer(userId, id);
+  return responseHandler.ok(res, result, "Stock transfer completed");
 });

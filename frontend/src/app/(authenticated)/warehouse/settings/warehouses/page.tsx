@@ -24,6 +24,8 @@ import { TEXT } from "@/lib/i18n/id";
 const warehouseSchema = zod.object({
   code: zod.string().min(1, "Kode gudang wajib diisi"),
   name: zod.string().min(1, "Nama gudang wajib diisi"),
+  warehouseType: zod.enum(["SALES", "KITCHEN_STORAGE", "GENERAL"]),
+  isDefaultKitchenStorage: zod.boolean(),
 });
 
 type WarehouseSchemaInput = zod.infer<typeof warehouseSchema>;
@@ -32,6 +34,8 @@ interface Warehouse {
   id: string;
   code: string;
   name: string;
+  warehouseType: "SALES" | "KITCHEN_STORAGE" | "GENERAL";
+  isDefaultKitchenStorage: boolean;
   isActive: boolean;
   createdAt: string;
 }
@@ -68,6 +72,12 @@ export default function WarehousesPage() {
     formState: { errors: errorsAdd },
   } = useForm<WarehouseSchemaInput>({
     resolver: zodResolver(warehouseSchema),
+    defaultValues: {
+      code: "",
+      name: "",
+      warehouseType: "SALES",
+      isDefaultKitchenStorage: false,
+    },
   });
 
   const {
@@ -77,6 +87,12 @@ export default function WarehousesPage() {
     formState: { errors: errorsEdit },
   } = useForm<WarehouseSchemaInput>({
     resolver: zodResolver(warehouseSchema),
+    defaultValues: {
+      code: "",
+      name: "",
+      warehouseType: "SALES",
+      isDefaultKitchenStorage: false,
+    },
   });
 
   const handleAdd = async (data: WarehouseSchemaInput) => {
@@ -84,7 +100,7 @@ export default function WarehousesPage() {
     try {
       await createWarehouse(data).unwrap();
       setIsAddModalOpen(false);
-      resetAdd();
+      resetAdd({ code: "", name: "", warehouseType: "SALES", isDefaultKitchenStorage: false });
     } catch (err: any) {
       setErrorMsg(err?.data?.message || "Gagal menambahkan gudang");
     }
@@ -129,13 +145,15 @@ export default function WarehousesPage() {
     resetEdit({
       code: warehouse.code,
       name: warehouse.name,
+      warehouseType: warehouse.warehouseType,
+      isDefaultKitchenStorage: warehouse.isDefaultKitchenStorage,
     });
   };
 
   const openAddModal = () => {
     setErrorMsg("");
     setIsAddModalOpen(true);
-    resetAdd({ code: "", name: "" });
+    resetAdd({ code: "", name: "", warehouseType: "SALES", isDefaultKitchenStorage: false });
   };
 
   return (
@@ -162,11 +180,15 @@ export default function WarehousesPage() {
         <EmptyState title="Belum Ada Gudang" description="Silakan tambahkan gudang baru atau sesuaikan kata kunci pencarian Anda." />
       ) : (
         <div className="flex flex-col gap-4">
-          <DataTable headers={["Kode", "Nama Gudang", TEXT.common.status, "Tanggal Dibuat", TEXT.common.actions]} isLoading={isLoading}>
+          <DataTable headers={["Kode", "Nama Gudang", "Tipe", TEXT.common.status, "Tanggal Dibuat", TEXT.common.actions]} isLoading={isLoading}>
             {warehousesList.map((w: Warehouse) => (
               <tr key={w.id} className="border-b border-zinc-800/50 hover:bg-zinc-900/20 transition">
                 <td className="px-6 py-4 text-sm font-extrabold text-indigo-400">{w.code}</td>
                 <td className="px-6 py-4 text-sm font-medium text-zinc-200">{w.name}</td>
+                <td className="px-6 py-4 text-sm text-zinc-300">
+                  {w.warehouseType === "KITCHEN_STORAGE" ? "Dapur" : w.warehouseType === "GENERAL" ? "Umum" : "Penjualan"}
+                  {w.isDefaultKitchenStorage ? " • Default Dapur" : ""}
+                </td>
                 <td className="px-6 py-4">
                   <StatusBadge isActive={w.isActive} />
                 </td>
@@ -229,6 +251,23 @@ export default function WarehousesPage() {
           )}
           <Input label="Kode Gudang" placeholder="Misal: CONCESSION, WAREHOUSE-A" error={errorsAdd.code?.message} {...registerAdd("code")} />
           <Input label="Nama Gudang" placeholder="Misal: Gudang Konsesi Utama" error={errorsAdd.name?.message} {...registerAdd("name")} />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label className="flex flex-col gap-2 text-sm text-zinc-300">
+              Tipe Gudang
+              <select
+                {...registerAdd("warehouseType")}
+                className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none text-sm"
+              >
+                <option value="SALES">Gudang Penjualan</option>
+                <option value="KITCHEN_STORAGE">Gudang Dapur</option>
+                <option value="GENERAL">Gudang Umum</option>
+              </select>
+            </label>
+            <label className="flex items-center gap-3 text-sm text-zinc-300">
+              <input type="checkbox" {...registerAdd("isDefaultKitchenStorage")} className="rounded border-zinc-700 bg-zinc-900 text-indigo-500 focus:ring-indigo-500" />
+              Tetapkan sebagai Default Gudang Dapur
+            </label>
+          </div>
           <div className="flex items-center justify-end gap-3 pt-2">
             <Button variant="ghost" type="button" onClick={() => setIsAddModalOpen(false)}>
               {TEXT.common.cancel}
@@ -250,6 +289,23 @@ export default function WarehousesPage() {
           )}
           <Input label="Kode Gudang" error={errorsEdit.code?.message} {...registerEdit("code")} />
           <Input label="Nama Gudang" error={errorsEdit.name?.message} {...registerEdit("name")} />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label className="flex flex-col gap-2 text-sm text-zinc-300">
+              Tipe Gudang
+              <select
+                {...registerEdit("warehouseType")}
+                className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none text-sm"
+              >
+                <option value="SALES">Gudang Penjualan</option>
+                <option value="KITCHEN_STORAGE">Gudang Dapur</option>
+                <option value="GENERAL">Gudang Umum</option>
+              </select>
+            </label>
+            <label className="flex items-center gap-3 text-sm text-zinc-300">
+              <input type="checkbox" {...registerEdit("isDefaultKitchenStorage")} className="rounded border-zinc-700 bg-zinc-900 text-indigo-500 focus:ring-indigo-500" />
+              Tetapkan sebagai Default Gudang Dapur
+            </label>
+          </div>
           <div className="flex items-center justify-end gap-3 pt-2">
             <Button variant="ghost" type="button" onClick={() => setEditingWarehouse(null)}>
               {TEXT.common.cancel}

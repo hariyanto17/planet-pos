@@ -6,14 +6,22 @@ interface ModalProps {
   title?: string;
   children: React.ReactNode;
   maxWidth?: string;
+  maxHeight?: string;
 }
 
-export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidth = "max-w-md" }) => {
+export const Modal: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  maxWidth = "max-w-md",
+  maxHeight = "max-h-[75vh]",
+}) => {
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className={`w-full ${maxWidth} bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200`}>
+      <div className={`w-full ${maxWidth} ${maxHeight} bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200`}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
           <h3 className="font-semibold text-zinc-100">{title || "Dialog"}</h3>
@@ -27,7 +35,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
           </button>
         </div>
         {/* Content */}
-        <div className="p-4 flex-1">{children}</div>
+        <div className="p-4 flex-1 min-h-0 overflow-y-auto">{children}</div>
       </div>
     </div>
   );

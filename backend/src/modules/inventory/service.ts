@@ -384,3 +384,143 @@ export const recordOpeningStock = async (userId: string, payload: RecordOpeningS
     return results;
   });
 };
+
+export interface CreateStockTransferItem {
+  productId: string;
+  quantity: number;
+}
+
+export interface CreateStockTransferPayload {
+  sourceWarehouseId: string;
+  destinationWarehouseId: string;
+  items: CreateStockTransferItem[];
+  remarks?: string;
+  sourceResponsibleUserId?: string | null;
+  destinationResponsibleUserId?: string | null;
+}
+
+export const createStockTransfer = async (userId: string, payload: CreateStockTransferPayload) => {
+  const { sourceWarehouseId, destinationWarehouseId, items, remarks, sourceResponsibleUserId, destinationResponsibleUserId } = payload;
+
+  if (sourceWarehouseId === destinationWarehouseId) {
+    throw new AppError("BAD_REQUEST", "Source and destination warehouses must be different");
+  }
+
+  // Basic validations
+  const sourceWarehouse = await prisma.warehouse.findUnique({ where: { id: sourceWarehouseId } });
+  const destinationWarehouse = await prisma.warehouse.findUnique({ where: { id: destinationWarehouseId } });
+  if (!sourceWarehouse || !sourceWarehouse.isActive) throw new AppError("BAD_REQUEST", "Source warehouse not found or inactive");
+  if (!destinationWarehouse || !destinationWarehouse.isActive) throw new AppError("BAD_REQUEST", "Destination warehouse not found or inactive");
+
+  // Validate products
+  const productIds = items.map((i) => i.productId);
+  const products = await prisma.product.findMany({ where: { id: { in: productIds } } });
+  const productMap = new Map(products.map((p) => [p.id, p]));
+  for (const it of items) {
+    const p = productMap.get(it.productId);
+    if (!p || p.deletedAt !== null || !p.isActive) {
+      throw new AppError("BAD_REQUEST", `Product ${it.productId} not found or inactive`);
+    }
+    if (!p.trackInventory) {
+      throw new AppError("BAD_REQUEST", `Product '${p.name}' is not configured to track inventory.`);
+    }
+    if (it.quantity <= 0) {
+      throw new AppError("BAD_REQUEST", "Quantity must be greater than zero");
+    }
+  }
+
+  // Validate responsible users if provided
+  if (sourceResponsibleUserId) {
+    const su = await prisma.user.findUnique({ where: { id: sourceResponsibleUserId } });
+    if (!su) throw new AppError("BAD_REQUEST", "Source responsible user not found");
+    if (!(su.role === "ADMIN" || su.role === "WAREHOUSE")) {
+      throw new AppError("BAD_REQUEST", "Source responsible user must have role ADMIN or WAREHOUSE");
+    }
+  }
+  if (destinationResponsibleUserId) {
+    const du = await prisma.user.findUnique({ where: { id: destinationResponsibleUserId } });
+    if (!du) throw new AppError("BAD_REQUEST", "Destination responsible user not found");
+    if (destinationWarehouse.warehouseType === "KITCHEN_STORAGE" && du.role !== "KITCHEN") {
+      throw new AppError("BAD_REQUEST", "Destination responsible user must have role KITCHEN for kitchen storage warehouse");
+    }
+  }
+
+  // Create transfer document with items
+  const transferNumber = `TRF-${new Date().toISOString().slice(0,10).replace(/-/g,"")}-${Math.floor(Math.random()*900000+100000)}`;
+
+  const created = await prisma.stockTransfer.create({
+    data: {
+      transferNumber,
+      sourceWarehouseId,
+      destinationWarehouseId,
+      requestedById: userId,
+      sourceResponsibleUserId: sourceResponsibleUserId || null,
+      destinationResponsibleUserId: destinationResponsibleUserId || null,
+      remarks: remarks || null,
+      items: {
+        create: items.map((it) => ({ productId: it.productId, quantity: it.quantity })),
+      },
+    },
+    include: { items: true },
+  });
+
+  return created;
+};
+
+export const completeStockTransfer = async (userId: string, transferId: string) => {
+  return await prisma.$transaction(async (tx) => {
+    const transfer = await tx.stockTransfer.findUnique({
+      where: { id: transferId },
+      include: { items: true, sourceWarehouse: true, destinationWarehouse: true },
+    });
+    if (!transfer) throw new AppError("NOT_FOUND", "Stock transfer not found");
+    if (transfer.status !== "DRAFT") throw new AppError("BAD_REQUEST", "Only DRAFT transfers can be completed");
+
+    // Role validation: if destination is kitchen storage, require completing user to be KITCHEN or ADMIN
+    const completingUser = await tx.user.findUnique({ where: { id: userId } });
+    if (!completingUser) throw new AppError("UNAUTHORIZED", "User not found");
+    if (transfer.destinationWarehouse.warehouseType === "KITCHEN_STORAGE") {
+      if (!(completingUser.role === "KITCHEN" || completingUser.role === "ADMIN")) {
+        throw new AppError("FORBIDDEN", "Only Kitchen users or Admin may complete transfer to Kitchen Storage");
+      }
+    }
+
+    // For each item, create TRANSFER_OUT then TRANSFER_IN ledger entries
+    for (const item of transfer.items) {
+      const qty = Number(item.quantity);
+      if (qty <= 0) throw new AppError("BAD_REQUEST", "Item quantity must be greater than zero");
+
+      // Create OUT on source (negative)
+      await createLedgerEntry(tx, {
+        productId: item.productId,
+        warehouseId: transfer.sourceWarehouseId,
+        movementType: StockMovementType.TRANSFER_OUT,
+        quantity: -qty,
+        referenceType: StockReferenceType.TRANSFER,
+        referenceId: transfer.id,
+        remarks: transfer.remarks || `Transfer ${transfer.transferNumber}`,
+        createdById: userId,
+      });
+
+      // Create IN on destination (positive)
+      await createLedgerEntry(tx, {
+        productId: item.productId,
+        warehouseId: transfer.destinationWarehouseId,
+        movementType: StockMovementType.TRANSFER_IN,
+        quantity: qty,
+        referenceType: StockReferenceType.TRANSFER,
+        referenceId: transfer.id,
+        remarks: transfer.remarks || `Transfer ${transfer.transferNumber}`,
+        createdById: userId,
+      });
+    }
+
+    // Mark transfer completed
+    const updated = await tx.stockTransfer.update({
+      where: { id: transfer.id },
+      data: { status: "COMPLETED", completedById: userId, completedAt: new Date() },
+    });
+
+    return updated;
+  });
+};

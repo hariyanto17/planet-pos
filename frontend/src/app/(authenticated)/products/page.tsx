@@ -390,167 +390,169 @@ export default function ProductsPage() {
 
       <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title={TEXT.products.addTitle} maxWidth="max-w-2xl">
         <form onSubmit={handleSubmitAdd(handleAdd)} className="flex flex-col gap-6">
-          {/* Product Information Section */}
-          <div>
-            <h4 className="text-sm font-semibold text-zinc-200 border-b border-zinc-800 pb-2 mb-4">
-              Product Information
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                id="addName"
-                label="Product Name"
-                placeholder="e.g. Salted Popcorn XL"
-                error={errorsAdd.name?.message}
-                {...registerAdd("name")}
-              />
-              <Input
-                id="addSku"
-                label="SKU"
-                placeholder="e.g. POP-SLT-XL"
-                helperText="Leave empty to generate later or manage manually."
-                error={errorsAdd.sku?.message}
-                {...registerAdd("sku")}
-              />
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="addCategoryId" className="text-sm font-medium text-zinc-300">
-                  Category
-                </label>
-                <select
-                  id="addCategoryId"
-                  {...registerAdd("categoryId")}
-                  className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
-                >
-                  <option value="">Select category...</option>
-                  {categories.map((cat: Category) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-                {errorsAdd.categoryId ? <p className="text-xs text-rose-500 mt-0.5">{errorsAdd.categoryId.message}</p> : null}
-              </div>
-              <Input
-                id="addPrice"
-                label="Selling Price"
-                type="number"
-                placeholder="e.g. 35000"
-                error={errorsAdd.price?.message}
-                {...registerAdd("price", { valueAsNumber: true })}
-              />
-              <div className="md:col-span-2">
-                <Input
-                  id="addImageUrl"
-                  label="Image URL"
-                  placeholder="e.g. https://example.com/popcorn.jpg"
-                  helperText="Optional. Paste an image URL to display a product preview."
-                  error={errorsAdd.imageUrl?.message}
-                  {...registerAdd("imageUrl")}
-                />
-                <LiveImagePreview url={imageUrlAdd} />
-              </div>
-            </div>
-          </div>
-
-          {/* Track Stock & Inventory checkbox */}
-          <div className="flex flex-col gap-1 py-4 border-t border-zinc-800">
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="trackInventoryAdd"
-                {...registerAdd("trackInventory")}
-                className="w-4 h-4 rounded border-zinc-800 text-indigo-600 focus:ring-indigo-500 bg-zinc-900 cursor-pointer"
-              />
-              <label htmlFor="trackInventoryAdd" className="text-sm font-semibold text-zinc-200 cursor-pointer">
-                Track Stock & Inventory
-              </label>
-            </div>
-            <p className="text-xs text-zinc-400 ml-7">
-              Enable this if this product has physical stock that must be monitored.
-            </p>
-          </div>
-
-          {/* Inventory Settings Section */}
-          {trackInventoryAdd && (
-            <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-              <h4 className="text-sm font-semibold text-zinc-200 border-b border-zinc-800 pb-2 mb-4">
-                Inventory Settings
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="addInventoryType" className="text-sm font-medium text-zinc-300">
-                    Product Type *
-                  </label>
-                  <select
-                    id="addInventoryType"
-                    {...registerAdd("inventoryType")}
-                    className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
-                  >
-                    <option value="">Choose a type...</option>
-                    <option value="FINISHED_GOOD">Produk Jadi</option>
-                    <option value="RAW_MATERIAL">Bahan Baku</option>
-                    <option value="PACKAGING">Material Kemasan</option>
-                  </select>
-                  {errorsAdd.inventoryType ? <p className="text-xs text-rose-500 mt-0.5">{errorsAdd.inventoryType.message}</p> : null}
-                  {/* Dynamic descriptions for selected type */}
-                  {inventoryTypeAdd === "FINISHED_GOOD" && (
-                    <p className="text-xs text-zinc-400 mt-1">
-                      <strong>Produk Jadi:</strong> Finished products sold directly to customers. Examples: Popcorn, Coca Cola, Nachos
-                    </p>
-                  )}
-                  {inventoryTypeAdd === "RAW_MATERIAL" && (
-                    <p className="text-xs text-zinc-400 mt-1">
-                      <strong>Bahan Baku:</strong> Ingredients used for recipes. Examples: Corn, Salt, Butter
-                    </p>
-                  )}
-                  {inventoryTypeAdd === "PACKAGING" && (
-                    <p className="text-xs text-zinc-400 mt-1">
-                      <strong>Material Kemasan:</strong> Packaging materials. Examples: Popcorn Bucket, Paper Cup, Plastic Lid
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="addUnitId" className="text-sm font-medium text-zinc-300">
-                    Unit *
-                  </label>
-                  {activeUnits.length === 0 ? (
-                    <div className="flex items-center justify-between gap-2 p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-400">
-                      <span>No active units found.</span>
-                      <Link href="/warehouse/settings/units" className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-200 rounded transition duration-200">
-                        Manage Units
-                      </Link>
-                    </div>
-                  ) : (
+          <div className={`grid gap-6 ${trackInventoryAdd ? "lg:grid-cols-[1.45fr_0.95fr]" : ""}`}>
+            <div className="space-y-6">
+              {/* Product Information Section */}
+              <div>
+                <h4 className="text-sm font-semibold text-zinc-200 border-b border-zinc-800 pb-2 mb-4">
+                  Product Information
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    id="addName"
+                    label="Product Name"
+                    placeholder="e.g. Salted Popcorn XL"
+                    error={errorsAdd.name?.message}
+                    {...registerAdd("name")}
+                  />
+                  <Input
+                    id="addSku"
+                    label="SKU"
+                    placeholder="e.g. POP-SLT-XL"
+                    helperText="Leave empty to generate later or manage manually."
+                    error={errorsAdd.sku?.message}
+                    {...registerAdd("sku")}
+                  />
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="addCategoryId" className="text-sm font-medium text-zinc-300">
+                      Category
+                    </label>
                     <select
-                      id="addUnitId"
-                      {...registerAdd("unitId")}
+                      id="addCategoryId"
+                      {...registerAdd("categoryId")}
                       className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
                     >
-                      <option value="">Select a unit...</option>
-                      {activeUnits.map((u: any) => (
-                        <option key={u.id} value={u.id}>
-                          {u.name} ({u.symbol})
+                      <option value="">Select category...</option>
+                      {categories.map((cat: Category) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
                         </option>
                       ))}
                     </select>
-                  )}
-                  {errorsAdd.unitId ? <p className="text-xs text-rose-500 mt-0.5">{errorsAdd.unitId.message}</p> : null}
-                </div>
-
-                <div className="md:col-span-2">
+                    {errorsAdd.categoryId ? <p className="text-xs text-rose-500 mt-0.5">{errorsAdd.categoryId.message}</p> : null}
+                  </div>
                   <Input
-                    id="addMinimumStock"
-                    label="Low Stock Alert"
+                    id="addPrice"
+                    label="Selling Price"
                     type="number"
-                    placeholder="e.g. 10"
-                    helperText="Set to 0 to disable low stock alerts."
-                    error={errorsAdd.minimumStock?.message}
-                    {...registerAdd("minimumStock", { valueAsNumber: true })}
+                    placeholder="e.g. 35000"
+                    error={errorsAdd.price?.message}
+                    {...registerAdd("price", { valueAsNumber: true })}
                   />
+                  <div className="md:col-span-2">
+                    <Input
+                      id="addImageUrl"
+                      label="Image URL"
+                      placeholder="e.g. https://example.com/popcorn.jpg"
+                      helperText="Optional. Paste an image URL to display a product preview."
+                      error={errorsAdd.imageUrl?.message}
+                      {...registerAdd("imageUrl")}
+                    />
+                    <LiveImagePreview url={imageUrlAdd} />
+                  </div>
                 </div>
               </div>
+
+              {/* Track Stock & Inventory checkbox */}
+              <div className="flex flex-col gap-1 py-4 border-t border-zinc-800">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="trackInventoryAdd"
+                    {...registerAdd("trackInventory")}
+                    className="w-4 h-4 rounded border-zinc-800 text-indigo-600 focus:ring-indigo-500 bg-zinc-900 cursor-pointer"
+                  />
+                  <label htmlFor="trackInventoryAdd" className="text-sm font-semibold text-zinc-200 cursor-pointer">
+                    Track Stock & Inventory
+                  </label>
+                </div>
+                <p className="text-xs text-zinc-400 ml-7">
+                  Enable this if this product has physical stock that must be monitored.
+                </p>
+              </div>
             </div>
-          )}
+
+            {trackInventoryAdd && (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-200 rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+                <h4 className="text-sm font-semibold text-zinc-200 border-b border-zinc-800 pb-2 mb-4">
+                  Inventory Settings
+                </h4>
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="addInventoryType" className="text-sm font-medium text-zinc-300">
+                      Product Type *
+                    </label>
+                    <select
+                      id="addInventoryType"
+                      {...registerAdd("inventoryType")}
+                      className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
+                    >
+                      <option value="">Choose a type...</option>
+                      <option value="FINISHED_GOOD">Produk Jadi</option>
+                      <option value="RAW_MATERIAL">Bahan Baku</option>
+                      <option value="PACKAGING">Material Kemasan</option>
+                    </select>
+                    {errorsAdd.inventoryType ? <p className="text-xs text-rose-500 mt-0.5">{errorsAdd.inventoryType.message}</p> : null}
+                    {inventoryTypeAdd === "FINISHED_GOOD" && (
+                      <p className="text-xs text-zinc-400 mt-1">
+                        <strong>Produk Jadi:</strong> Finished products sold directly to customers. Examples: Popcorn, Coca Cola, Nachos
+                      </p>
+                    )}
+                    {inventoryTypeAdd === "RAW_MATERIAL" && (
+                      <p className="text-xs text-zinc-400 mt-1">
+                        <strong>Bahan Baku:</strong> Ingredients used for recipes. Examples: Corn, Salt, Butter
+                      </p>
+                    )}
+                    {inventoryTypeAdd === "PACKAGING" && (
+                      <p className="text-xs text-zinc-400 mt-1">
+                        <strong>Material Kemasan:</strong> Packaging materials. Examples: Popcorn Bucket, Paper Cup, Plastic Lid
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="addUnitId" className="text-sm font-medium text-zinc-300">
+                      Unit *
+                    </label>
+                    {activeUnits.length === 0 ? (
+                      <div className="flex items-center justify-between gap-2 p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-400">
+                        <span>No active units found.</span>
+                        <Link href="/warehouse/settings/units" className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-200 rounded transition duration-200">
+                          Manage Units
+                        </Link>
+                      </div>
+                    ) : (
+                      <select
+                        id="addUnitId"
+                        {...registerAdd("unitId")}
+                        className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
+                      >
+                        <option value="">Select a unit...</option>
+                        {activeUnits.map((u: any) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name} ({u.symbol})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {errorsAdd.unitId ? <p className="text-xs text-rose-500 mt-0.5">{errorsAdd.unitId.message}</p> : null}
+                  </div>
+
+                  <div>
+                    <Input
+                      id="addMinimumStock"
+                      label="Low Stock Alert"
+                      type="number"
+                      placeholder="e.g. 10"
+                      helperText="Set to 0 to disable low stock alerts."
+                      error={errorsAdd.minimumStock?.message}
+                      {...registerAdd("minimumStock", { valueAsNumber: true })}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className="flex items-center justify-end gap-3 pt-2">
             <Button variant="ghost" type="button" onClick={() => setIsAddModalOpen(false)}>

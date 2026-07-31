@@ -14,7 +14,7 @@ export interface CreateLedgerEntryParams {
 export interface GetProductStockListFilters {
   search?: string;
   warehouseId?: string;
-  stockStatus?: "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK";
+  stockStatus?: "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK" | "NEGATIVE_STOCK";
   page?: number;
   limit?: number;
 }

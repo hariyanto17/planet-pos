@@ -6,10 +6,11 @@
   "scripts": {
     "dev": "nodemon --exec ts-node -r tsconfig-paths/register src/app.ts",
     "build": "tsc",
-    "start": "node dist/backend/src/app.js",
-    "seed": "ts-node src/seeds/userSeeder.ts",
+    "start": "node -r tsconfig-paths/register dist/backend/src/app.js",
+    "seed": "ts-node -r tsconfig-paths/register src/seeds/userSeeder.ts",
     "db:migrate": "prisma migrate dev",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "test": "node --import ts-node/register --test src/modules/inventory/validation.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.12.1",

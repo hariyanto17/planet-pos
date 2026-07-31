@@ -65,6 +65,10 @@ model User {
   confirmedPayments Payment[]       @relation(name: "ConfirmedPayments")
   cashierShifts     CashierShift[]
   stockLedgers      StockLedger[]
+  stockTransfersRequested StockTransfer[] @relation("StockTransferRequestedBy")
+  stockTransfersSourceResponsible StockTransfer[] @relation("StockTransferSourceResponsible")
+  stockTransfersDestinationResponsible StockTransfer[] @relation("StockTransferDestinationResponsible")
+  stockTransfersCompleted StockTransfer[] @relation("StockTransferCompletedBy")
 
   @@index([role])
   @@index([isActive])
@@ -105,6 +109,7 @@ model Product {
 
   warehouseStocks WarehouseStock[]
   stockLedgers    StockLedger[]
+  stockTransferItems StockTransferItem[]
 
   @@index([categoryId])
   @@index([isActive])
@@ -328,12 +333,20 @@ enum InventoryType {
   PACKAGING
 }
 
+enum WarehouseType {
+  SALES
+  KITCHEN_STORAGE
+  GENERAL
+}
+
 enum StockMovementType {
   OPENING
   RECEIVE
   SALE
   ADJUSTMENT
   WASTE
+  TRANSFER_OUT
+  TRANSFER_IN
 }
 
 enum StockReferenceType {
@@ -342,6 +355,7 @@ enum StockReferenceType {
   SALE
   ADJUSTMENT
   WASTE
+  TRANSFER
 }
 
 model Unit {
@@ -355,14 +369,18 @@ model Unit {
 }
 
 model Warehouse {
-  id              String           @id @default(uuid())
-  code            String           @unique
-  name            String
-  isActive        Boolean          @default(true)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  warehouseStocks WarehouseStock[]
-  stockLedgers    StockLedger[]
+  id                     String           @id @default(uuid())
+  code                   String           @unique
+  name                   String
+  warehouseType          WarehouseType    @default(SALES)
+  isDefaultKitchenStorage Boolean          @default(false)
+  isActive               Boolean          @default(true)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  warehouseStocks        WarehouseStock[]
+  stockLedgers           StockLedger[]
+  stockTransfersSource   StockTransfer[]   @relation("StockTransferSourceWarehouse")
+  stockTransfersDestination StockTransfer[] @relation("StockTransferDestinationWarehouse")
 }
 
 model WarehouseStock {
@@ -402,4 +420,50 @@ model StockLedger {
   @@index([createdAt])
   @@index([referenceType])
   @@index([referenceId])
+}
+
+enum StockTransferStatus {
+  DRAFT
+  REQUESTED
+  APPROVED
+  IN_TRANSIT
+  RECEIVED
+  COMPLETED
+  CANCELLED
+}
+
+model StockTransfer {
+  id                        String               @id @default(uuid())
+  transferNumber            String               @unique
+  sourceWarehouseId         String
+  sourceWarehouse           Warehouse            @relation("StockTransferSourceWarehouse", fields: [sourceWarehouseId], references: [id])
+  destinationWarehouseId    String
+  destinationWarehouse      Warehouse            @relation("StockTransferDestinationWarehouse", fields: [destinationWarehouseId], references: [id])
+  requestedById             String
+  requestedBy               User                 @relation("StockTransferRequestedBy", fields: [requestedById], references: [id])
+  sourceResponsibleUserId   String?
+  sourceResponsibleUser     User?                @relation("StockTransferSourceResponsible", fields: [sourceResponsibleUserId], references: [id])
+  destinationResponsibleUserId String?
+  destinationResponsibleUser User?               @relation("StockTransferDestinationResponsible", fields: [destinationResponsibleUserId], references: [id])
+  completedById             String?
+  completedBy               User?                @relation("StockTransferCompletedBy", fields: [completedById], references: [id])
+  completedAt               DateTime?
+  status                    StockTransferStatus  @default(DRAFT)
+  remarks                   String?
+  items                     StockTransferItem[]
+  createdAt                 DateTime             @default(now())
+  updatedAt                 DateTime             @updatedAt
+}
+
+model StockTransferItem {
+  id           String    @id @default(uuid())
+  transferId   String
+  transfer     StockTransfer @relation(fields: [transferId], references: [id])
+  productId    String
+  product      Product   @relation(fields: [productId], references: [id])
+  quantity     Decimal   @db.Decimal(14, 3)
+  createdAt    DateTime  @default(now())
+
+  @@index([transferId])
+  @@index([productId])
 }

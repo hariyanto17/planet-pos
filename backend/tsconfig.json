@@ -12,7 +12,7 @@
     "baseUrl": "./",
     "paths": {
       "*": ["node_modules/*", "src/*"],
-      "@shared/*": ["../shared/*"]
+      "@shared/*": ["../shared/*", "dist/shared/*"]
     }
   },
   "include": ["src/**/*", "../shared/**/*"]

@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, WarehouseType } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { CreateLedgerEntryParams } from "./types";
 import { AppError } from "../../utils/errorHandler";
@@ -32,7 +32,14 @@ export const createLedgerEntry = async (
     throw new AppError("NOT_FOUND", `Product ${productId} not found`);
   }
 
-  // 2. Fetch or initialize the cache snapshot
+  // 2. Fetch warehouse metadata and initialize the cache snapshot
+  const warehouse = await tx.warehouse.findUnique({
+    where: { id: warehouseId },
+  });
+  if (!warehouse) {
+    throw new AppError("NOT_FOUND", `Warehouse ${warehouseId} not found`);
+  }
+
   const currentStock = await tx.warehouseStock.findUnique({
     where: {
       warehouseId_productId: {
@@ -46,12 +53,15 @@ export const createLedgerEntry = async (
   const quantityChange = new Decimal(quantity);
   const quantityAfter = quantityBefore.add(quantityChange);
 
-  // 3. Prevent negative stock if trackInventory is enabled
+  // 3. Prevent negative stock if trackInventory is enabled except for kitchen storage
   if (product.trackInventory && quantityAfter.lt(0)) {
-    throw new AppError(
-      "BAD_REQUEST",
-      `Insufficient inventory for product: ${product.name}. Current: ${quantityBefore.toString()}, Requested Change: ${quantity.toString()}`
-    );
+    const isKitchenStorage = warehouse.warehouseType === WarehouseType.KITCHEN_STORAGE;
+    if (!isKitchenStorage) {
+      throw new AppError(
+        "BAD_REQUEST",
+        `Insufficient inventory for product: ${product.name}. Current: ${quantityBefore.toString()}, Requested Change: ${quantity.toString()}`
+      );
+    }
   }
 
   // 4. Create immutable StockLedger record

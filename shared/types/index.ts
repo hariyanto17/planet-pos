@@ -146,8 +146,9 @@ export function getInventoryStatus(
   trackInventory: boolean,
   quantity: number,
   minimumStock: number
-): "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK" {
+): "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK" | "NEGATIVE_STOCK" {
   if (!trackInventory) return "IN_STOCK";
+  if (quantity < 0) return "NEGATIVE_STOCK";
   if (quantity <= 0) return "OUT_OF_STOCK";
   if (quantity <= minimumStock) return "LOW_STOCK";
   return "IN_STOCK";

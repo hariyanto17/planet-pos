@@ -10,6 +10,7 @@ interface ConfirmDialogProps {
   message?: string;
   confirmText?: string;
   cancelText?: string;
+  variant?: "default" | "danger" | "delete" | "deactivate" | "warning" | "info";
   isConfirming?: boolean;
 }
 

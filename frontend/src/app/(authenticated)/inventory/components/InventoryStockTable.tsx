@@ -18,7 +18,7 @@ export function InventoryStockTable({
   totalPages,
   onPageChange,
 }: InventoryStockTableProps) {
-  const renderStatusBadge = (status: "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK" | string) => {
+  const renderStatusBadge = (status: "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK" | "NEGATIVE_STOCK" | string) => {
     switch (status) {
       case "IN_STOCK":
         return (
@@ -39,6 +39,13 @@ export function InventoryStockTable({
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
             Stok Habis
+          </span>
+        );
+      case "NEGATIVE_STOCK":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-pink-500/10 text-pink-400 border border-pink-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-pink-500" />
+            Stok Negatif
           </span>
         );
       default:

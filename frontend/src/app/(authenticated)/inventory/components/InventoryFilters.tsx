@@ -63,6 +63,7 @@ export function InventoryFilters({
               <option value="IN_STOCK">Tersedia</option>
               <option value="LOW_STOCK">Stok Menipis</option>
               <option value="OUT_OF_STOCK">Stok Habis</option>
+              <option value="NEGATIVE_STOCK">Stok Negatif</option>
             </select>
           )
         ) : (

@@ -67,6 +67,14 @@ export const inventoryApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Inventory"],
     }),
+    transferStock: builder.mutation<any, { sourceWarehouseId: string; destinationWarehouseId: string; items: Array<{ productId: string; quantity: number }>; remarks?: string; sourceResponsibleUserId?: string | null; destinationResponsibleUserId?: string | null }>({
+      query: (body) => ({
+        url: "/inventory/transfer",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Inventory"],
+    }),
     getWarehouses: builder.query<any[], void>({
       query: () => "/inventory/warehouses",
       providesTags: ["Inventory"],
@@ -86,6 +94,7 @@ export const {
   useAdjustStockMutation,
   useRemoveWasteMutation,
   useRecordOpeningStockMutation,
+  useTransferStockMutation,
   useGetWarehousesQuery,
   useGetUnitsQuery,
 } = inventoryApi;

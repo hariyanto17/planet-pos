@@ -466,12 +466,21 @@ export const deductInventoryForCompletedOrder = async (
   if (!order) return;
 
   const defaultWarehouseCode = process.env.DEFAULT_SALES_WAREHOUSE_CODE || "CONCESSION";
-  const warehouse = await tx.warehouse.findFirst({
-    where: { code: defaultWarehouseCode },
+  let warehouse = await tx.warehouse.findFirst({
+    where: { isDefaultKitchenStorage: true, warehouseType: "KITCHEN_STORAGE" },
   });
 
   if (!warehouse) {
-    throw new AppError("BAD_REQUEST", `Default sales warehouse '${defaultWarehouseCode}' not found`);
+    warehouse = await tx.warehouse.findFirst({
+      where: { code: defaultWarehouseCode },
+    });
+  }
+
+  if (!warehouse) {
+    throw new AppError(
+      "BAD_REQUEST",
+      `Default kitchen storage warehouse or fallback sales warehouse '${defaultWarehouseCode}' not found`
+    );
   }
 
   const productIds = order.items.map((item) => item.productId);

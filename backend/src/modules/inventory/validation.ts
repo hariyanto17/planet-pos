@@ -50,3 +50,26 @@ export const recordOpeningStockSchema = Joi.object({
   warehouseId: Joi.string().required(),
   items: Joi.array().items(openingStockItemSchema).min(1).required(),
 });
+
+export const stockTransferItemSchema = Joi.object({
+  productId: Joi.string().required(),
+  quantity: Joi.number().precision(3).positive().required(),
+});
+
+export const createStockTransferSchema = Joi.object({
+  sourceWarehouseId: Joi.string().required(),
+  destinationWarehouseId: Joi.string().required(),
+  items: Joi.array().items(stockTransferItemSchema).min(1).required(),
+  remarks: Joi.string().allow("", null).optional(),
+  sourceResponsibleUserId: Joi.string().allow(null, ""),
+  destinationResponsibleUserId: Joi.string().allow(null, ""),
+}).custom((value, helpers) => {
+  if (value.sourceWarehouseId && value.destinationWarehouseId && value.sourceWarehouseId === value.destinationWarehouseId) {
+    return helpers.error("any.invalid");
+  }
+  return value;
+});
+
+export const completeStockTransferSchema = Joi.object({
+  // No body required for complete; kept for future extension
+});

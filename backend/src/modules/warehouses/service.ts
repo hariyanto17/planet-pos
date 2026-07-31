@@ -4,11 +4,15 @@ import { AppError } from "../../utils/errorHandler";
 interface CreateWarehouseInput {
   code: string;
   name: string;
+  warehouseType?: "SALES" | "KITCHEN_STORAGE" | "GENERAL";
+  isDefaultKitchenStorage?: boolean;
 }
 
 interface UpdateWarehouseInput {
   code?: string;
   name?: string;
+  warehouseType?: "SALES" | "KITCHEN_STORAGE" | "GENERAL";
+  isDefaultKitchenStorage?: boolean;
   isActive?: boolean;
 }
 
@@ -72,10 +76,34 @@ export const createWarehouse = async (input: CreateWarehouseInput) => {
     throw new AppError("BAD_REQUEST", "Warehouse code already exists");
   }
 
+  const warehouseType = input.warehouseType || "SALES";
+  const isDefaultKitchenStorage = input.isDefaultKitchenStorage || false;
+
+  if (isDefaultKitchenStorage && warehouseType !== "KITCHEN_STORAGE") {
+    throw new AppError(
+      "BAD_REQUEST",
+      "Default kitchen storage warehouse must use warehouseType KITCHEN_STORAGE"
+    );
+  }
+
+  if (isDefaultKitchenStorage) {
+    const existingDefault = await prisma.warehouse.findFirst({
+      where: { isDefaultKitchenStorage: true },
+    });
+    if (existingDefault) {
+      throw new AppError(
+        "BAD_REQUEST",
+        "Another warehouse is already marked as default kitchen storage"
+      );
+    }
+  }
+
   return await prisma.warehouse.create({
     data: {
       code: input.code,
       name: input.name,
+      warehouseType,
+      isDefaultKitchenStorage,
       isActive: true,
     },
   });
@@ -96,6 +124,31 @@ export const updateWarehouse = async (id: string, input: UpdateWarehouseInput) =
     });
     if (dupCode) {
       throw new AppError("BAD_REQUEST", "Warehouse code already exists");
+    }
+  }
+
+  const updatedWarehouseType = input.warehouseType ?? existing.warehouseType;
+  const updatedIsDefaultKitchenStorage =
+    input.isDefaultKitchenStorage !== undefined
+      ? input.isDefaultKitchenStorage
+      : existing.isDefaultKitchenStorage;
+
+  if (updatedIsDefaultKitchenStorage && updatedWarehouseType !== "KITCHEN_STORAGE") {
+    throw new AppError(
+      "BAD_REQUEST",
+      "Default kitchen storage warehouse must use warehouseType KITCHEN_STORAGE"
+    );
+  }
+
+  if (updatedIsDefaultKitchenStorage) {
+    const existingDefault = await prisma.warehouse.findFirst({
+      where: { isDefaultKitchenStorage: true, id: { not: id } },
+    });
+    if (existingDefault) {
+      throw new AppError(
+        "BAD_REQUEST",
+        "Another warehouse is already marked as default kitchen storage"
+      );
     }
   }
 
@@ -120,7 +173,11 @@ export const updateWarehouse = async (id: string, input: UpdateWarehouseInput) =
 
   return await prisma.warehouse.update({
     where: { id },
-    data: input,
+    data: {
+      ...input,
+      warehouseType: input.warehouseType,
+      isDefaultKitchenStorage: input.isDefaultKitchenStorage,
+    },
   });
 };
 

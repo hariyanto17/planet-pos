@@ -16,7 +16,7 @@ export const warehousesApi = baseApi.injectEndpoints({
       query: (id) => `/warehouses/${id}`,
       providesTags: (result, error, id) => [{ type: "Warehouse", id }],
     }),
-    createWarehouse: builder.mutation<any, { code: string; name: string }>({
+    createWarehouse: builder.mutation<any, { code: string; name: string; warehouseType?: string; isDefaultKitchenStorage?: boolean }>({
       query: (body) => ({
         url: "/warehouses",
         method: "POST",
@@ -24,7 +24,7 @@ export const warehousesApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Warehouse", "Inventory"],
     }),
-    updateWarehouse: builder.mutation<any, { id: string; body: { code?: string; name?: string; isActive?: boolean } }>({
+    updateWarehouse: builder.mutation<any, { id: string; body: { code?: string; name?: string; warehouseType?: string; isDefaultKitchenStorage?: boolean; isActive?: boolean } }>({
       query: ({ id, body }) => ({
         url: `/warehouses/${id}`,
         method: "PUT",
