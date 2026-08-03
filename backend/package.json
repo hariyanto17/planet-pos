@@ -7,10 +7,13 @@
     "dev": "nodemon --exec ts-node -r tsconfig-paths/register src/app.ts",
     "build": "tsc",
     "start": "node -r tsconfig-paths/register dist/backend/src/app.js",
-    "seed": "ts-node -r tsconfig-paths/register src/seeds/userSeeder.ts",
+    "seed": "ts-node -r tsconfig-paths/register prisma/seed.ts",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "test": "node --import ts-node/register --test src/modules/inventory/validation.test.ts"
+  },
+  "prisma": {
+    "seed": "ts-node -r tsconfig-paths/register prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.12.1",
