@@ -6,6 +6,7 @@ import { useGetWarehousesQuery, useRecordOpeningStockMutation } from "@/lib/api/
 import { useGetProductsQuery } from "@/lib/api/productApi";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/Button";
+import { useToast } from "@/components/ToastProvider";
 
 interface RowItem {
   productId: string;
@@ -15,6 +16,7 @@ interface RowItem {
 
 export default function OpeningStockPage() {
   const router = useRouter();
+  const toast = useToast();
 
   // Queries
   const { data: warehouses = [], isLoading: isLoadingWarehouses } = useGetWarehousesQuery();
@@ -111,7 +113,7 @@ export default function OpeningStockPage() {
         })),
       }).unwrap();
 
-      alert("Stok awal berhasil disimpan!");
+      toast.success("Stok awal berhasil disimpan!");
       router.push("/warehouse/current-stock");
     } catch (err: any) {
       setErrorMsg(err?.data?.message || "Gagal menyimpan stok awal.");

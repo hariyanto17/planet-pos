@@ -20,6 +20,7 @@ import { Button } from "@/components/Button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { TEXT } from "@/lib/i18n/id";
+import { useToast } from "@/components/ToastProvider";
 
 const warehouseSchema = zod.object({
   code: zod.string().min(1, "Kode gudang wajib diisi"),
@@ -44,6 +45,7 @@ export default function WarehousesPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const limit = 8;
+  const toast = useToast();
 
   const { data: warehousesData, isLoading } = useGetWarehousesListQuery({
     search: search || undefined,
@@ -101,6 +103,7 @@ export default function WarehousesPage() {
       await createWarehouse(data).unwrap();
       setIsAddModalOpen(false);
       resetAdd({ code: "", name: "", warehouseType: "SALES", isDefaultKitchenStorage: false });
+      toast.success("Gudang berhasil ditambahkan");
     } catch (err: any) {
       setErrorMsg(err?.data?.message || "Gagal menambahkan gudang");
     }
@@ -113,6 +116,7 @@ export default function WarehousesPage() {
       await updateWarehouse({ id: editingWarehouse.id, body: data }).unwrap();
       setEditingWarehouse(null);
       resetEdit();
+      toast.success("Gudang berhasil diperbarui");
     } catch (err: any) {
       setErrorMsg(err?.data?.message || "Gagal memperbarui gudang");
     }
@@ -122,8 +126,9 @@ export default function WarehousesPage() {
     setErrorMsg("");
     try {
       await updateWarehouse({ id: warehouse.id, body: { isActive: !warehouse.isActive } }).unwrap();
+      toast.success(`Gudang berhasil ${!warehouse.isActive ? "diaktifkan" : "dinonaktifkan"}`);
     } catch (err: any) {
-      alert(err?.data?.message || "Gagal mengubah status aktif");
+      toast.error(err?.data?.message || "Gagal mengubah status aktif");
     }
   };
 
@@ -133,8 +138,9 @@ export default function WarehousesPage() {
     try {
       await deactivateWarehouse(deactivatingWarehouseId).unwrap();
       setDeactivatingWarehouseId(null);
+      toast.success("Gudang berhasil dinonaktifkan tetap");
     } catch (err: any) {
-      alert(err?.data?.message || "Gagal menonaktifkan gudang");
+      toast.error(err?.data?.message || "Gagal menonaktifkan gudang");
       setDeactivatingWarehouseId(null);
     }
   };

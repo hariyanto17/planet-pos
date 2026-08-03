@@ -20,6 +20,7 @@ import { Button } from "@/components/Button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { TEXT } from "@/lib/i18n/id";
+import { useToast } from "@/components/ToastProvider";
 
 const unitSchema = zod.object({
   name: zod.string().min(1, "Nama satuan wajib diisi"),
@@ -40,6 +41,7 @@ export default function UnitsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const limit = 8;
+  const toast = useToast();
 
   const { data: unitsData, isLoading } = useGetUnitsListQuery({
     search: search || undefined,
@@ -85,6 +87,7 @@ export default function UnitsPage() {
       await createUnit(data).unwrap();
       setIsAddModalOpen(false);
       resetAdd();
+      toast.success("Satuan berhasil ditambahkan");
     } catch (err: any) {
       setErrorMsg(err?.data?.message || "Gagal menambahkan satuan");
     }
@@ -97,6 +100,7 @@ export default function UnitsPage() {
       await updateUnit({ id: editingUnit.id, body: data }).unwrap();
       setEditingUnit(null);
       resetEdit();
+      toast.success("Satuan berhasil diperbarui");
     } catch (err: any) {
       setErrorMsg(err?.data?.message || "Gagal memperbarui satuan");
     }
@@ -106,8 +110,9 @@ export default function UnitsPage() {
     setErrorMsg("");
     try {
       await updateUnit({ id: unit.id, body: { isActive: !unit.isActive } }).unwrap();
+      toast.success(`Satuan berhasil ${!unit.isActive ? "diaktifkan" : "dinonaktifkan"}`);
     } catch (err: any) {
-      alert(err?.data?.message || "Gagal mengubah status aktif");
+      toast.error(err?.data?.message || "Gagal mengubah status aktif");
     }
   };
 
@@ -117,8 +122,9 @@ export default function UnitsPage() {
     try {
       await deactivateUnit(deactivatingUnitId).unwrap();
       setDeactivatingUnitId(null);
+      toast.success("Satuan berhasil dinonaktifkan tetap");
     } catch (err: any) {
-      alert(err?.data?.message || "Gagal menonaktifkan satuan");
+      toast.error(err?.data?.message || "Gagal menonaktifkan satuan");
       setDeactivatingUnitId(null);
     }
   };
