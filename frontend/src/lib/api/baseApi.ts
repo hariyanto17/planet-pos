@@ -4,7 +4,7 @@ import { logout } from "../store/features/auth/slice";
 import { authCookie } from "../../utils/authCookie";
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api",
+  baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050/api",
   prepareHeaders: (headers, { getState }) => {
     const token = (getState() as RootState).auth.token;
     if (token) {
@@ -20,19 +20,19 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
   extraOptions
 ) => {
   const result = await baseQuery(args, api, extraOptions);
-  
+
   if (result.error && result.error.status === 401) {
     // Perform state cleanup only
     api.dispatch(logout());
     api.dispatch(baseApi.util.resetApiState());
     authCookie.clearToken();
   }
-  
+
   // Unwrap response data if it is wrapped in our custom API envelope
   if (result.data && typeof result.data === "object" && "data" in result.data) {
     return { ...result, data: (result.data as any).data };
   }
-  
+
   return result;
 };
 
