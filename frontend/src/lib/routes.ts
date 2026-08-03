@@ -89,7 +89,7 @@ export const SIDEBAR_CONFIGS: Record<WorkspaceType, SidebarItemConfig[]> = {
     { name: "Dashboard Gudang", href: "/warehouse/dashboard", iconName: "dashboard" },
     { name: "Stok Saat Ini", href: "/warehouse/current-stock", iconName: "inventory" },
     { name: "Stok Awal", href: "/warehouse/opening", iconName: "shifts" },
-    { name: "Pengaturan Satuan", href: "/warehouse/settings/units", iconName: "categories" },
+    { name: "Units", href: "/warehouse/settings/units", iconName: "ruler" },
     { name: "Pengaturan Gudang", href: "/warehouse/settings/warehouses", iconName: "tables" },
   ],
   CASHIER: [

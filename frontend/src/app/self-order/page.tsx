@@ -27,6 +27,8 @@ import { Input } from "@/components/Input";
 import { Button } from "@/components/Button";
 import { OrderType, PaymentMethod } from "@shared/types";
 import { TEXT } from "@/lib/i18n/id";
+import { useToast } from "@/components/ToastProvider";
+
 
 interface Product {
   id: string;
@@ -49,6 +51,7 @@ function SelfOrderContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const toast = useToast();
 
   const cartItems = useAppSelector(selectCartItems);
   const persistedName = useAppSelector(selectCartCustomerName);
@@ -194,7 +197,7 @@ function SelfOrderContent() {
       router.push(`/self-order/waiting?orderId=${result.orderId}`);
     } catch (err) {
       console.error("Order submission failed:", err);
-      alert("Terjadi kesalahan saat membuat pesanan Anda. Silakan periksa pilihan atau coba lagi.");
+      toast.error("Terjadi kesalahan saat membuat pesanan Anda. Silakan periksa pilihan atau coba lagi.");
     }
   };
 
