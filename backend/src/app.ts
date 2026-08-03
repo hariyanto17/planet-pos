@@ -27,13 +27,15 @@ const app = express();
 // Global Middlewares
 const allowedOrigins = [
   "https://fe-concession.168billiard.online",
+  "http://127.0.0.1:5051",
 ];
 
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) !== -1) {
+      const normalizedOrigin = origin.replace(/\/$/, "");
+      if (allowedOrigins.includes(normalizedOrigin)) {
         return callback(null, true);
       }
       return callback(null, false);
