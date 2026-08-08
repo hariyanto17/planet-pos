@@ -5,13 +5,14 @@ export const createProductSchema = Joi.object({
   sku: Joi.string().allow(null, "").optional(),
   name: Joi.string().required(),
   imageUrl: Joi.string().uri().allow(null, "").optional(),
-  price: Joi.number().precision(2).positive().required(),
-  trackInventory: Joi.boolean().default(false).optional(),
-  inventoryType: Joi.string().valid("FINISHED_GOOD", "RAW_MATERIAL", "PACKAGING").when("trackInventory", {
-    is: true,
-    then: Joi.required(),
-    otherwise: Joi.optional().allow(null, ""),
+  price: Joi.number().precision(2).positive().allow(null).when("inventoryType", {
+    is: Joi.string().valid("RAW_MATERIAL", "PACKAGING"),
+    then: Joi.optional().allow(null).empty("").default(null),
+    otherwise: Joi.required(),
   }),
+  cost: Joi.number().precision(2).positive().allow(null).optional(),
+  trackInventory: Joi.boolean().default(false).optional(),
+  inventoryType: Joi.string().valid("FINISHED_GOOD", "RAW_MATERIAL", "PACKAGING").default("FINISHED_GOOD").optional(),
   unitId: Joi.string().when("trackInventory", {
     is: true,
     then: Joi.required(),
@@ -25,7 +26,8 @@ export const updateProductSchema = Joi.object({
   sku: Joi.string().allow(null, "").optional(),
   name: Joi.string().optional(),
   imageUrl: Joi.string().uri().allow(null, "").optional(),
-  price: Joi.number().precision(2).positive().optional(),
+  price: Joi.number().precision(2).positive().allow(null).optional(),
+  cost: Joi.number().precision(2).positive().allow(null).optional(),
   isActive: Joi.boolean().optional(),
   trackInventory: Joi.boolean().optional(),
   inventoryType: Joi.string().valid("FINISHED_GOOD", "RAW_MATERIAL", "PACKAGING").when("trackInventory", {

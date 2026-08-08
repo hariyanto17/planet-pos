@@ -24,13 +24,15 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { TEXT } from "@/lib/i18n/id";
 import { RecipeModal } from "./components/RecipeModal";
+import { ProductActionMenu } from "./components/ProductActionMenu";
 
 const productSchema = zod
   .object({
     name: zod.string().min(1, "Product Name is required"),
     sku: zod.string().optional(),
     categoryId: zod.string().min(1, "Category is required"),
-    price: zod.number().positive("Price must be greater than zero"),
+    price: zod.number().positive("Price must be greater than zero").or(zod.nan()).optional(),
+    cost: zod.number().positive("Cost must be greater than zero").or(zod.nan()).optional(),
     imageUrl: zod.string().url("Must be a valid URL").or(zod.string().length(0)).optional(),
     trackInventory: zod.boolean().optional(),
     inventoryType: zod.string().optional(),
@@ -42,6 +44,16 @@ const productSchema = zod
     unitId: zod.string().optional(),
   })
   .superRefine((data, ctx) => {
+    const type = data.inventoryType || "FINISHED_GOOD";
+    if (!data.trackInventory || type === "FINISHED_GOOD") {
+      if (data.price === undefined || isNaN(data.price)) {
+        ctx.addIssue({
+          code: zod.ZodIssueCode.custom,
+          path: ["price"],
+          message: "Selling Price is required for Finished Goods",
+        });
+      }
+    }
     if (data.trackInventory) {
       if (!data.inventoryType) {
         ctx.addIssue({
@@ -62,12 +74,13 @@ const productSchema = zod
 
 type ProductSchemaInput = zod.infer<typeof productSchema>;
 
-interface Product {
+export interface Product {
   id: string;
   name: string;
   sku: string | null;
   categoryId: string;
-  price: string;
+  price: string | null;
+  cost?: string | null;
   imageUrl: string | null;
   isActive: boolean;
   trackInventory?: boolean;
@@ -80,6 +93,20 @@ interface Product {
   unit?: {
     name: string;
     symbol: string;
+  } | null;
+  recipe?: {
+    id: string;
+    items: Array<{
+      id: string;
+      componentProductId: string;
+      quantity: string | number;
+      unitId: string;
+      componentProduct?: Product;
+      unit?: {
+        name: string;
+        symbol: string;
+      };
+    }>;
   } | null;
 }
 
@@ -142,6 +169,7 @@ export default function ProductsPage() {
     reset: resetAdd,
     formState: { errors: errorsAdd },
     watch: watchAdd,
+    setValue: setValueAdd,
   } = useForm<ProductSchemaInput>({
     resolver: zodResolver(productSchema),
     defaultValues: {
@@ -158,6 +186,7 @@ export default function ProductsPage() {
     reset: resetEdit,
     formState: { errors: errorsEdit },
     watch: watchEdit,
+    setValue: setValueEdit,
   } = useForm<ProductSchemaInput>({
     resolver: zodResolver(productSchema),
     defaultValues: {
@@ -174,6 +203,18 @@ export default function ProductsPage() {
   const imageUrlEdit = watchEdit("imageUrl");
   const inventoryTypeAdd = watchAdd("inventoryType");
   const inventoryTypeEdit = watchEdit("inventoryType");
+
+  React.useEffect(() => {
+    if (trackInventoryAdd && (inventoryTypeAdd === "RAW_MATERIAL" || inventoryTypeAdd === "PACKAGING")) {
+      setValueAdd("price", undefined as any);
+    }
+  }, [trackInventoryAdd, inventoryTypeAdd, setValueAdd]);
+
+  React.useEffect(() => {
+    if (trackInventoryEdit && (inventoryTypeEdit === "RAW_MATERIAL" || inventoryTypeEdit === "PACKAGING")) {
+      setValueEdit("price", undefined as any);
+    }
+  }, [trackInventoryEdit, inventoryTypeEdit, setValueEdit]);
 
   const activeUnits = useMemo(() => {
     return units.filter((u: any) => u.isActive);
@@ -199,11 +240,13 @@ export default function ProductsPage() {
 
   const handleAdd = async (data: ProductSchemaInput) => {
     try {
+      const isFinishedGood = !data.trackInventory || data.inventoryType === "FINISHED_GOOD";
       await createProduct({
         categoryId: data.categoryId,
         sku: data.sku || undefined,
         name: data.name,
-        price: data.price,
+        price: isFinishedGood ? (isNaN(data.price as any) ? null : data.price) : null,
+        cost: isNaN(data.cost as any) ? null : data.cost,
         imageUrl: data.imageUrl || undefined,
         trackInventory: data.trackInventory || false,
         inventoryType: data.trackInventory ? (data.inventoryType as any) : undefined,
@@ -220,13 +263,15 @@ export default function ProductsPage() {
   const handleEdit = async (data: ProductSchemaInput) => {
     if (!editingProduct) return;
     try {
+      const isFinishedGood = !data.trackInventory || data.inventoryType === "FINISHED_GOOD";
       await updateProduct({
         id: editingProduct.id,
         body: {
           categoryId: data.categoryId,
           sku: data.sku || undefined,
           name: data.name,
-          price: data.price,
+          price: isFinishedGood ? (isNaN(data.price as any) ? null : data.price) : null,
+          cost: isNaN(data.cost as any) ? null : data.cost,
           imageUrl: data.imageUrl || undefined,
           trackInventory: data.trackInventory || false,
           inventoryType: data.trackInventory ? (data.inventoryType as any) : undefined,
@@ -265,7 +310,8 @@ export default function ProductsPage() {
       name: product.name,
       sku: product.sku || "",
       categoryId: product.categoryId,
-      price: Number(product.price),
+      price: product.price ? Number(product.price) : undefined as any,
+      cost: product.cost ? Number(product.cost) : undefined as any,
       imageUrl: product.imageUrl || "",
       trackInventory: product.trackInventory || false,
       inventoryType: product.inventoryType || "",
@@ -330,7 +376,7 @@ export default function ProductsPage() {
         <EmptyState title={TEXT.products.emptyState} description="Silakan sesuaikan filter atau kata kunci pencarian Anda." />
       ) : (
         <div className="flex flex-col gap-4">
-          <DataTable headers={["SKU", TEXT.products.nameCol, "Kategori", "Harga", TEXT.common.status, TEXT.common.actions]} isLoading={isLoading}>
+          <DataTable headers={["SKU", TEXT.products.nameCol, "Kategori", "Harga Jual", "Harga Beli", TEXT.common.status, TEXT.common.actions]} isLoading={isLoading}>
             {paginatedProducts.map((p: Product) => (
               <tr key={p.id} className="border-b border-zinc-800/50 hover:bg-zinc-900/20 transition">
                 <td className="px-6 py-4 text-sm font-semibold text-zinc-400">{p.sku || "-"}</td>
@@ -355,38 +401,22 @@ export default function ProductsPage() {
                 </td>
                 <td className="px-6 py-4 text-sm text-zinc-400">{p.category?.name || "Tanpa Kategori"}</td>
                 <td className="px-6 py-4 text-sm font-medium text-zinc-200">
-                  Rp {Number(p.price).toLocaleString()}
+                  {p.price !== null && p.price !== undefined ? `Rp ${Number(p.price).toLocaleString()}` : "-"}
+                </td>
+                <td className="px-6 py-4 text-sm font-medium text-zinc-300">
+                  {p.cost !== null && p.cost !== undefined ? `Rp ${Number(p.cost).toLocaleString()}` : "-"}
                 </td>
                 <td className="px-6 py-4">
                   <StatusBadge isActive={p.isActive} />
                 </td>
-                <td className="px-6 py-4 text-sm flex items-center gap-3">
-                  <button
-                    onClick={() => openEditModal(p)}
-                    className="text-indigo-400 hover:text-indigo-300 font-medium transition"
-                  >
-                    {TEXT.common.edit}
-                  </button>
-                  {p.inventoryType === "FINISHED_GOOD" && (
-                    <button
-                      onClick={() => setSelectedRecipeProductId(p.id)}
-                      className="text-emerald-400 hover:text-emerald-300 font-medium transition"
-                    >
-                      Resep
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleToggleActive(p)}
-                    className="text-amber-400 hover:text-amber-300 font-medium transition"
-                  >
-                    {p.isActive ? "Nonaktifkan" : "Aktifkan"}
-                  </button>
-                  <button
-                    onClick={() => setDeletingProductId(p.id)}
-                    className="text-rose-400 hover:text-rose-300 font-medium transition"
-                  >
-                    {TEXT.common.delete}
-                  </button>
+                 <td className="px-6 py-4 text-sm">
+                  <ProductActionMenu
+                    product={p}
+                    onEdit={openEditModal}
+                    onRecipe={setSelectedRecipeProductId}
+                    onToggleActive={handleToggleActive}
+                    onDelete={(product) => setDeletingProductId(product.id)}
+                  />
                 </td>
               </tr>
             ))}
@@ -453,13 +483,34 @@ export default function ProductsPage() {
                     </select>
                     {errorsAdd.categoryId ? <p className="text-xs text-rose-500 mt-0.5">{errorsAdd.categoryId.message}</p> : null}
                   </div>
+                  {(!trackInventoryAdd || inventoryTypeAdd === "FINISHED_GOOD") ? (
+                    <Input
+                      id="addPrice"
+                      label="Selling Price *"
+                      type="number"
+                      placeholder="e.g. 35000"
+                      error={errorsAdd.price?.message}
+                      {...registerAdd("price", { valueAsNumber: true })}
+                    />
+                  ) : (
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-sm font-medium text-zinc-400">Selling Price</label>
+                      <input
+                        type="text"
+                        disabled
+                        value="-"
+                        className="px-3 py-2 bg-zinc-800/50 border border-zinc-800 rounded-lg text-zinc-500 text-sm cursor-not-allowed outline-none"
+                      />
+                      <p className="text-xs text-zinc-400">Produk ini tidak dijual langsung.</p>
+                    </div>
+                  )}
                   <Input
-                    id="addPrice"
-                    label="Selling Price"
+                    id="addCost"
+                    label="Cost / Harga Beli"
                     type="number"
-                    placeholder="e.g. 35000"
-                    error={errorsAdd.price?.message}
-                    {...registerAdd("price", { valueAsNumber: true })}
+                    placeholder="e.g. 20000"
+                    error={errorsAdd.cost?.message}
+                    {...registerAdd("cost", { valueAsNumber: true })}
                   />
                   <div className="md:col-span-2">
                     <Input
@@ -626,12 +677,33 @@ export default function ProductsPage() {
                 </select>
                 {errorsEdit.categoryId ? <p className="text-xs text-rose-500 mt-0.5">{errorsEdit.categoryId.message}</p> : null}
               </div>
+              {(!trackInventoryEdit || inventoryTypeEdit === "FINISHED_GOOD") ? (
+                <Input
+                  id="editPrice"
+                  label="Selling Price *"
+                  type="number"
+                  error={errorsEdit.price?.message}
+                  {...registerEdit("price", { valueAsNumber: true })}
+                />
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-zinc-400">Selling Price</label>
+                  <input
+                    type="text"
+                    disabled
+                    value="-"
+                    className="px-3 py-2 bg-zinc-800/50 border border-zinc-800 rounded-lg text-zinc-500 text-sm cursor-not-allowed outline-none"
+                  />
+                  <p className="text-xs text-zinc-400">Produk ini tidak dijual langsung.</p>
+                </div>
+              )}
               <Input
-                id="editPrice"
-                label="Selling Price"
+                id="editCost"
+                label="Cost / Harga Beli"
                 type="number"
-                error={errorsEdit.price?.message}
-                {...registerEdit("price", { valueAsNumber: true })}
+                placeholder="e.g. 20000"
+                error={errorsEdit.cost?.message}
+                {...registerEdit("cost", { valueAsNumber: true })}
               />
               <div className="md:col-span-2">
                 <Input

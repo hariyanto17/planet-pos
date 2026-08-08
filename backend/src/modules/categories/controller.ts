@@ -6,7 +6,8 @@ import { AppError } from "../../utils/errorHandler";
 import { logActivity } from "../../utils/activityLogger";
 
 export const getCategories = async (req: Request, res: Response) => {
-  const categories = await categoryService.getAllCategories();
+  const sellableOnly = req.query.sellable === "true";
+  const categories = await categoryService.getAllCategories(sellableOnly);
   return responseHandler.ok(res, categories);
 };
 

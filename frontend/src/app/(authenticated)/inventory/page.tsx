@@ -14,13 +14,14 @@ import { InventoryStats } from "./components/InventoryStats";
 import { InventoryFilters } from "./components/InventoryFilters";
 import { InventoryStockTable } from "./components/InventoryStockTable";
 import { InventoryMovementTable } from "./components/InventoryMovementTable";
+import { InventoryTransferTable } from "./components/InventoryTransferTable";
 import ReceiveStockModal from "./components/ReceiveStockModal";
 import AdjustStockModal from "./components/AdjustStockModal";
 import WasteStockModal from "./components/WasteStockModal";
 import TransferStockModal from "./components/TransferStockModal";
 import { TEXT } from "@/lib/i18n/id";
 
-type Tab = "STOCK" | "MOVEMENTS";
+type Tab = "STOCK" | "MOVEMENTS" | "TRANSFERS";
 
 export default function InventoryPage() {
   const currentUser = useAppSelector(selectCurrentUser);
@@ -139,6 +140,7 @@ export default function InventoryPage() {
         {[
           { id: "STOCK", label: TEXT.inventory.tabStock },
           { id: "MOVEMENTS", label: TEXT.inventory.tabMovements },
+          { id: "TRANSFERS", label: "Transfer" },
         ].map((t) => (
           <button
             key={t.id}
@@ -190,7 +192,7 @@ export default function InventoryPage() {
           totalPages={productsPagination.totalPages}
           onPageChange={(p) => setStockPage(p)}
         />
-      ) : (
+      ) : activeTab === "MOVEMENTS" ? (
         <InventoryMovementTable
           movementsList={movementsList}
           isLoading={isMovementsLoading}
@@ -198,6 +200,8 @@ export default function InventoryPage() {
           totalPages={movementsPagination.totalPages}
           onPageChange={(p) => setMovementPage(p)}
         />
+      ) : (
+        <InventoryTransferTable onSuccess={handleRefresh} />
       )}
 
       {/* Operations Dialogs */}

@@ -6,7 +6,8 @@ import { AppError } from "../../utils/errorHandler";
 import { logActivity } from "../../utils/activityLogger";
 
 export const getProducts = async (req: Request, res: Response) => {
-  const products = await productService.getAllProducts();
+  const sellableOnly = req.query.sellable === "true";
+  const products = await productService.getAllProducts(sellableOnly);
   return responseHandler.ok(res, products);
 };
 

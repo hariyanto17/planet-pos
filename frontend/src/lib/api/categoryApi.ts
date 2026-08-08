@@ -3,8 +3,11 @@ import { CreateCategoryInput, UpdateCategoryInput } from "@shared/types";
 
 export const categoryApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getCategories: builder.query<any[], void>({
-      query: () => "/categories",
+    getCategories: builder.query<any[], { sellable?: boolean } | void>({
+      query: (params) => ({
+        url: "/categories",
+        params: params ? { sellable: params.sellable } : undefined,
+      }),
       providesTags: ["Category"],
     }),
     getCategory: builder.query<any, string>({

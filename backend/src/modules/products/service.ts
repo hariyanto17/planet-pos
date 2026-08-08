@@ -2,10 +2,42 @@ import { prisma } from "../../utils/prisma";
 import { CreateProductInput, UpdateProductInput } from "./interface";
 import { AppError } from "../../utils/errorHandler";
 
-export const getAllProducts = async () => {
+export const getSellableProductWhereClause = () => {
+  return {
+    deletedAt: null,
+    isActive: true,
+    inventoryType: "FINISHED_GOOD",
+    price: {
+      not: null,
+      gt: 0,
+    },
+  };
+};
+
+export const getAllProducts = async (sellableOnly: boolean = false) => {
+  const whereClause: any = sellableOnly
+    ? getSellableProductWhereClause()
+    : { deletedAt: null };
   return prisma.product.findMany({
-    where: { deletedAt: null },
-    include: { category: true, unit: true },
+    where: whereClause,
+    include: { 
+      category: true, 
+      unit: true,
+      recipe: {
+        include: {
+          items: {
+            include: {
+              componentProduct: {
+                include: {
+                  unit: true
+                }
+              },
+              unit: true
+            }
+          }
+        }
+      }
+    },
     orderBy: { createdAt: "desc" },
   });
 };
@@ -18,9 +50,20 @@ export const getProductById = async (id: string) => {
 };
 
 export const createProduct = async (input: CreateProductInput) => {
+  const type = input.inventoryType || "FINISHED_GOOD";
+  
+  if (type === "FINISHED_GOOD") {
+    if (input.price === undefined || input.price === null) {
+      throw new AppError("BAD_REQUEST", "Selling price is required for FINISHED_GOOD products.");
+    }
+  } else {
+    input.price = null;
+  }
+
   const data: any = {
     ...input,
-    price: input.price.toString(),
+    price: input.price !== undefined && input.price !== null ? input.price.toString() : null,
+    cost: input.cost !== undefined && input.cost !== null ? input.cost.toString() : null,
   };
   if (input.minimumStock !== undefined && input.minimumStock !== null) {
     data.minimumStock = input.minimumStock.toString();
@@ -34,9 +77,28 @@ export const createProduct = async (input: CreateProductInput) => {
 };
 
 export const updateProduct = async (id: string, input: UpdateProductInput) => {
+  const existingProduct = await prisma.product.findUnique({ where: { id } });
+  if (!existingProduct) {
+    throw new AppError("NOT_FOUND", "Product not found");
+  }
+
+  const newType = input.inventoryType !== undefined ? input.inventoryType : existingProduct.inventoryType;
+
+  if (newType === "FINISHED_GOOD") {
+    const priceToCheck = input.price !== undefined ? input.price : existingProduct.price;
+    if (priceToCheck === null || priceToCheck === undefined) {
+      throw new AppError("BAD_REQUEST", "Selling price is required for FINISHED_GOOD products.");
+    }
+  } else {
+    input.price = null;
+  }
+
   const updateData: any = { ...input };
   if (input.price !== undefined) {
-    updateData.price = input.price.toString();
+    updateData.price = input.price !== null ? input.price.toString() : null;
+  }
+  if (input.cost !== undefined) {
+    updateData.cost = input.cost !== null ? input.cost.toString() : null;
   }
   if (input.minimumStock !== undefined && input.minimumStock !== null) {
     updateData.minimumStock = input.minimumStock.toString();
@@ -45,7 +107,7 @@ export const updateProduct = async (id: string, input: UpdateProductInput) => {
     updateData.sku = `SKU-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
   }
   if (input.trackInventory === false) {
-    updateData.inventoryType = null;
+    updateData.inventoryType = "FINISHED_GOOD";
     updateData.unitId = null;
     updateData.minimumStock = null;
   }

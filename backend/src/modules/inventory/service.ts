@@ -529,3 +529,37 @@ export const completeStockTransfer = async (userId: string, transferId: string) 
     return updated;
   });
 };
+
+export const getStockTransfers = async (userId: string, userRole: string, userWarehouseId: string | null) => {
+  const whereClause: any = {};
+
+  if (userRole === "WAREHOUSE") {
+    if (!userWarehouseId) {
+      throw new AppError("FORBIDDEN", "Warehouse user must be assigned to a warehouse");
+    }
+    whereClause.OR = [
+      { sourceWarehouseId: userWarehouseId },
+      { destinationWarehouseId: userWarehouseId }
+    ];
+  } else if (userRole === "KITCHEN") {
+    whereClause.destinationWarehouse = {
+      warehouseType: "KITCHEN_STORAGE"
+    };
+  }
+
+  return await prisma.stockTransfer.findMany({
+    where: whereClause,
+    include: {
+      items: {
+        include: {
+          product: { select: { name: true, sku: true } }
+        }
+      },
+      sourceWarehouse: { select: { name: true } },
+      destinationWarehouse: { select: { name: true } },
+      requestedBy: { select: { fullName: true } },
+      completedBy: { select: { fullName: true } }
+    },
+    orderBy: { createdAt: "desc" }
+  });
+};

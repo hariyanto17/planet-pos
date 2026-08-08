@@ -38,7 +38,8 @@ export interface CreateProductInput {
   sku?: string;
   name: string;
   imageUrl?: string;
-  price: number;
+  price?: number | null;
+  cost?: number | null;
   trackInventory?: boolean;
   inventoryType?: "FINISHED_GOOD" | "RAW_MATERIAL" | "PACKAGING";
   minimumStock?: number;
@@ -50,7 +51,8 @@ export interface UpdateProductInput {
   sku?: string;
   name?: string;
   imageUrl?: string;
-  price?: number;
+  price?: number | null;
+  cost?: number | null;
   isActive?: boolean;
   trackInventory?: boolean;
   inventoryType?: "FINISHED_GOOD" | "RAW_MATERIAL" | "PACKAGING";

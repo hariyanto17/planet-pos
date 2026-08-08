@@ -258,3 +258,16 @@ export const completeStockTransferHandler = catchAsync(async (req: Request, res:
   const result = await inventoryService.completeStockTransfer(userId, id);
   return responseHandler.ok(res, result, "Stock transfer completed");
 });
+
+export const getStockTransfersHandler = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id;
+  const userRole = req.user?.role;
+  const userWarehouseId = req.user?.warehouseId;
+
+  if (!userId || !userRole) {
+    throw new AppError("UNAUTHORIZED", "Not authenticated");
+  }
+
+  const transfers = await inventoryService.getStockTransfers(userId, userRole, userWarehouseId || null);
+  return responseHandler.ok(res, transfers, "Stock transfers retrieved successfully");
+});

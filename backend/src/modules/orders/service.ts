@@ -79,6 +79,12 @@ export const createOrder = async (
       throw new AppError("BAD_REQUEST", "One or more products are invalid or inactive");
     }
 
+    for (const product of products) {
+      if (product.inventoryType !== "FINISHED_GOOD") {
+        throw new AppError("BAD_REQUEST", "Only FINISHED_GOOD products can be sold through POS.");
+      }
+    }
+
     const productMap = new Map(products.map((p) => [p.id, p]));
 
     // 3. Fetch active promotions
@@ -97,7 +103,7 @@ export const createOrder = async (
     // 4. Calculate initial items subtotal and check for percent promotions
     const calculatedItems = input.items.map((item) => {
       const product = productMap.get(item.productId)!;
-      const unitPrice = product.price;
+      const unitPrice = product.price!;
       const quantity = item.quantity;
       const subtotal = unitPrice.mul(quantity);
 

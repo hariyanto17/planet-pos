@@ -8,7 +8,7 @@ interface InventoryFiltersProps {
   selectedWarehouseId: string;
   onWarehouseChange: (value: string) => void;
   warehouses: any[];
-  activeTab: "STOCK" | "MOVEMENTS";
+  activeTab: "STOCK" | "MOVEMENTS" | "TRANSFERS";
   stockStatus?: string;
   onStockStatusChange?: (value: string) => void;
   movementType?: string;

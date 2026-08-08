@@ -15,12 +15,15 @@ import { InventoryStockTable } from "../../inventory/components/InventoryStockTa
 import ReceiveStockModal from "../../inventory/components/ReceiveStockModal";
 import AdjustStockModal from "../../inventory/components/AdjustStockModal";
 import WasteStockModal from "../../inventory/components/WasteStockModal";
+import TransferStockModal from "../../inventory/components/TransferStockModal";
+import { InventoryTransferTable } from "../../inventory/components/InventoryTransferTable";
 import { TEXT } from "@/lib/i18n/id";
 
 export default function WarehouseCurrentStockPage() {
   const currentUser = useAppSelector(selectCurrentUser);
 
   // Filters State
+  const [activeTab, setActiveTab] = useState<"STOCK" | "TRANSFERS">("STOCK");
   const [search, setSearch] = useState("");
   const [selectedWarehouseId, setSelectedWarehouseId] = useState("");
   const [stockStatus, setStockStatus] = useState("");
@@ -30,6 +33,7 @@ export default function WarehouseCurrentStockPage() {
   const [isReceiveOpen, setIsReceiveOpen] = useState(false);
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
   const [isWasteOpen, setIsWasteOpen] = useState(false);
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
 
   // Queries
   const { data: summary, isLoading: isSummaryLoading, refetch: refetchSummary } = useGetInventorySummaryQuery();
@@ -68,6 +72,9 @@ export default function WarehouseCurrentStockPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="secondary" onClick={() => setIsTransferOpen(true)}>
+            Transfer
+          </Button>
           <Button variant="secondary" onClick={() => setIsWasteOpen(true)}>
             {TEXT.inventory.wasteBtn}
           </Button>
@@ -102,35 +109,61 @@ export default function WarehouseCurrentStockPage() {
       {/* Summary Cards */}
       <InventoryStats summary={summary} isLoading={isSummaryLoading} />
 
+      {/* Navigation Tabs */}
+      <div className="flex border-b border-zinc-800/80 gap-1 overflow-x-auto pb-px">
+        {[
+          { id: "STOCK", label: TEXT.inventory.tabStock },
+          { id: "TRANSFERS", label: "Transfer" },
+        ].map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setActiveTab(t.id as "STOCK" | "TRANSFERS")}
+            className={`px-5 py-3 text-xs font-black uppercase tracking-widest border-b-2 whitespace-nowrap transition duration-150 ${
+              activeTab === t.id
+                ? "border-indigo-500 text-indigo-400"
+                : "border-transparent text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {/* Filter panel */}
-      <InventoryFilters
-        search={search}
-        onSearchChange={(val: string) => {
-          setSearch(val);
-          setStockPage(1);
-        }}
-        selectedWarehouseId={selectedWarehouseId}
-        onWarehouseChange={(val: string) => {
-          setSelectedWarehouseId(val);
-          setStockPage(1);
-        }}
-        warehouses={warehouses}
-        activeTab="STOCK"
-        stockStatus={stockStatus}
-        onStockStatusChange={(val: string) => {
-          setStockStatus(val);
-          setStockPage(1);
-        }}
-      />
+      {activeTab === "STOCK" && (
+        <InventoryFilters
+          search={search}
+          onSearchChange={(val: string) => {
+            setSearch(val);
+            setStockPage(1);
+          }}
+          selectedWarehouseId={selectedWarehouseId}
+          onWarehouseChange={(val: string) => {
+            setSelectedWarehouseId(val);
+            setStockPage(1);
+          }}
+          warehouses={warehouses}
+          activeTab="STOCK"
+          stockStatus={stockStatus}
+          onStockStatusChange={(val: string) => {
+            setStockStatus(val);
+            setStockPage(1);
+          }}
+        />
+      )}
 
       {/* Content display */}
-      <InventoryStockTable
-        productsList={productsList}
-        isLoading={isProductsLoading}
-        stockPage={stockPage}
-        totalPages={productsPagination.totalPages}
-        onPageChange={(p: number) => setStockPage(p)}
-      />
+      {activeTab === "STOCK" ? (
+        <InventoryStockTable
+          productsList={productsList}
+          isLoading={isProductsLoading}
+          stockPage={stockPage}
+          totalPages={productsPagination.totalPages}
+          onPageChange={(p: number) => setStockPage(p)}
+        />
+      ) : (
+        <InventoryTransferTable onSuccess={handleRefresh} />
+      )}
 
       {/* Operations Dialogs */}
       {isReceiveOpen && (
@@ -157,6 +190,16 @@ export default function WarehouseCurrentStockPage() {
         <WasteStockModal
           isOpen={isWasteOpen}
           onClose={() => setIsWasteOpen(false)}
+          products={productsList}
+          warehouses={warehouses}
+          onSuccess={handleRefresh}
+        />
+      )}
+
+      {isTransferOpen && (
+        <TransferStockModal
+          isOpen={isTransferOpen}
+          onClose={() => setIsTransferOpen(false)}
           products={productsList}
           warehouses={warehouses}
           onSuccess={handleRefresh}

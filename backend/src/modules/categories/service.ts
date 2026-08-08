@@ -1,9 +1,17 @@
 import { prisma } from "../../utils/prisma";
 import { CreateCategoryInput, UpdateCategoryInput } from "./interface";
+import { getSellableProductWhereClause } from "../products/service";
 
-export const getAllCategories = async () => {
+export const getAllCategories = async (sellableOnly: boolean = false) => {
+  const whereClause: any = { deletedAt: null };
+  if (sellableOnly) {
+    whereClause.isActive = true;
+    whereClause.products = {
+      some: getSellableProductWhereClause(),
+    };
+  }
   return prisma.category.findMany({
-    where: { deletedAt: null },
+    where: whereClause,
     orderBy: { createdAt: "desc" },
   });
 };

@@ -64,7 +64,7 @@ function SelfOrderContent() {
     skip: !tableUuid,
   });
 
-  const [activeCategory, setActiveCategory] = useState<string>("");
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [nameInput, setNameInput] = useState("");
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -77,8 +77,8 @@ function SelfOrderContent() {
 
   const [checkout, { isLoading: isSubmitting }] = useCheckoutMutation();
 
-  const { data: categories = [], isLoading: isLoadingCategories } = useGetCategoriesQuery();
-  const { data: products = [], isLoading: isLoadingProducts } = useGetProductsQuery();
+  const { data: categories = [], isLoading: isLoadingCategories } = useGetCategoriesQuery({ sellable: true });
+  const { data: products = [], isLoading: isLoadingProducts } = useGetProductsQuery({ sellable: true });
 
   useEffect(() => {
     if (tableData && tableData.isActive) {
@@ -88,7 +88,7 @@ function SelfOrderContent() {
 
   useEffect(() => {
     const activeCats = categories.filter((c: Category) => c.isActive);
-    if (activeCats.length > 0 && !activeCategory) {
+    if (activeCats.length > 0 && activeCategory === null) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveCategory(activeCats[0].id);
     }
@@ -99,7 +99,7 @@ function SelfOrderContent() {
   const filteredProducts = useMemo(() => {
     return products.filter((p: Product) => {
       if (!p.isActive) return false;
-      const matchesCategory = activeCategory === "" || p.categoryId === activeCategory;
+      const matchesCategory = !activeCategory || p.categoryId === activeCategory;
       const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
       return matchesCategory && matchesSearch;
     });
