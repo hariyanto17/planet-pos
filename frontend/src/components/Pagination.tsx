@@ -15,8 +15,8 @@ export const Pagination: React.FC<PaginationProps> = ({
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex items-center justify-between border-t border-zinc-800/80 pt-4 mt-4">
-      <span className="text-sm text-zinc-500 font-medium">
+    <div className="flex items-center justify-between border-t border-border pt-4 mt-4">
+      <span className="text-sm text-text-muted font-medium">
         Page {currentPage} of {totalPages}
       </span>
       <div className="flex items-center gap-2">
@@ -46,8 +46,8 @@ export const Pagination: React.FC<PaginationProps> = ({
               onClick={() => onPageChange(pageNum)}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 ${
                 currentPage === pageNum
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/10"
-                  : "bg-zinc-950 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
+                  ? "bg-primary text-white shadow-md shadow-primary/10"
+                  : "bg-surface-secondary text-text-secondary hover:text-text-primary border border-border"
               }`}
             >
               {pageNum}

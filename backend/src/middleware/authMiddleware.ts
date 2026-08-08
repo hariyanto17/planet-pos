@@ -34,6 +34,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       fullName: user.fullName,
       username: user.username,
       role: user.role,
+      warehouseId: user.warehouseId,
     };
     next();
   } catch (error) {
@@ -60,6 +61,7 @@ export const optionalAuthenticate = async (req: Request, res: Response, next: Ne
         fullName: user.fullName,
         username: user.username,
         role: user.role,
+        warehouseId: user.warehouseId,
       };
     }
     next();

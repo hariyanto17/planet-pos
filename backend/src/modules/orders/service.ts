@@ -465,27 +465,28 @@ export const deductInventoryForCompletedOrder = async (
 
   if (!order) return;
 
-  const defaultWarehouseCode = process.env.DEFAULT_SALES_WAREHOUSE_CODE || "CONCESSION";
-  let warehouse = await tx.warehouse.findFirst({
+  const kitchenWarehouse = await tx.warehouse.findFirst({
     where: { isDefaultKitchenStorage: true, warehouseType: "KITCHEN_STORAGE" },
   });
 
-  if (!warehouse) {
-    warehouse = await tx.warehouse.findFirst({
+  const defaultWarehouseCode = process.env.DEFAULT_SALES_WAREHOUSE_CODE || "CONCESSION";
+  let fallbackWarehouse = kitchenWarehouse;
+  if (!fallbackWarehouse) {
+    fallbackWarehouse = await tx.warehouse.findFirst({
       where: { code: defaultWarehouseCode },
     });
-  }
-
-  if (!warehouse) {
-    throw new AppError(
-      "BAD_REQUEST",
-      `Default kitchen storage warehouse or fallback sales warehouse '${defaultWarehouseCode}' not found`
-    );
   }
 
   const productIds = order.items.map((item) => item.productId);
   const products = await tx.product.findMany({
     where: { id: { in: productIds } },
+    include: {
+      recipe: {
+        include: {
+          items: true
+        }
+      }
+    }
   });
   const productsMap = new Map(products.map((p) => [p.id, p]));
 
@@ -493,18 +494,41 @@ export const deductInventoryForCompletedOrder = async (
     const product = productsMap.get(item.productId);
     if (!product) continue;
 
-    if (product.trackInventory && product.inventoryType === "FINISHED_GOOD") {
-      const deductionQty = -Number(item.quantity);
-      await createLedgerEntry(tx, {
-        productId: product.id,
-        warehouseId: warehouse.id,
-        movementType: StockMovementType.SALE,
-        quantity: deductionQty,
-        referenceType: StockReferenceType.SALE,
-        referenceId: order.id,
-        remarks: `Auto stock deduction from POS Order ${order.displayNumber}`,
-        createdById: userId,
-      });
+    if (product.recipe) {
+      if (!kitchenWarehouse) {
+        throw new AppError("BAD_REQUEST", "Penyimpanan Dapur (Kitchen Storage) default tidak ditemukan untuk pengurangan resep.");
+      }
+
+      for (const recipeItem of product.recipe.items) {
+        const componentQty = -Number(item.quantity) * Number(recipeItem.quantity);
+        await createLedgerEntry(tx, {
+          productId: recipeItem.componentProductId,
+          warehouseId: kitchenWarehouse.id,
+          movementType: StockMovementType.RECIPE_CONSUMPTION,
+          quantity: componentQty,
+          referenceType: StockReferenceType.RECIPE_CONSUMPTION,
+          referenceId: order.id,
+          remarks: `Recipe consumption from POS Order ${order.displayNumber} for product ${product.name}`,
+          createdById: userId,
+        });
+      }
+    } else {
+      if (product.trackInventory && product.inventoryType === "FINISHED_GOOD") {
+        if (!fallbackWarehouse) {
+          throw new AppError("BAD_REQUEST", `Warehouse default untuk penjualan tidak ditemukan.`);
+        }
+        const deductionQty = -Number(item.quantity);
+        await createLedgerEntry(tx, {
+          productId: product.id,
+          warehouseId: fallbackWarehouse.id,
+          movementType: StockMovementType.SALE,
+          quantity: deductionQty,
+          referenceType: StockReferenceType.SALE,
+          referenceId: order.id,
+          remarks: `Auto stock deduction from POS Order ${order.displayNumber}`,
+          createdById: userId,
+        });
+      }
     }
   }
 };

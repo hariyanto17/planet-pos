@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Modal } from "@/components/Modal";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { useTransferStockMutation } from "@/lib/api/inventoryApi";
+import { useAppSelector } from "@/lib/store/hooks";
+import { selectCurrentUser } from "@/lib/store/features/auth/selectors";
 
 interface Props {
   isOpen: boolean;
@@ -13,6 +15,7 @@ interface Props {
 }
 
 export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products = [], warehouses = [], onSuccess }) => {
+  const currentUser = useAppSelector(selectCurrentUser);
   const [sourceWarehouseId, setSourceWarehouseId] = useState("");
   const [destinationWarehouseId, setDestinationWarehouseId] = useState("");
   const [productId, setProductId] = useState("");
@@ -21,6 +24,22 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
   const [errorMsg, setErrorMsg] = useState("");
 
   const [transferStock, { isLoading }] = useTransferStockMutation();
+
+  useEffect(() => {
+    if (isOpen) {
+      if (currentUser?.role === "WAREHOUSE" && currentUser.warehouseId) {
+        setSourceWarehouseId(currentUser.warehouseId);
+      }
+      if (currentUser?.role === "KITCHEN") {
+        const defaultKitchen = warehouses.find(
+          (w) => w.warehouseType === "KITCHEN_STORAGE" && w.isDefaultKitchenStorage
+        );
+        if (defaultKitchen) {
+          setDestinationWarehouseId(defaultKitchen.id);
+        }
+      }
+    }
+  }, [isOpen, currentUser, warehouses]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,7 +96,8 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
           <select
             value={sourceWarehouseId}
             onChange={(e) => setSourceWarehouseId(e.target.value)}
-            className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-300 outline-none focus:border-indigo-500 text-sm font-semibold"
+            disabled={currentUser?.role === "WAREHOUSE"}
+            className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-300 outline-none focus:border-indigo-500 text-sm font-semibold disabled:opacity-50"
             required
           >
             <option value="">Pilih Gudang Asal...</option>
@@ -94,7 +114,8 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
           <select
             value={destinationWarehouseId}
             onChange={(e) => setDestinationWarehouseId(e.target.value)}
-            className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-300 outline-none focus:border-indigo-500 text-sm font-semibold"
+            disabled={currentUser?.role === "KITCHEN"}
+            className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-300 outline-none focus:border-indigo-500 text-sm font-semibold disabled:opacity-50"
             required
           >
             <option value="">Pilih Gudang Tujuan...</option>

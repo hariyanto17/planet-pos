@@ -21,7 +21,7 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
 ) => {
   const result = await baseQuery(args, api, extraOptions);
 
-  if (result.error && result.error.status === 401) {
+  if (result.error && result.error.status === 401 && api.endpoint !== "login") {
     // Perform state cleanup only
     api.dispatch(logout());
     api.dispatch(baseApi.util.resetApiState());

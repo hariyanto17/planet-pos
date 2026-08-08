@@ -1,0 +1,250 @@
+import React, { useState, useEffect } from "react";
+import { Modal } from "@/components/Modal";
+import { Button } from "@/components/Button";
+import { Input } from "@/components/Input";
+import {
+  useGetProductRecipeQuery,
+  useUpdateProductRecipeMutation,
+} from "@/lib/api/productApi";
+
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
+  productId: string;
+  allProducts: any[];
+  allUnits: any[];
+}
+
+export const RecipeModal: React.FC<Props> = ({
+  isOpen,
+  onClose,
+  productId,
+  allProducts = [],
+  allUnits = [],
+}) => {
+  const { data: recipe, isLoading: isLoadingRecipe } = useGetProductRecipeQuery(productId, {
+    skip: !productId || !isOpen,
+  });
+  const [updateRecipe, { isLoading: isSaving }] = useUpdateProductRecipeMutation();
+
+  const [items, setItems] = useState<Array<{ componentProductId: string; quantity: string; unitId: string }>>([]);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+
+  // Filter products that can be recipe ingredients: RAW_MATERIAL or PACKAGING, active, tracked
+  const ingredientOptions = allProducts.filter(
+    (p) =>
+      p.id !== productId &&
+      p.isActive &&
+      p.trackInventory &&
+      (p.inventoryType === "RAW_MATERIAL" || p.inventoryType === "PACKAGING")
+  );
+
+  useEffect(() => {
+    if (recipe && recipe.items) {
+      setItems(
+        recipe.items.map((it: any) => ({
+          componentProductId: it.componentProductId,
+          quantity: Number(it.quantity).toString(),
+          unitId: it.unitId,
+        }))
+      );
+    } else {
+      setItems([]);
+    }
+    setErrorMsg("");
+    setSuccessMsg("");
+  }, [recipe, isOpen]);
+
+  const handleAddRow = () => {
+    setItems((prev) => [...prev, { componentProductId: "", quantity: "1", unitId: "" }]);
+  };
+
+  const handleRemoveRow = (index: number) => {
+    setItems((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRowChange = (index: number, field: string, value: string) => {
+    setItems((prev) => {
+      const updated = [...prev];
+      if (field === "componentProductId") {
+        // Automatically set the unitId to match the component's unitId
+        const comp = ingredientOptions.find((p) => p.id === value);
+        updated[index] = {
+          ...updated[index],
+          componentProductId: value,
+          unitId: comp?.unitId || "",
+        };
+      } else {
+        updated[index] = {
+          ...updated[index],
+          [field]: value,
+        };
+      }
+      return updated;
+    });
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    // Validate
+    if (items.length === 0) {
+      setErrorMsg("Resep harus memiliki minimal 1 bahan komponen.");
+      return;
+    }
+
+    const seen = new Set<string>();
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      if (!it.componentProductId) {
+        setErrorMsg(`Baris ke-${i + 1}: Silakan pilih bahan komponen.`);
+        return;
+      }
+      const qtyNum = parseFloat(it.quantity);
+      if (isNaN(qtyNum) || qtyNum <= 0) {
+        setErrorMsg(`Baris ke-${i + 1}: Jumlah bahan harus positif.`);
+        return;
+      }
+      if (seen.has(it.componentProductId)) {
+        setErrorMsg(`Baris ke-${i + 1}: Bahan duplikat terdeteksi.`);
+        return;
+      }
+      seen.add(it.componentProductId);
+    }
+
+    try {
+      await updateRecipe({
+        id: productId,
+        body: {
+          items: items.map((it) => ({
+            componentProductId: it.componentProductId,
+            quantity: parseFloat(it.quantity),
+            unitId: it.unitId,
+          })),
+        },
+      }).unwrap();
+      setSuccessMsg("Resep berhasil disimpan!");
+      setTimeout(() => {
+        onClose();
+      }, 1000);
+    } catch (err: any) {
+      setErrorMsg(err?.data?.message || "Gagal menyimpan resep.");
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Kelola Resep / BOM">
+      <form onSubmit={handleSave} className="flex flex-col gap-4">
+        {errorMsg && (
+          <div className="p-3 bg-red-950/40 border border-red-900/50 rounded-lg text-red-400 text-xs font-semibold">
+            ⚠️ {errorMsg}
+          </div>
+        )}
+        {successMsg && (
+          <div className="p-3 bg-emerald-950/40 border border-emerald-900/50 rounded-lg text-emerald-400 text-xs font-semibold">
+            ✓ {successMsg}
+          </div>
+        )}
+
+        {isLoadingRecipe ? (
+          <div className="text-center py-6 text-zinc-500 text-sm font-medium">Memuat data resep...</div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <div className="max-h-[300px] overflow-y-auto border border-zinc-800/80 rounded-lg bg-zinc-950/40">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-zinc-800 bg-zinc-900/50 text-[10px] uppercase tracking-wider text-zinc-400 font-bold">
+                    <th className="px-4 py-2">Bahan Komponen</th>
+                    <th className="px-4 py-2 w-28">Jumlah</th>
+                    <th className="px-4 py-2 w-24">Satuan</th>
+                    <th className="px-4 py-2 w-12 text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((row, idx) => {
+                    const selectedComp = ingredientOptions.find((p) => p.id === row.componentProductId);
+                    const unitSymbol = selectedComp?.unit?.symbol || "-";
+
+                    return (
+                      <tr key={idx} className="border-b border-zinc-850 hover:bg-zinc-900/10">
+                        <td className="px-3 py-2">
+                          <select
+                            value={row.componentProductId}
+                            onChange={(e) => handleRowChange(idx, "componentProductId", e.target.value)}
+                            className="w-full px-2 py-1.5 bg-zinc-950 border border-zinc-800 rounded text-zinc-300 outline-none focus:border-indigo-500 text-xs font-semibold"
+                            required
+                          >
+                            <option value="">Pilih Bahan...</option>
+                            {ingredientOptions.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.name} ({p.sku || "-"})
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-3 py-2">
+                          <Input
+                            type="number"
+                            step="0.001"
+                            value={row.quantity}
+                            onChange={(e) => handleRowChange(idx, "quantity", e.target.value)}
+                            required
+                            className="w-full text-xs"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <span className="text-xs text-zinc-400 font-semibold px-2 py-1 bg-zinc-900/80 border border-zinc-800 rounded inline-block w-full text-center">
+                            {unitSymbol}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveRow(idx)}
+                            className="text-rose-500 hover:text-rose-400 text-xs font-bold transition"
+                          >
+                            Hapus
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {items.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="text-center py-6 text-zinc-500 text-xs">
+                        Belum ada bahan. Klik &quot;Tambah Bahan&quot; di bawah.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleAddRow}
+              className="text-xs font-bold border border-dashed border-zinc-800 hover:border-zinc-700 w-full"
+            >
+              + Tambah Bahan Komponen
+            </Button>
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2 border-t border-zinc-800/80 pt-4 mt-2">
+          <Button variant="secondary" onClick={onClose} type="button">
+            Batal
+          </Button>
+          <Button variant="primary" type="submit" isLoading={isSaving}>
+            Simpan Resep
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+};
+
+export default RecipeModal;

@@ -1,13 +1,13 @@
 import { UserRole } from "@shared/types";
 
-export type WorkspaceType = "ADMIN" | "WAREHOUSE" | "CASHIER" | "KITCHEN" | "ACCOUNTING";
+export type WorkspaceType = "ADMIN" | "WAREHOUSE" | "ACCOUNTING";
 
 // Permission Matrix mapping UserRole -> Workspaces they can access
 export const ROLE_WORKSPACES: Record<UserRole, WorkspaceType[]> = {
-  ADMIN: ["ADMIN", "WAREHOUSE"],
+  ADMIN: ["ADMIN", "WAREHOUSE", "ACCOUNTING"],
   WAREHOUSE: ["WAREHOUSE"],
-  CASHIER: ["CASHIER"],
-  KITCHEN: ["KITCHEN"],
+  CASHIER: [],
+  KITCHEN: [],
   ACCOUNTING: ["ACCOUNTING"],
 };
 
@@ -15,8 +15,8 @@ export const ROLE_WORKSPACES: Record<UserRole, WorkspaceType[]> = {
 export const DEFAULT_WORKSPACE: Record<UserRole, WorkspaceType> = {
   ADMIN: "ADMIN",
   WAREHOUSE: "WAREHOUSE",
-  CASHIER: "CASHIER",
-  KITCHEN: "KITCHEN",
+  CASHIER: "WAREHOUSE", // Fallback to warehouse if cashier logs in to web
+  KITCHEN: "WAREHOUSE",   // Fallback to warehouse if kitchen logs in to web
   ACCOUNTING: "ACCOUNTING",
 };
 
@@ -24,8 +24,6 @@ export const DEFAULT_WORKSPACE: Record<UserRole, WorkspaceType> = {
 export const WORKSPACE_DEFAULT_ROUTES: Record<WorkspaceType, string> = {
   ADMIN: "/dashboard",
   WAREHOUSE: "/warehouse/dashboard",
-  CASHIER: "/shifts",
-  KITCHEN: "/kitchen",
   ACCOUNTING: "/reports",
 };
 
@@ -53,14 +51,8 @@ export const ROUTES_CONFIG: RouteConfig[] = [
   { path: "/warehouse/dashboard", workspace: "WAREHOUSE" },
   { path: "/warehouse/current-stock", workspace: "WAREHOUSE" },
   { path: "/warehouse/opening", workspace: "WAREHOUSE" },
-  { path: "/warehouse/settings/units", workspace: "WAREHOUSE" },
-  { path: "/warehouse/settings/warehouses", workspace: "WAREHOUSE" },
-
-  // Cashier Workspace Routes
-  { path: "/shifts", workspace: "CASHIER" },
-
-  // Kitchen Workspace Routes
-  { path: "/kitchen", workspace: "KITCHEN" },
+  { path: "/warehouse/settings/units", workspace: "ADMIN" },
+  { path: "/warehouse/settings/warehouses", workspace: "ADMIN" },
 
   // Accounting Workspace Routes
   { path: "/reports", workspace: "ACCOUNTING" },
@@ -76,7 +68,6 @@ export const SIDEBAR_CONFIGS: Record<WorkspaceType, SidebarItemConfig[]> = {
   ADMIN: [
     { name: "Dashboard", href: "/dashboard", iconName: "dashboard" },
     { name: "Pesanan", href: "/orders", iconName: "orders" },
-    { name: "Dapur", href: "/kitchen", iconName: "kitchen" },
     { name: "Produk", href: "/products", iconName: "products" },
     { name: "Kategori", href: "/categories", iconName: "categories" },
     { name: "Promosi", href: "/promotions", iconName: "promotions" },
@@ -84,19 +75,13 @@ export const SIDEBAR_CONFIGS: Record<WorkspaceType, SidebarItemConfig[]> = {
     { name: "Stok Admin", href: "/inventory", iconName: "inventory" },
     { name: "Laporan", href: "/reports", iconName: "reports" },
     { name: "Staf", href: "/users", iconName: "users" },
+    { name: "Units", href: "/warehouse/settings/units", iconName: "ruler" },
+    { name: "Pengaturan Gudang", href: "/warehouse/settings/warehouses", iconName: "tables" },
   ],
   WAREHOUSE: [
     { name: "Dashboard Gudang", href: "/warehouse/dashboard", iconName: "dashboard" },
     { name: "Stok Saat Ini", href: "/warehouse/current-stock", iconName: "inventory" },
     { name: "Stok Awal", href: "/warehouse/opening", iconName: "shifts" },
-    { name: "Units", href: "/warehouse/settings/units", iconName: "ruler" },
-    { name: "Pengaturan Gudang", href: "/warehouse/settings/warehouses", iconName: "tables" },
-  ],
-  CASHIER: [
-    { name: "Laci Kasir", href: "/shifts", iconName: "shifts" },
-  ],
-  KITCHEN: [
-    { name: "Layar Dapur", href: "/kitchen", iconName: "kitchen" },
   ],
   ACCOUNTING: [
     { name: "Rincian Laporan", href: "/reports", iconName: "reports" },

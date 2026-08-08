@@ -11,20 +11,20 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
 
     return (
       <div className="w-full flex flex-col gap-1.5">
-        {label ? <label className="text-sm font-medium text-zinc-300">{label}</label> : null}
+        {label ? <label className="text-sm font-medium text-text-secondary">{label}</label> : null}
         <div className="relative">
           <input
             ref={ref}
             type={showPassword ? "text" : "password"}
-            className={`w-full pl-3 pr-10 py-2 bg-zinc-900 border ${
-              error ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500/20" : "border-zinc-800 focus:border-indigo-500 focus:ring-indigo-500/20"
-            } rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:ring-4 transition duration-200 ${className}`}
+            className={`w-full pl-3 pr-10 py-2 bg-surface border ${
+              error ? "border-error focus:border-error focus:ring-error/20" : "border-border focus:border-primary focus:ring-primary/20"
+            } rounded-lg text-text-primary placeholder-text-muted outline-none focus:ring-4 transition duration-200 disabled:bg-surface-secondary disabled:text-text-muted disabled:cursor-not-allowed ${className}`}
             {...props}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-500 hover:text-zinc-300 transition duration-200"
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-text-muted hover:text-text-primary transition duration-200"
           >
             {showPassword ? (
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -38,7 +38,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             )}
           </button>
         </div>
-        {error ? <p className="text-xs text-rose-500 mt-0.5">{error}</p> : null}
+        {error ? <p className="text-xs text-error mt-0.5">{error}</p> : null}
       </div>
     );
   }

@@ -76,10 +76,10 @@ export function InventoryStockTable({
             <td className="px-6 py-4 text-xs font-medium text-zinc-400 font-mono">{p.sku}</td>
             <td className="px-6 py-4 text-xs font-semibold text-zinc-300">{p.warehouseName}</td>
             <td className="px-6 py-4 text-xs font-extrabold text-zinc-100 font-mono">
-              {Number(p.quantity).toFixed(3)} <span className="text-[10px] text-zinc-500 font-normal">{p.unit}</span>
+              {p.quantity} <span className="text-[10px] text-zinc-500 font-normal">{p.unit}</span>
             </td>
             <td className="px-6 py-4 text-xs font-medium text-zinc-500 font-mono">
-              {Number(p.minimumStock).toFixed(3)}
+              {p.minimumStock}
             </td>
             <td className="px-6 py-4">{renderStatusBadge(p.status)}</td>
           </tr>

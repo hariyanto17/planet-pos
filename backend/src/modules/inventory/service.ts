@@ -78,9 +78,14 @@ export const getProductStockList = async (filters: GetProductStockListFilters) =
   // 1. Resolve active warehouse code or id
   let targetWarehouseId = filters.warehouseId;
   if (!targetWarehouseId) {
-    const defaultWarehouse = await prisma.warehouse.findFirst({
+    let defaultWarehouse = await prisma.warehouse.findFirst({
       where: { code: DEFAULT_SALES_WAREHOUSE_CODE },
     });
+    if (!defaultWarehouse) {
+      defaultWarehouse = await prisma.warehouse.findFirst({
+        where: { isActive: true },
+      });
+    }
     targetWarehouseId = defaultWarehouse?.id;
   }
 

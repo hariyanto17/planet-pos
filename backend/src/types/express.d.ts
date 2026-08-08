@@ -8,6 +8,7 @@ declare global {
         fullName: string;
         username: string;
         role: UserRole;
+        warehouseId?: string | null;
       };
       cashierShift?: any;
     }

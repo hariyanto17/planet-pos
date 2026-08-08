@@ -6,6 +6,8 @@ import {
   createProductHandler,
   updateProductHandler,
   deleteProductHandler,
+  getRecipeHandler,
+  upsertRecipeHandler
 } from "./controller";
 import { authenticate, optionalAuthenticate } from "../../middleware/authMiddleware";
 import { authorize } from "../../middleware/authorize";
@@ -17,5 +19,8 @@ router.get("/:id", optionalAuthenticate, catchAsync(getProduct));
 router.post("/", authenticate, authorize("ADMIN"), catchAsync(createProductHandler));
 router.put("/:id", authenticate, authorize("ADMIN"), catchAsync(updateProductHandler));
 router.delete("/:id", authenticate, authorize("ADMIN"), catchAsync(deleteProductHandler));
+
+router.get("/:id/recipe", optionalAuthenticate, catchAsync(getRecipeHandler));
+router.put("/:id/recipe", authenticate, authorize("ADMIN"), catchAsync(upsertRecipeHandler));
 
 export default router;

@@ -12,12 +12,11 @@ import { authenticate, requireRoles } from "../../middleware/authMiddleware";
 const router = Router();
 
 router.use(authenticate);
-router.use(requireRoles(["ADMIN", "WAREHOUSE"]));
 
-router.get("/", catchAsync(getUnits));
-router.get("/:id", catchAsync(getUnit));
-router.post("/", catchAsync(createUnitHandler));
-router.put("/:id", catchAsync(updateUnitHandler));
-router.delete("/:id", catchAsync(deactivateUnitHandler));
+router.get("/", requireRoles(["ADMIN", "WAREHOUSE"]), catchAsync(getUnits));
+router.get("/:id", requireRoles(["ADMIN", "WAREHOUSE"]), catchAsync(getUnit));
+router.post("/", requireRoles(["ADMIN"]), catchAsync(createUnitHandler));
+router.put("/:id", requireRoles(["ADMIN"]), catchAsync(updateUnitHandler));
+router.delete("/:id", requireRoles(["ADMIN"]), catchAsync(deactivateUnitHandler));
 
 export default router;

@@ -85,6 +85,16 @@ async function main() {
   await seedUsers(prisma);
   await seedUnits(prisma);
   await seedWarehouses(prisma);
+
+  const mainWh = await prisma.warehouse.findFirst({ where: { code: "WH-MAIN" } });
+  if (mainWh) {
+    await prisma.user.update({
+      where: { username: "warehouse" },
+      data: { warehouseId: mainWh.id }
+    });
+    console.log("Assigned 'warehouse' user to WH-MAIN.");
+  }
+
   await seedCategories(prisma);
   await seedProducts(prisma);
   await seedTaxes(prisma);

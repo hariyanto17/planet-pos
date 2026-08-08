@@ -12,21 +12,21 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       <div className="w-full flex flex-col gap-1.5">
         {label ? (
           <div className="flex flex-col gap-0.5">
-            <label htmlFor={props.id} className="text-sm font-medium text-zinc-300">
+            <label htmlFor={props.id} className="text-sm font-medium text-text-secondary">
               {label}
             </label>
-            {helperText ? <p className="text-xs text-zinc-400">{helperText}</p> : null}
+            {helperText ? <p className="text-xs text-text-muted">{helperText}</p> : null}
           </div>
         ) : null}
         <input
           ref={ref}
           id={props.id}
-          className={`w-full px-3 py-2 bg-zinc-900 border ${
-            error ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500/20" : "border-zinc-800 focus:border-indigo-500 focus:ring-indigo-500/20"
-          } rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:ring-4 transition duration-200 ${className}`}
+          className={`w-full px-3 py-2 bg-surface border ${
+            error ? "border-error focus:border-error focus:ring-error/20" : "border-border focus:border-primary focus:ring-primary/20"
+          } rounded-lg text-text-primary placeholder-text-muted outline-none focus:ring-4 transition duration-200 disabled:bg-surface-secondary disabled:text-text-muted disabled:cursor-not-allowed ${className}`}
           {...props}
         />
-        {error ? <p className="text-xs text-rose-500 mt-0.5">{error}</p> : null}
+        {error ? <p className="text-xs text-error mt-0.5">{error}</p> : null}
       </div>
     );
   }

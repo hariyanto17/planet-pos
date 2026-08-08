@@ -42,13 +42,13 @@ const getDefaultTitle = (variant: ToastVariant) => {
 const getVariantStyles = (variant: ToastVariant | undefined) => {
   switch (variant) {
     case "success":
-      return "bg-emerald-500/10 text-emerald-100 border-emerald-500/20";
+      return "bg-success/10 text-success border-success/20";
     case "warning":
-      return "bg-amber-500/10 text-amber-100 border-amber-500/20";
+      return "bg-warning/10 text-warning border-warning/20";
     case "error":
-      return "bg-rose-500/10 text-rose-100 border-rose-500/20";
+      return "bg-error/10 text-error border-error/20";
     default:
-      return "bg-sky-500/10 text-sky-100 border-sky-500/20";
+      return "bg-info/10 text-info border-info/20";
   }
 };
 
@@ -151,14 +151,14 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               <div className="flex items-start gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/5 text-current">{getIcon(toast.variant)}</div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-zinc-100">{toast.title}</p>
-                  <p className="mt-1 text-sm leading-relaxed text-zinc-300">{toast.message}</p>
+                  <p className="text-sm font-semibold text-text-primary">{toast.title}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-text-secondary">{toast.message}</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => dismissToast(toast.id)}
                   aria-label="Tutup pemberitahuan"
-                  className="text-zinc-400 hover:text-zinc-100 transition"
+                  className="text-text-muted hover:text-text-primary transition"
                 >
                   ×
                 </button>

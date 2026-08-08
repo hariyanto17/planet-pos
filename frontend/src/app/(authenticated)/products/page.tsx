@@ -23,6 +23,7 @@ import { Button } from "@/components/Button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { TEXT } from "@/lib/i18n/id";
+import { RecipeModal } from "./components/RecipeModal";
 
 const productSchema = zod
   .object({
@@ -126,8 +127,10 @@ export default function ProductsPage() {
 
   const [search, setSearch] = useState("");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("");
+  const [selectedInventoryTypeFilter, setSelectedInventoryTypeFilter] = useState("");
   const [page, setPage] = useState(1);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [selectedRecipeProductId, setSelectedRecipeProductId] = useState<string | null>(null);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -182,9 +185,10 @@ export default function ProductsPage() {
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()));
       const matchesCategory = selectedCategoryFilter === "" || p.categoryId === selectedCategoryFilter;
-      return matchesSearch && matchesCategory;
+      const matchesInventoryType = selectedInventoryTypeFilter === "" || p.inventoryType === selectedInventoryTypeFilter;
+      return matchesSearch && matchesCategory && matchesInventoryType;
     });
-  }, [products, search, selectedCategoryFilter]);
+  }, [products, search, selectedCategoryFilter, selectedInventoryTypeFilter]);
 
   const paginatedProducts = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -306,6 +310,20 @@ export default function ProductsPage() {
             </option>
           ))}
         </select>
+
+        <select
+          value={selectedInventoryTypeFilter}
+          onChange={(e) => {
+            setSelectedInventoryTypeFilter(e.target.value);
+            setPage(1);
+          }}
+          className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm w-full md:w-48"
+        >
+          <option value="">Semua Tipe</option>
+          <option value="FINISHED_GOOD">Finished Good (Produk Jadi)</option>
+          <option value="RAW_MATERIAL">Raw Material (Bahan Baku)</option>
+          <option value="PACKAGING">Packaging (Kemasan)</option>
+        </select>
       </div>
 
       {!isLoading && filteredProducts.length === 0 ? (
@@ -349,6 +367,14 @@ export default function ProductsPage() {
                   >
                     {TEXT.common.edit}
                   </button>
+                  {p.inventoryType === "FINISHED_GOOD" && (
+                    <button
+                      onClick={() => setSelectedRecipeProductId(p.id)}
+                      className="text-emerald-400 hover:text-emerald-300 font-medium transition"
+                    >
+                      Resep
+                    </button>
+                  )}
                   <button
                     onClick={() => handleToggleActive(p)}
                     className="text-amber-400 hover:text-amber-300 font-medium transition"
@@ -740,6 +766,16 @@ export default function ProductsPage() {
         message={TEXT.products.deleteConfirmMsg}
         isConfirming={isDeleting}
       />
+
+      {selectedRecipeProductId && (
+        <RecipeModal
+          isOpen={!!selectedRecipeProductId}
+          onClose={() => setSelectedRecipeProductId(null)}
+          productId={selectedRecipeProductId}
+          allProducts={products}
+          allUnits={units}
+        />
+      )}
     </div>
   );
 }

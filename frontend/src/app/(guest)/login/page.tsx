@@ -14,6 +14,7 @@ import { Button } from "@/components/Button";
 import { useRouter } from "next/navigation";
 import { authCookie } from "@/utils/authCookie";
 import { getDefaultRouteByRole } from "@/lib/routes";
+import { useToast } from "@/components/ToastProvider";
 import { TEXT } from "@/lib/i18n/id";
 
 const loginSchema = zod.object({
@@ -26,6 +27,7 @@ type LoginSchemaInput = zod.infer<typeof loginSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const toast = useToast();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const currentUser = useAppSelector(selectCurrentUser);
   const [login, { isLoading, error: apiError }] = useLoginMutation();
@@ -50,38 +52,46 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginSchemaInput) => {
     try {
       const result = await login(data).unwrap();
-      
+
       // Update Redux state
       dispatch(setCredentials(result));
 
       // Save cookie using helper
       authCookie.setToken(result.token);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Login failed:", err);
+      const message = getErrorMessage(err);
+      toast.error(message);
     }
   };
 
   const getErrorMessage = (error: any): string => {
     if (!error) return "";
+    if (
+      error.status === "FETCH_ERROR" ||
+      error.error?.includes("Failed to fetch") ||
+      error.message?.includes("Failed to fetch")
+    ) {
+      return "Tidak dapat terhubung ke server. Silakan coba lagi.";
+    }
     if ("data" in error) {
-      return (error.data as any)?.message || TEXT.auth.loginFailed;
+      const serverMsg = (error.data as any)?.message;
+      if (serverMsg === "Invalid username or password" || serverMsg === "Invalid credentials") {
+        return "Username atau password salah.";
+      }
+      return serverMsg || TEXT.auth.loginFailed;
     }
     return "Terjadi kesalahan. Silakan coba lagi.";
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-4">
-      <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-xl flex flex-col gap-6">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md bg-surface border border-border rounded-2xl p-8 shadow-xl flex flex-col gap-6">
         <div className="flex flex-col gap-1 text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-zinc-100">{TEXT.auth.loginTitle}</h2>
-          <p className="text-zinc-500 text-sm">{TEXT.auth.loginSubtitle}</p>
+          <h2 className="text-2xl font-bold tracking-tight text-text-primary">{TEXT.auth.loginTitle}</h2>
+          <p className="text-text-secondary text-sm">{TEXT.auth.loginSubtitle}</p>
         </div>
 
-        {apiError ? (
-          <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-500 text-sm">
-            {getErrorMessage(apiError)}
-          </div>
-        ) : null}
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <Input
@@ -90,7 +100,7 @@ export default function LoginPage() {
             error={errors.username?.message}
             {...register("username")}
           />
-          
+
           <PasswordInput
             label={TEXT.auth.passwordLabel}
             placeholder={TEXT.auth.passwordPlaceholder}
@@ -99,7 +109,7 @@ export default function LoginPage() {
           />
 
           <Button type="submit" isLoading={isLoading} className="w-full py-2.5 mt-2">
-            {TEXT.auth.loginButton}
+            {isLoading ? "Memproses..." : TEXT.auth.loginButton}
           </Button>
         </form>
       </div>

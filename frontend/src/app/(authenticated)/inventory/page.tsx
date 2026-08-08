@@ -93,33 +93,44 @@ export default function InventoryPage() {
             {TEXT.inventory.subtitle}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {isWritePermitted && (
-            <>
-              <Button variant="secondary" onClick={() => setIsWasteOpen(true)}>
-                {TEXT.inventory.wasteBtn}
-              </Button>
-              <Button variant="secondary" onClick={() => setIsTransferOpen(true)}>
-                Transfer
-              </Button>
-              <Button variant="secondary" onClick={() => setIsAdjustOpen(true)}>
-                {TEXT.inventory.adjustBtn}
-              </Button>
-              <Button variant="primary" onClick={() => setIsReceiveOpen(true)}>
-                {TEXT.inventory.receiveBtn}
-              </Button>
-            </>
-          )}
-          <button
-            onClick={handleRefresh}
-            className="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded-lg border border-zinc-800 transition"
-            title={TEXT.inventory.reloadBtn}
-          >
-            🔄
-          </button>
-        </div>
       </div>
-
+      <div className="flex items-center gap-2">
+        {isWritePermitted && (
+          <>
+            <Button variant="secondary" onClick={() => setIsWasteOpen(true)}>
+              {TEXT.inventory.wasteBtn}
+            </Button>
+            <Button variant="secondary" onClick={() => setIsTransferOpen(true)}>
+              Transfer
+            </Button>
+            <Button variant="secondary" onClick={() => setIsAdjustOpen(true)}>
+              {TEXT.inventory.adjustBtn}
+            </Button>
+            <Button variant="primary" onClick={() => setIsReceiveOpen(true)}>
+              {TEXT.inventory.receiveBtn}
+            </Button>
+          </>
+        )}
+        <button
+          onClick={handleRefresh}
+          className="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded-lg border border-zinc-800 transition"
+          title={TEXT.inventory.reloadBtn}
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+            />
+          </svg>
+        </button>
+      </div>
       {/* Summary Cards */}
       <InventoryStats summary={summary} isLoading={isSummaryLoading} />
 
@@ -132,11 +143,10 @@ export default function InventoryPage() {
           <button
             key={t.id}
             onClick={() => setActiveTab(t.id as Tab)}
-            className={`px-5 py-3 text-xs font-black uppercase tracking-widest border-b-2 whitespace-nowrap transition duration-150 ${
-              activeTab === t.id
-                ? "border-indigo-500 text-indigo-400"
-                : "border-transparent text-zinc-500 hover:text-zinc-300"
-            }`}
+            className={`px-5 py-3 text-xs font-black uppercase tracking-widest border-b-2 whitespace-nowrap transition duration-150 ${activeTab === t.id
+              ? "border-indigo-500 text-indigo-400"
+              : "border-transparent text-zinc-500 hover:text-zinc-300"
+              }`}
           >
             {t.label}
           </button>

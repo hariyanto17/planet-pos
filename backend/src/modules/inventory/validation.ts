@@ -32,7 +32,7 @@ export const productListQuerySchema = Joi.object({
 export const movementListQuerySchema = Joi.object({
   search: Joi.string().allow("", null).optional(),
   warehouseId: Joi.string().allow("", null).optional(),
-  movementType: Joi.string().valid("OPENING", "RECEIVE", "SALE", "ADJUSTMENT", "WASTE").optional(),
+  movementType: Joi.string().valid("OPENING", "RECEIVE", "SALE", "ADJUSTMENT", "WASTE", "TRANSFER_OUT", "TRANSFER_IN", "RECIPE_CONSUMPTION").optional(),
   productId: Joi.string().allow("", null).optional(),
   dateFrom: Joi.string().isoDate().optional(),
   dateTo: Joi.string().isoDate().optional(),

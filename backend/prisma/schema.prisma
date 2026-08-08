@@ -65,6 +65,8 @@ model User {
   confirmedPayments Payment[]       @relation(name: "ConfirmedPayments")
   cashierShifts     CashierShift[]
   stockLedgers      StockLedger[]
+  warehouseId       String?
+  warehouse         Warehouse?      @relation(fields: [warehouseId], references: [id])
   stockTransfersRequested StockTransfer[] @relation("StockTransferRequestedBy")
   stockTransfersSourceResponsible StockTransfer[] @relation("StockTransferSourceResponsible")
   stockTransfersDestinationResponsible StockTransfer[] @relation("StockTransferDestinationResponsible")
@@ -110,6 +112,8 @@ model Product {
   warehouseStocks WarehouseStock[]
   stockLedgers    StockLedger[]
   stockTransferItems StockTransferItem[]
+  recipe         Recipe?
+  recipeItemsAsComponent RecipeItem[] @relation("RecipeComponentProduct")
 
   @@index([categoryId])
   @@index([isActive])
@@ -347,6 +351,7 @@ enum StockMovementType {
   WASTE
   TRANSFER_OUT
   TRANSFER_IN
+  RECIPE_CONSUMPTION
 }
 
 enum StockReferenceType {
@@ -356,6 +361,7 @@ enum StockReferenceType {
   ADJUSTMENT
   WASTE
   TRANSFER
+  RECIPE_CONSUMPTION
 }
 
 model Unit {
@@ -366,6 +372,7 @@ model Unit {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   products  Product[]
+  recipeItems RecipeItem[]
 }
 
 model Warehouse {
@@ -381,6 +388,7 @@ model Warehouse {
   stockLedgers           StockLedger[]
   stockTransfersSource   StockTransfer[]   @relation("StockTransferSourceWarehouse")
   stockTransfersDestination StockTransfer[] @relation("StockTransferDestinationWarehouse")
+  users                  User[]
 }
 
 model WarehouseStock {
@@ -466,4 +474,27 @@ model StockTransferItem {
 
   @@index([transferId])
   @@index([productId])
+}
+
+model Recipe {
+  id        String       @id @default(uuid())
+  productId String       @unique
+  product   Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  items     RecipeItem[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model RecipeItem {
+  id                 String   @id @default(uuid())
+  recipeId           String
+  recipe             Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  componentProductId String
+  componentProduct   Product  @relation(name: "RecipeComponentProduct", fields: [componentProductId], references: [id])
+  quantity           Decimal  @db.Decimal(10, 3)
+  unitId             String
+  unit               Unit     @relation(fields: [unitId], references: [id])
+
+  @@index([recipeId])
+  @@index([componentProductId])
 }

@@ -21,10 +21,10 @@ router.use(authenticate);
 
 // Read endpoints: ADMIN, WAREHOUSE, ACCOUNTING, and CASHIER
 router.get("/summary", requireRoles(["ADMIN", "WAREHOUSE", "ACCOUNTING"]), getSummary);
-router.get("/products", requireRoles(["ADMIN", "WAREHOUSE", "ACCOUNTING", "CASHIER"]), getProducts);
-router.get("/movements", requireRoles(["ADMIN", "WAREHOUSE", "ACCOUNTING", "CASHIER"]), getMovements);
-router.get("/warehouses", requireRoles(["ADMIN", "WAREHOUSE", "ACCOUNTING", "CASHIER"]), getWarehouses);
-router.get("/units", requireRoles(["ADMIN", "WAREHOUSE", "ACCOUNTING", "CASHIER"]), getUnits);
+router.get("/products", requireRoles(["ADMIN", "WAREHOUSE", "ACCOUNTING", "CASHIER", "KITCHEN"]), getProducts);
+router.get("/movements", requireRoles(["ADMIN", "WAREHOUSE", "ACCOUNTING", "CASHIER", "KITCHEN"]), getMovements);
+router.get("/warehouses", requireRoles(["ADMIN", "WAREHOUSE", "ACCOUNTING", "CASHIER", "KITCHEN"]), getWarehouses);
+router.get("/units", requireRoles(["ADMIN", "WAREHOUSE", "ACCOUNTING", "CASHIER", "KITCHEN"]), getUnits);
 
 // Mutating endpoints: WAREHOUSE and ADMIN only
 router.post("/opening", requireRoles(["ADMIN", "WAREHOUSE"]), recordOpening);

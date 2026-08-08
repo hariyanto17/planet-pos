@@ -17,10 +17,10 @@ export const Button: React.FC<ButtonProps> = ({
     "px-4 py-2 rounded-lg font-medium transition duration-250 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed";
   
   const variants = {
-    primary: "bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/10",
-    secondary: "bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700",
-    danger: "bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-600/10",
-    ghost: "bg-transparent hover:bg-zinc-800 text-zinc-300",
+    primary: "bg-primary hover:bg-primary-hover active:bg-primary-active text-white font-semibold shadow-md shadow-primary/10",
+    secondary: "bg-surface-secondary hover:bg-surface border border-border text-text-primary hover:text-text-primary",
+    danger: "bg-error hover:bg-error/90 active:bg-error/85 text-white shadow-md shadow-error/10",
+    ghost: "bg-transparent hover:bg-surface-secondary text-text-secondary hover:text-text-primary",
   };
 
   return (

@@ -21,6 +21,7 @@ import shiftsRouter from "./modules/shifts/router";
 import inventoryRouter from "./modules/inventory/router";
 import unitsRouter from "./modules/units/router";
 import warehousesRouter from "./modules/warehouses/router";
+import usersRouter from "./modules/users/router";
 
 const app = express();
 
@@ -41,7 +42,7 @@ app.use(
       return callback(null, false);
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
@@ -69,6 +70,7 @@ app.use("/api/shifts", shiftsRouter);
 app.use("/api/inventory", inventoryRouter);
 app.use("/api/units", unitsRouter);
 app.use("/api/warehouses", warehousesRouter);
+app.use("/api/users", usersRouter);
 
 // Global Error Handler Middleware
 app.use(errorHandler);

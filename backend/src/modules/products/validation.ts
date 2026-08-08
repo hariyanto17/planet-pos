@@ -40,3 +40,13 @@ export const updateProductSchema = Joi.object({
   }),
   minimumStock: Joi.number().min(0).optional(),
 });
+
+export const upsertRecipeSchema = Joi.object({
+  items: Joi.array().items(
+    Joi.object({
+      componentProductId: Joi.string().required(),
+      quantity: Joi.number().positive().precision(3).required(),
+      unitId: Joi.string().required(),
+    })
+  ).required(),
+});

@@ -65,10 +65,10 @@ export function InventoryMovementTable({
                 m.quantity > 0 ? "text-emerald-400" : "text-rose-400"
               }`}
             >
-              {m.quantity > 0 ? `+${m.quantity.toFixed(3)}` : m.quantity.toFixed(3)}
+              {m.quantity > 0 ? `+${parseFloat(m.quantity.toFixed(3))}` : parseFloat(m.quantity.toFixed(3))}
             </td>
             <td className="px-6 py-4 text-xs font-semibold text-zinc-300 font-mono">
-              {m.quantityAfter.toFixed(3)}
+              {parseFloat(m.quantityAfter.toFixed(3))}
             </td>
             <td className="px-6 py-4 text-xs font-medium text-zinc-400">{m.createdBy}</td>
             <td className="px-6 py-4 text-xs text-zinc-500 truncate max-w-[200px]" title={m.remarks}>

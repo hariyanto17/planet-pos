@@ -22,20 +22,21 @@ import {
   WorkspaceType,
 } from "@/lib/routes";
 import { TEXT } from "@/lib/i18n/id";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 // High-end Animated Splash Screen displayed during session restoration
 const SplashRestoration = () => (
-  <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-950 text-center px-4 animate-fade-in">
+  <div className="min-h-screen flex flex-col items-center justify-center bg-background text-center px-4 animate-fade-in">
     <div className="flex flex-col items-center gap-6 max-w-sm">
       <div className="relative w-16 h-16 flex items-center justify-center">
-        <div className="absolute inset-0 rounded-full border-t-2 border-indigo-500 border-r-2 border-r-transparent animate-spin" />
-        <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-600/30">
+        <div className="absolute inset-0 rounded-full border-t-2 border-primary border-r-2 border-r-transparent animate-spin" />
+        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center font-bold text-white shadow-lg shadow-primary/30">
           P
         </div>
       </div>
       <div className="flex flex-col gap-2">
-        <h2 className="text-xl font-bold tracking-tight text-zinc-100">{TEXT.auth.loginTitle}</h2>
-        <p className="text-zinc-500 text-xs tracking-wider uppercase animate-pulse">{TEXT.auth.restoringSession}</p>
+        <h2 className="text-xl font-bold tracking-tight text-text-primary">{TEXT.auth.loginTitle}</h2>
+        <p className="text-text-secondary text-xs tracking-wider uppercase animate-pulse">{TEXT.auth.restoringSession}</p>
       </div>
     </div>
   </div>
@@ -97,17 +98,17 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
   // 2. Profile Error: provide clear recovery interface instead of infinite loading
   if (isProfileError) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-950 text-center px-4 gap-4 animate-fade-in">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background text-center px-4 gap-4 animate-fade-in">
         <div className="w-12 h-12 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center text-xl font-bold">
           ⚠️
         </div>
         <div className="flex flex-col gap-1">
-          <h2 className="text-zinc-200 font-bold text-lg">{TEXT.auth.profileFailed}</h2>
-          <p className="text-zinc-500 text-sm">{TEXT.auth.profileFailedDesc}</p>
+          <h2 className="text-text-primary font-bold text-lg">{TEXT.auth.profileFailed}</h2>
+          <p className="text-text-secondary text-sm">{TEXT.auth.profileFailedDesc}</p>
         </div>
         <button
           onClick={handleLogout}
-          className="px-4 py-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 rounded-lg transition text-xs font-semibold"
+          className="px-4 py-2 bg-surface border border-border hover:bg-surface-secondary text-text-primary rounded-lg transition text-xs font-semibold"
         >
           {TEXT.auth.signOut} & Re-login
         </button>
@@ -128,8 +129,8 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
 
   if (!isAllowed || isRedirecting) {
     return (
-      <div className="flex h-screen bg-zinc-950 items-center justify-center">
-        <div className="animate-pulse text-zinc-500 text-sm">{TEXT.auth.loadingWorkspace}</div>
+      <div className="flex h-screen bg-background items-center justify-center">
+        <div className="animate-pulse text-text-secondary text-sm">{TEXT.auth.loadingWorkspace}</div>
       </div>
     );
   }
@@ -223,24 +224,24 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
   };
 
   return (
-    <div className="flex h-screen bg-zinc-950 overflow-hidden">
+    <div className="flex h-screen bg-background overflow-hidden">
       <div
         className={`${
           sidebarOpen ? "w-64" : "w-20"
-        } bg-zinc-900 border-r border-zinc-800 flex flex-col transition-all duration-300`}
+        } bg-sidebar-bg border-r border-border flex flex-col transition-all duration-300`}
       >
-        <div className="h-16 flex items-center gap-3 px-4 border-b border-zinc-800">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-600/30">
+        <div className="h-16 flex items-center gap-3 px-4 border-b border-border">
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center font-bold text-white shadow-lg shadow-primary/30">
             P
           </div>
-          {sidebarOpen ? <span className="font-bold text-zinc-100 tracking-tight">Concessions</span> : null}
+          {sidebarOpen ? <span className="font-bold text-text-primary tracking-tight">Concessions</span> : null}
         </div>
 
         {/* Workspace Switcher Component for multi-workspace roles */}
         {allowedWorkspaces.length > 1 && (
-          <div className="px-3 py-4 border-b border-zinc-800/80 flex flex-col gap-1.5">
+          <div className="px-3 py-4 border-b border-border flex flex-col gap-1.5">
             {sidebarOpen ? (
-              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 px-3">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted px-3">
                 {TEXT.auth.switchWorkspace}
               </span>
             ) : null}
@@ -254,8 +255,8 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
                     href={targetRoute}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition duration-200 ${
                       isCurrent
-                        ? "bg-zinc-850 text-indigo-400 border border-zinc-800"
-                        : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40"
+                        ? "bg-sidebar-active-bg text-sidebar-active-text border border-border"
+                        : "text-text-secondary hover:text-text-primary hover:bg-surface-secondary/40"
                     }`}
                   >
                     <span>💼</span>
@@ -281,8 +282,8 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
                 href={item.href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition duration-200 ${
                   isActive
-                    ? "bg-indigo-600 text-white"
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
+                    ? "bg-sidebar-active-bg text-sidebar-active-text font-semibold"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface-secondary/50"
                 }`}
               >
                 {getIcon(item.iconName)}
@@ -293,16 +294,16 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
         </nav>
 
         {sidebarOpen && currentUser ? (
-          <div className="p-4 border-t border-zinc-800 flex flex-col gap-2">
+          <div className="p-4 border-t border-border flex flex-col gap-2">
             <Link href="/profile" className="flex items-center gap-3 hover:opacity-85 transition">
-              <div className="w-10 h-10 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-zinc-300">
+              <div className="w-10 h-10 rounded-full bg-surface-secondary border border-border flex items-center justify-center font-bold text-text-primary">
                 {(currentUser.fullName || currentUser.username || "?").charAt(0)}
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-sm font-semibold text-zinc-200 truncate">
+                <span className="text-sm font-semibold text-text-primary truncate">
                   {currentUser.fullName || currentUser.username}
                 </span>
-                <span className="text-xs text-zinc-500 truncate capitalize">{currentUser.role}</span>
+                <span className="text-xs text-text-muted truncate capitalize">{currentUser.role}</span>
               </div>
             </Link>
           </div>
@@ -310,10 +311,10 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
       </div>
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between px-6">
+        <header className="h-16 bg-surface border-b border-border flex items-center justify-between px-6">
           <button
             onClick={() => dispatch(toggleSidebar())}
-            className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-750 text-zinc-300 transition duration-200"
+            className="p-1.5 rounded-lg bg-surface-secondary hover:bg-surface border border-border text-text-secondary hover:text-text-primary transition duration-200"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -321,16 +322,17 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
           </button>
 
           <div className="flex items-center gap-4">
+            <ThemeToggle />
             <button
               onClick={handleLogout}
-              className="px-3.5 py-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 rounded-lg transition duration-200"
+              className="px-3.5 py-1.5 text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-surface-secondary border border-border hover:border-border-strong rounded-lg transition duration-200"
             >
               {TEXT.auth.signOut}
             </button>
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto p-6 bg-zinc-950">{children}</main>
+        <main className="flex-1 overflow-auto p-6 bg-background">{children}</main>
       </div>
     </div>
   );

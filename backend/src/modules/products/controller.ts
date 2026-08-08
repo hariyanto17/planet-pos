@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { responseHandler } from "../../utils/responeHandler";
 import * as productService from "./service";
-import { createProductSchema, updateProductSchema } from "./validation";
+import { createProductSchema, updateProductSchema, upsertRecipeSchema } from "./validation";
 import { AppError } from "../../utils/errorHandler";
 import { logActivity } from "../../utils/activityLogger";
 
@@ -69,4 +69,26 @@ export const deleteProductHandler = async (req: Request, res: Response) => {
   }
   
   return responseHandler.ok(res, null, "Product deleted successfully");
+};
+
+export const getRecipeHandler = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const recipe = await productService.getRecipeForProduct(id);
+  return responseHandler.ok(res, recipe);
+};
+
+export const upsertRecipeHandler = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { error, value } = upsertRecipeSchema.validate(req.body);
+  if (error) {
+    throw new AppError("BAD_REQUEST", error.details[0].message);
+  }
+
+  const recipe = await productService.upsertRecipeForProduct(id, value.items);
+
+  if (req.user) {
+    await logActivity(req.user.id, "UPDATE_RECIPE", "Product", id, { recipe });
+  }
+
+  return responseHandler.ok(res, recipe, "Resep produk berhasil diperbarui.");
 };
