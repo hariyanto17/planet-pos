@@ -72,11 +72,17 @@ app.use("/api/units", unitsRouter);
 app.use("/api/warehouses", warehousesRouter);
 app.use("/api/users", usersRouter);
 
+import { createServer } from "http";
+import { initSocket } from "./utils/socket";
+
 // Global Error Handler Middleware
 app.use(errorHandler);
 
+const httpServer = createServer(app);
+initSocket(httpServer);
+
 // Boot server
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   logger.info(`Server is running on port ${PORT}`);
 });
 

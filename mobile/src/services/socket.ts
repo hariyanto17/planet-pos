@@ -4,20 +4,28 @@ import { Platform } from "react-native";
 class SocketService {
   private socket: Socket | null = null;
 
-  connect(url: string = __DEV__
-    ? (Platform.OS === "android" ? "https://concession.168billiard.online" : "http://localhost:5001")
-    : "https://concession.168billiard.online") {
-    if (!this.socket) {
-      this.socket = io(url, {
-        autoConnect: false,
-      });
+  connect(token: string, url?: string) {
+    const defaultUrl = url || (__DEV__
+      ? (Platform.OS === "android" ? "https://be-concession.168billiard.online" : "http://localhost:5001")
+      : "https://be-concession.168billiard.online");
+
+    if (this.socket) {
+      this.socket.disconnect();
     }
-    this.socket.connect();
+
+    this.socket = io(defaultUrl, {
+      auth: { token },
+      autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+    });
   }
 
   disconnect() {
     if (this.socket) {
       this.socket.disconnect();
+      this.socket = null;
     }
   }
 
@@ -37,6 +45,10 @@ class SocketService {
     if (this.socket) {
       this.socket.emit(event, data);
     }
+  }
+
+  isConnected(): boolean {
+    return this.socket?.connected || false;
   }
 }
 

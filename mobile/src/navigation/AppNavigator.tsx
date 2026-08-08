@@ -87,9 +87,23 @@ function CashierTabNavigator() {
   );
 }
 
+import { socketService } from "../services/socket";
+
 export default function AppNavigator() {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const currentUser = useAppSelector(selectCurrentUser);
+  const token = useAppSelector((state) => state.auth.token);
+
+  React.useEffect(() => {
+    if (isAuthenticated && token && currentUser?.role === "KITCHEN") {
+      socketService.connect(token);
+    } else {
+      socketService.disconnect();
+    }
+    return () => {
+      socketService.disconnect();
+    };
+  }, [isAuthenticated, token, currentUser]);
 
   return (
     <NavigationContainer>
