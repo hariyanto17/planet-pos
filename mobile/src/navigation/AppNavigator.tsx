@@ -22,6 +22,11 @@ import KitchenBottomTabNavigator from "./KitchenBottomTabNavigator";
 import KitchenOrderDetailScreen from "../screens/KitchenOrderDetailScreen";
 import { KitchenOrderProvider } from "../context/KitchenOrderContext";
 
+import { DefaultTheme } from "@react-navigation/native";
+import { socketService } from "../services/socket";
+import { HomeIcon, ListIcon, UserIcon } from "../components/CustomIcons";
+import { useTheme } from "../theme";
+
 export type RootStackParamList = {
   Login: undefined;
   CashierTabs: undefined;
@@ -54,19 +59,21 @@ const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<CashierTabParamList>();
 
 function CashierTabNavigator() {
+  const { theme } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: "#18181b",
-          borderTopColor: "#27272a",
+          backgroundColor: theme.surface,
+          borderTopColor: theme.border,
           height: 60,
           paddingBottom: 8,
           paddingTop: 8,
         },
-        tabBarActiveTintColor: "#818cf8",
-        tabBarInactiveTintColor: "#71717a",
+        tabBarActiveTintColor: theme.primary,
+        tabBarInactiveTintColor: theme.textMuted,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: "bold",
@@ -86,13 +93,11 @@ function CashierTabNavigator() {
   );
 }
 
-import { socketService } from "../services/socket";
-import { HomeIcon, ListIcon, UserIcon } from "../components/CustomIcons";
-
 export default function AppNavigator() {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const currentUser = useAppSelector(selectCurrentUser);
   const token = useAppSelector((state) => state.auth.token);
+  const { theme, resolvedMode } = useTheme();
 
   React.useEffect(() => {
     if (isAuthenticated && token && currentUser?.role === "KITCHEN") {
@@ -105,8 +110,22 @@ export default function AppNavigator() {
     };
   }, [isAuthenticated, token, currentUser]);
 
+  const navigationTheme = {
+    ...DefaultTheme,
+    dark: resolvedMode === "dark",
+    colors: {
+      ...DefaultTheme.colors,
+      primary: theme.primary,
+      background: theme.background,
+      card: theme.surface,
+      text: theme.textPrimary,
+      border: theme.border,
+      notification: theme.error,
+    },
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navigationTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
           <Stack.Screen name="Login" component={LoginScreen} />
@@ -124,13 +143,13 @@ export default function AppNavigator() {
         ) : (
           <>
             <Stack.Screen name="CashierTabs" component={CashierTabNavigator} />
-            <Stack.Screen name="OpenShift" component={OpenShiftScreen} />
-            <Stack.Screen name="CloseShift" component={CloseShiftScreen} />
             <Stack.Screen name="NewOrder" component={NewOrderScreen} />
             <Stack.Screen name="Cart" component={CartScreen} />
             <Stack.Screen name="Checkout" component={CheckoutScreen} />
             <Stack.Screen name="OrderSuccess" component={OrderSuccessScreen} />
             <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
+            <Stack.Screen name="OpenShift" component={OpenShiftScreen} />
+            <Stack.Screen name="CloseShift" component={CloseShiftScreen} />
           </>
         )}
       </Stack.Navigator>

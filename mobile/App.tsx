@@ -13,20 +13,21 @@ import { LoadingSpinner } from "./src/components/LoadingSpinner";
 import { ToastProvider } from "./src/components/ToastProvider";
 import { ConfirmationProvider } from "./src/components/ConfirmationProvider";
 
-function App() {
-  const isDarkMode = useColorScheme() === "dark";
+import { ThemeProvider } from "./src/theme";
 
+function App() {
   return (
     <Provider store={store}>
       <PersistGate loading={<LoadingSpinner />} persistor={persistor}>
-        <SafeAreaProvider>
-          <ToastProvider>
-            <ConfirmationProvider>
-              <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
-              <AppNavigator />
-            </ConfirmationProvider>
-          </ToastProvider>
-        </SafeAreaProvider>
+        <ThemeProvider>
+          <SafeAreaProvider>
+            <ToastProvider>
+              <ConfirmationProvider>
+                <AppNavigator />
+              </ConfirmationProvider>
+            </ToastProvider>
+          </SafeAreaProvider>
+        </ThemeProvider>
       </PersistGate>
     </Provider>
   );

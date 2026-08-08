@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,6 +6,7 @@ import * as zod from "zod";
 import { useLoginMutation } from "../lib/api/authApi";
 import { useAppDispatch } from "../lib/store/hooks";
 import { setCredentials } from "../lib/store/features/auth/slice";
+import { useTheme, Theme } from "../theme";
 
 const loginSchema = zod.object({
   username: zod.string().min(1, "Username wajib diisi"),
@@ -18,6 +19,9 @@ export default function LoginScreen() {
   const dispatch = useAppDispatch();
   const [login, { isLoading, error: apiError }] = useLoginMutation();
   const [showPassword, setShowPassword] = useState(false);
+  const { theme } = useTheme();
+
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const {
     control,
@@ -66,7 +70,7 @@ export default function LoginScreen() {
               <TextInput
                 style={[styles.input, errors.username && styles.inputError]}
                 placeholder="Masukkan nama pengguna"
-                placeholderTextColor="#71717a"
+                placeholderTextColor={theme.textMuted}
                 onBlur={onBlur}
                 onChangeText={onChange}
                 value={value}
@@ -85,7 +89,7 @@ export default function LoginScreen() {
                 <TextInput
                   style={[styles.passwordInput, errors.password && styles.inputError]}
                   placeholder="Masukkan kata sandi"
-                  placeholderTextColor="#71717a"
+                  placeholderTextColor={theme.textMuted}
                   secureTextEntry={!showPassword}
                   onBlur={onBlur}
                   onChangeText={onChange}
@@ -120,112 +124,113 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#09090b",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-  },
-  card: {
-    width: "100%",
-    maxWidth: 400,
-    backgroundColor: "#18181b",
-    borderWidth: 1,
-    borderColor: "#27272a",
-    borderRadius: 16,
-    padding: 24,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#f4f4f5",
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#71717a",
-    textAlign: "center",
-    marginTop: 4,
-    marginBottom: 20,
-  },
-  errorBanner: {
-    backgroundColor: "rgba(244, 63, 94, 0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(244, 63, 94, 0.2)",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-  },
-  errorText: {
-    color: "#f43f5e",
-    fontSize: 13,
-  },
-  form: {
-    width: "100%",
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#d4d4d8",
-    marginBottom: 6,
-  },
-  input: {
-    height: 44,
-    backgroundColor: "#09090b",
-    borderWidth: 1,
-    borderColor: "#27272a",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    color: "#f4f4f5",
-    fontSize: 15,
-  },
-  passwordWrapper: {
-    position: "relative",
-    justifyContent: "center",
-  },
-  passwordInput: {
-    height: 44,
-    backgroundColor: "#09090b",
-    borderWidth: 1,
-    borderColor: "#27272a",
-    borderRadius: 8,
-    paddingLeft: 12,
-    paddingRight: 60,
-    color: "#f4f4f5",
-    fontSize: 15,
-  },
-  toggleButton: {
-    position: "absolute",
-    right: 12,
-    height: "100%",
-    justifyContent: "center",
-  },
-  toggleText: {
-    color: "#a1a1aa",
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  inputError: {
-    borderColor: "#f43f5e",
-  },
-  fieldError: {
-    color: "#f43f5e",
-    fontSize: 11,
-    marginTop: 4,
-  },
-  button: {
-    height: 44,
-    backgroundColor: "#4f46e5",
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 20,
-  },
-  buttonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.background,
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 20,
+    },
+    card: {
+      width: "100%",
+      maxWidth: 400,
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: 16,
+      padding: 24,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: "bold",
+      color: theme.textPrimary,
+      textAlign: "center",
+    },
+    subtitle: {
+      fontSize: 14,
+      color: theme.textSecondary,
+      textAlign: "center",
+      marginTop: 4,
+      marginBottom: 20,
+    },
+    errorBanner: {
+      backgroundColor: "rgba(239, 68, 68, 0.1)",
+      borderWidth: 1,
+      borderColor: "rgba(239, 68, 68, 0.2)",
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 16,
+    },
+    errorText: {
+      color: theme.error,
+      fontSize: 13,
+    },
+    form: {
+      width: "100%",
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: "500",
+      color: theme.textSecondary,
+      marginBottom: 6,
+    },
+    input: {
+      height: 44,
+      backgroundColor: theme.surfaceSecondary,
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      color: theme.textPrimary,
+      fontSize: 15,
+    },
+    passwordWrapper: {
+      position: "relative",
+      justifyContent: "center",
+    },
+    passwordInput: {
+      height: 44,
+      backgroundColor: theme.surfaceSecondary,
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: 8,
+      paddingLeft: 12,
+      paddingRight: 80,
+      color: theme.textPrimary,
+      fontSize: 15,
+    },
+    toggleButton: {
+      position: "absolute",
+      right: 12,
+      height: "100%",
+      justifyContent: "center",
+    },
+    toggleText: {
+      color: theme.textMuted,
+      fontSize: 12,
+      fontWeight: "600",
+    },
+    inputError: {
+      borderColor: theme.error,
+    },
+    fieldError: {
+      color: theme.error,
+      fontSize: 11,
+      marginTop: 4,
+    },
+    button: {
+      height: 44,
+      backgroundColor: theme.primary,
+      borderRadius: 8,
+      alignItems: "center",
+      justifyContent: "center",
+      marginTop: 20,
+    },
+    buttonText: {
+      color: "#ffffff",
+      fontSize: 16,
+      fontWeight: "600",
+    },
+  });

@@ -4,6 +4,7 @@ import KDSScreen from "../screens/KDS/KDSScreen";
 import KitchenWarehouseScreen from "../screens/KitchenWarehouse/KitchenWarehouseScreen";
 import ProfileScreen from "../screens/Profile/ProfileScreen";
 import { MonitorIcon, PackageIcon, UserIcon } from "../components/CustomIcons";
+import { useTheme } from "../theme";
 
 export type KitchenTabParamList = {
   KDS: undefined;
@@ -14,19 +15,21 @@ export type KitchenTabParamList = {
 const Tab = createBottomTabNavigator<KitchenTabParamList>();
 
 export default function KitchenBottomTabNavigator() {
+  const { theme } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: "#18181b",
-          borderTopColor: "#27272a",
+          backgroundColor: theme.surface,
+          borderTopColor: theme.border,
           height: 60,
           paddingBottom: 8,
           paddingTop: 8,
         },
-        tabBarActiveTintColor: "#818cf8",
-        tabBarInactiveTintColor: "#71717a",
+        tabBarActiveTintColor: theme.primary,
+        tabBarInactiveTintColor: theme.textMuted,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: "bold",
