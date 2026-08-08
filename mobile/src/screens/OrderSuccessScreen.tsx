@@ -3,6 +3,8 @@ import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { StackScreenProps } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 
+import { CheckIcon } from "../components/CustomIcons";
+
 type Props = StackScreenProps<RootStackParamList, "OrderSuccess">;
 
 export default function OrderSuccessScreen({ route, navigation }: Props) {
@@ -12,7 +14,7 @@ export default function OrderSuccessScreen({ route, navigation }: Props) {
     <View style={styles.container}>
       <View style={styles.card}>
         <View style={styles.successIcon}>
-          <Text style={styles.check}>✓</Text>
+          <CheckIcon color="#10b981" />
         </View>
 
         <Text style={styles.title}>Pesanan Berhasil Dibuat</Text>

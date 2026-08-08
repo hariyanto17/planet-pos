@@ -5,12 +5,15 @@ interface OrderItemNoteProps {
   note?: string | null;
 }
 
+import { WarningIcon } from "./CustomIcons";
+
 export const OrderItemNote: React.FC<OrderItemNoteProps> = ({ note }) => {
   if (!note) return null;
   
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>⚠️ {note}</Text>
+    <View style={[styles.container, { flexDirection: "row", alignItems: "center", gap: 4 }]}>
+      <WarningIcon color="#fca5a5" />
+      <Text style={styles.text}>{note}</Text>
     </View>
   );
 };

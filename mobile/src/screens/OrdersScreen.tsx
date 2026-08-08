@@ -19,6 +19,8 @@ import { selectOrderFilters } from "../lib/store/features/order/selectors";
 import OrderHistoryCard from "../components/OrderHistoryCard";
 import DatePickerModal from "../components/DatePickerModal";
 
+import { ArrowLeftIcon, CloseIcon } from "../components/CustomIcons";
+
 type Props = StackScreenProps<RootStackParamList, "Orders">;
 
 export default function OrdersScreen({ navigation }: Props) {
@@ -132,7 +134,10 @@ export default function OrdersScreen({ navigation }: Props) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>← Kembali</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <ArrowLeftIcon color="#a1a1aa" />
+            <Text style={styles.backText}>Kembali</Text>
+          </View>
         </TouchableOpacity>
         <Text style={styles.title}>Riwayat Pesanan</Text>
         <View style={{ width: 68 }} />
@@ -205,7 +210,7 @@ export default function OrdersScreen({ navigation }: Props) {
               />
               {localSearch ? (
                 <TouchableOpacity onPress={() => setLocalSearch("")} style={styles.clearSearchBtn}>
-                  <Text style={styles.clearSearchText}>×</Text>
+                  <CloseIcon color="#a1a1aa" />
                 </TouchableOpacity>
               ) : null}
             </View>

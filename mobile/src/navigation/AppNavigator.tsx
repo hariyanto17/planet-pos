@@ -72,11 +72,10 @@ function CashierTabNavigator() {
           fontWeight: "bold",
         },
         tabBarIcon: ({ color }) => {
-          let iconStr = "";
-          if (route.name === "Home") iconStr = "🏠";
-          else if (route.name === "Orders") iconStr = "📋";
-          else if (route.name === "Profile") iconStr = "👤";
-          return <Text style={{ color, fontSize: 18 }}>{iconStr}</Text>;
+          if (route.name === "Home") return <HomeIcon color={color} />;
+          if (route.name === "Orders") return <ListIcon color={color} />;
+          if (route.name === "Profile") return <UserIcon color={color} />;
+          return null;
         },
       })}
     >
@@ -88,6 +87,7 @@ function CashierTabNavigator() {
 }
 
 import { socketService } from "../services/socket";
+import { HomeIcon, ListIcon, UserIcon } from "../components/CustomIcons";
 
 export default function AppNavigator() {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);

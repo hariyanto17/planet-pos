@@ -3,8 +3,11 @@ import { CreateProductInput, UpdateProductInput } from "@shared/types";
 
 export const productApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getProducts: builder.query<any[], void>({
-      query: () => "/products",
+    getProducts: builder.query<any[], { sellable?: boolean } | void>({
+      query: (params) => ({
+        url: "/products",
+        params: params || {},
+      }),
       providesTags: ["Product"],
     }),
     getProduct: builder.query<any, string>({

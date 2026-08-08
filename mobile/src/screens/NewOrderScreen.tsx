@@ -21,6 +21,7 @@ import { addItem, removeItem, updateQuantity, setCustomerInfo, clearCart } from 
 import { selectCartItems, selectCartTotalItems, selectCartSubtotal } from "../lib/store/features/cart/selectors";
 import { OrderType } from "@shared/types";
 import { useToast } from "../hooks/useToast";
+import { SearchIcon, CartIcon, CloseIcon } from "../components/CustomIcons";
 
 type Props = StackScreenProps<RootStackParamList, "NewOrder">;
 
@@ -104,8 +105,8 @@ export default function NewOrderScreen({ navigation }: Props) {
   const totalItems = useAppSelector(selectCartTotalItems);
   const subtotal = useAppSelector(selectCartSubtotal);
 
-  const { data: products = [], isLoading: loadingProducts } = useGetProductsQuery();
-  const { data: categories = [], isLoading: loadingCategories } = useGetCategoriesQuery();
+  const { data: products = [], isLoading: loadingProducts } = useGetProductsQuery({ sellable: true });
+  const { data: categories = [], isLoading: loadingCategories } = useGetCategoriesQuery({ sellable: true });
   const { data: tables = [], isLoading: loadingTables } = useGetTablesQuery();
 
   const [activeCategory, setActiveCategory] = useState<string>("");
@@ -242,7 +243,9 @@ export default function NewOrderScreen({ navigation }: Props) {
     if (filteredProducts.length === 0) {
       return (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>🔍</Text>
+          <View style={styles.emptyIcon}>
+            <SearchIcon color="#71717a" />
+          </View>
           <Text style={styles.emptyTitle}>Produk tidak ditemukan</Text>
           <Text style={styles.emptySubtitle}>Cobalah sesuaikan filter atau pencarian Anda</Text>
         </View>
@@ -270,7 +273,9 @@ export default function NewOrderScreen({ navigation }: Props) {
     if (cartItems.length === 0) {
       return (
         <View style={styles.emptyCartContainer}>
-          <Text style={styles.emptyCartIcon}>🛒</Text>
+          <View style={styles.emptyCartIcon}>
+            <CartIcon color="#71717a" />
+          </View>
           <Text style={styles.emptyCartTitle}>Keranjang Anda kosong</Text>
           <Text style={styles.emptyCartSubtitle}>Pilih produk dari katalog untuk membayar</Text>
         </View>
@@ -330,7 +335,9 @@ export default function NewOrderScreen({ navigation }: Props) {
           {/* Search bar with clear action */}
           <View style={styles.searchRow}>
             <View style={styles.searchContainer}>
-              <Text style={styles.searchIcon}>🔍</Text>
+              <View style={styles.searchIcon}>
+                <SearchIcon color="#71717a" />
+              </View>
               <TextInput
                 style={styles.searchInput}
                 placeholder="Cari produk dengan kata kunci..."
@@ -341,7 +348,7 @@ export default function NewOrderScreen({ navigation }: Props) {
               />
               {searchQuery !== "" && (
                 <TouchableOpacity onPress={() => setSearchQuery("")} style={styles.clearSearchBtn}>
-                  <Text style={styles.clearSearchText}>✕</Text>
+                  <CloseIcon color="#a1a1aa" />
                 </TouchableOpacity>
               )}
             </View>

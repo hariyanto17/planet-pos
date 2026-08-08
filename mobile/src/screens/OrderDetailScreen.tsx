@@ -15,6 +15,7 @@ import { useGetOrderQuery } from "../lib/api/orderApi";
 import { useConfirmPaymentMutation } from "../lib/api/paymentApi";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { useToast } from "../hooks/useToast";
+import { WarningIcon, ArrowLeftIcon } from "../components/CustomIcons";
 
 const formatOrderTime = (createdAt: string) => {
   const date = new Date(createdAt);
@@ -64,7 +65,10 @@ export default function OrderDetailScreen({ route, navigation }: Props) {
       <View style={[styles.container, styles.center]}>
         <Text style={styles.errorText}>Tidak dapat menemukan detail tiket konsesi.</Text>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>← Kembali</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <ArrowLeftIcon color="#a1a1aa" />
+            <Text style={styles.backText}>Kembali</Text>
+          </View>
         </TouchableOpacity>
       </View>
     );
@@ -105,7 +109,10 @@ export default function OrderDetailScreen({ route, navigation }: Props) {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>← Kembali</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <ArrowLeftIcon color="#a1a1aa" />
+            <Text style={styles.backText}>Kembali</Text>
+          </View>
         </TouchableOpacity>
         <Text style={styles.title}>Pesanan #{order.displayNumber.split("-")[0]}</Text>
         <View style={{ width: 60 }} />
@@ -158,8 +165,9 @@ export default function OrderDetailScreen({ route, navigation }: Props) {
               <View style={{ flex: 1 }}>
                 <Text style={styles.itemName}>{item.productName}</Text>
                 {item.note ? (
-                  <View style={styles.noteContainer}>
-                    <Text style={styles.itemNote}>⚠️ {item.note}</Text>
+                  <View style={[styles.noteContainer, { flexDirection: "row", alignItems: "center", gap: 4 }]}>
+                    <WarningIcon color="#ef4444" />
+                    <Text style={styles.itemNote}>{item.note}</Text>
                   </View>
                 ) : null}
               </View>

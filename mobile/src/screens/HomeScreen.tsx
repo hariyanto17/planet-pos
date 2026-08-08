@@ -10,6 +10,7 @@ import { useGetCurrentShiftQuery } from "../lib/api/shiftApi";
 import { baseApi } from "../lib/api/baseApi";
 import { useToast } from "../hooks/useToast";
 import { useConfirmation } from "../hooks/useConfirmation";
+import { WarningIcon } from "../components/CustomIcons";
 
 type Props = StackScreenProps<RootStackParamList, "Home">;
 
@@ -77,7 +78,10 @@ export default function HomeScreen({ navigation }: Props) {
       {/* Shift Guard Banner */}
       {!isShiftOpen ? (
         <View style={styles.alertCard}>
-          <Text style={styles.alertTitle}>⚠️ Tidak Ada Shift Aktif</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
+            <WarningIcon color="#fecaca" />
+            <Text style={styles.alertTitle}>Tidak Ada Shift Aktif</Text>
+          </View>
           <Text style={styles.alertText}>
             Buka shift kasir sebelum membuat pesanan baru.
           </Text>
