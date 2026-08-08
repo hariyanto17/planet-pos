@@ -106,6 +106,13 @@ export const receiveStock = catchAsync(async (req: Request, res: Response) => {
     if (!assignedWhId || value.warehouseId !== assignedWhId) {
       throw new AppError("FORBIDDEN", "Akses ditolak: Anda tidak memiliki izin untuk mengoperasikan gudang ini.");
     }
+  } else if (req.user?.role === "KITCHEN") {
+    const defaultKitchenWh = await prisma.warehouse.findFirst({
+      where: { warehouseType: "KITCHEN_STORAGE", isDefaultKitchenStorage: true, isActive: true }
+    });
+    if (!defaultKitchenWh || value.warehouseId !== defaultKitchenWh.id) {
+      throw new AppError("FORBIDDEN", "Akses ditolak: Staf dapur hanya dapat mengubah stok Penyimpanan Dapur.");
+    }
   }
 
   const newBalance = await inventoryService.createStockReceipt(userId, value);
@@ -128,6 +135,13 @@ export const adjustStock = catchAsync(async (req: Request, res: Response) => {
     if (!assignedWhId || value.warehouseId !== assignedWhId) {
       throw new AppError("FORBIDDEN", "Akses ditolak: Anda tidak memiliki izin untuk mengoperasikan gudang ini.");
     }
+  } else if (req.user?.role === "KITCHEN") {
+    const defaultKitchenWh = await prisma.warehouse.findFirst({
+      where: { warehouseType: "KITCHEN_STORAGE", isDefaultKitchenStorage: true, isActive: true }
+    });
+    if (!defaultKitchenWh || value.warehouseId !== defaultKitchenWh.id) {
+      throw new AppError("FORBIDDEN", "Akses ditolak: Staf dapur hanya dapat mengubah stok Penyimpanan Dapur.");
+    }
   }
 
   const newBalance = await inventoryService.adjustStock(userId, value);
@@ -149,6 +163,13 @@ export const removeWaste = catchAsync(async (req: Request, res: Response) => {
     const assignedWhId = req.user.warehouseId;
     if (!assignedWhId || value.warehouseId !== assignedWhId) {
       throw new AppError("FORBIDDEN", "Akses ditolak: Anda tidak memiliki izin untuk mengoperasikan gudang ini.");
+    }
+  } else if (req.user?.role === "KITCHEN") {
+    const defaultKitchenWh = await prisma.warehouse.findFirst({
+      where: { warehouseType: "KITCHEN_STORAGE", isDefaultKitchenStorage: true, isActive: true }
+    });
+    if (!defaultKitchenWh || value.warehouseId !== defaultKitchenWh.id) {
+      throw new AppError("FORBIDDEN", "Akses ditolak: Staf dapur hanya dapat mengubah stok Penyimpanan Dapur.");
     }
   }
 
@@ -181,6 +202,13 @@ export const recordOpening = catchAsync(async (req: Request, res: Response) => {
     const assignedWhId = req.user.warehouseId;
     if (!assignedWhId || value.warehouseId !== assignedWhId) {
       throw new AppError("FORBIDDEN", "Akses ditolak: Anda tidak memiliki izin untuk mengoperasikan gudang ini.");
+    }
+  } else if (req.user?.role === "KITCHEN") {
+    const defaultKitchenWh = await prisma.warehouse.findFirst({
+      where: { warehouseType: "KITCHEN_STORAGE", isDefaultKitchenStorage: true, isActive: true }
+    });
+    if (!defaultKitchenWh || value.warehouseId !== defaultKitchenWh.id) {
+      throw new AppError("FORBIDDEN", "Akses ditolak: Staf dapur hanya dapat mengubah stok Penyimpanan Dapur.");
     }
   }
 

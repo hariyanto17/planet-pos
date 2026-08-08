@@ -1,10 +1,8 @@
-import { createApi, fetchBaseQuery, BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query/react";
-import { Platform } from "react-native";
-import { RootState } from "../store/store";
+import { BaseQueryFn, createApi, FetchArgs, fetchBaseQuery, FetchBaseQueryError } from "@reduxjs/toolkit/query/react";
 import { logout } from "../store/features/auth/slice";
-const baseUrl = __DEV__
-  ? (Platform.OS === "android" ? "https://concession.168billiard.online/api" : "http://localhost:5001/api")
-  : "https://concession.168billiard.online/api";
+import { RootState } from "../store/store";
+
+const baseUrl = "https://be-concession.168billiard.online/api"
 
 const baseQuery = fetchBaseQuery({
   baseUrl,
@@ -40,6 +38,6 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
 export const baseApi = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["User", "Category", "Product", "Table", "Tax", "Promotion", "Order", "Payment", "Shifts"],
+  tagTypes: ["User", "Category", "Product", "Table", "Tax", "Promotion", "Order", "Payment", "Shifts", "Inventory"],
   endpoints: () => ({}),
 });

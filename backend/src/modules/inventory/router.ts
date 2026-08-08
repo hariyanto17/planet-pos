@@ -28,12 +28,12 @@ router.get("/warehouses", requireRoles(["ADMIN", "WAREHOUSE", "ACCOUNTING", "CAS
 router.get("/units", requireRoles(["ADMIN", "WAREHOUSE", "ACCOUNTING", "CASHIER", "KITCHEN"]), getUnits);
 
 // Mutating endpoints: WAREHOUSE and ADMIN only
-router.post("/opening", requireRoles(["ADMIN", "WAREHOUSE"]), recordOpening);
-router.post("/receive", requireRoles(["ADMIN", "WAREHOUSE"]), receiveStock);
-router.post("/adjust", requireRoles(["ADMIN", "WAREHOUSE"]), adjustStock);
-router.post("/waste", requireRoles(["ADMIN", "WAREHOUSE"]), removeWaste);
+router.post("/opening", requireRoles(["ADMIN", "WAREHOUSE", "KITCHEN"]), recordOpening);
+router.post("/receive", requireRoles(["ADMIN", "WAREHOUSE", "KITCHEN"]), receiveStock);
+router.post("/adjust", requireRoles(["ADMIN", "WAREHOUSE", "KITCHEN"]), adjustStock);
+router.post("/waste", requireRoles(["ADMIN", "WAREHOUSE", "KITCHEN"]), removeWaste);
 router.get("/transfer", requireRoles(["ADMIN", "WAREHOUSE", "KITCHEN"]), getStockTransfersHandler);
-router.post("/transfer", requireRoles(["ADMIN", "WAREHOUSE"]), createStockTransferHandler);
+router.post("/transfer", requireRoles(["ADMIN", "WAREHOUSE", "KITCHEN"]), createStockTransferHandler);
 router.post("/transfer/:id/complete", requireRoles(["ADMIN", "WAREHOUSE", "KITCHEN"]), completeStockTransferHandler);
 
 export default router;

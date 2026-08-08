@@ -18,7 +18,7 @@ import OrderDetailScreen from "../screens/OrderDetailScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import OpenShiftScreen from "../screens/OpenShiftScreen";
 import CloseShiftScreen from "../screens/CloseShiftScreen";
-import KitchenHomeScreen from "../screens/KitchenHomeScreen";
+import KitchenBottomTabNavigator from "./KitchenBottomTabNavigator";
 import KitchenOrderDetailScreen from "../screens/KitchenOrderDetailScreen";
 import { KitchenOrderProvider } from "../context/KitchenOrderContext";
 
@@ -101,7 +101,7 @@ export default function AppNavigator() {
             <Stack.Screen name="KitchenHome">
               {() => (
                 <KitchenOrderProvider>
-                  <KitchenHomeScreen />
+                  <KitchenBottomTabNavigator />
                 </KitchenOrderProvider>
               )}
             </Stack.Screen>
