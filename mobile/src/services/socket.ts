@@ -50,6 +50,18 @@ class SocketService {
   isConnected(): boolean {
     return this.socket?.connected || false;
   }
+
+  onConnect(callback: () => void) {
+    this.socket?.on("connect", callback);
+  }
+
+  onDisconnect(callback: (reason: string) => void) {
+    this.socket?.on("disconnect", callback);
+  }
+
+  onConnectError(callback: (err: any) => void) {
+    this.socket?.on("connect_error", callback);
+  }
 }
 
 export const socketService = new SocketService();

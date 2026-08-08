@@ -17,6 +17,7 @@ import { socketService } from "../../services/socket";
 import { useToast } from "../../hooks/useToast";
 
 type OrderStatusType = "NEW" | "PREPARING" | "READY" | "COMPLETED" | "CANCELLED";
+type ConnectionStatus = "CONNECTED" | "CONNECTING" | "DISCONNECTED" | "ERROR";
 
 interface OrderCardProps {
   order: any;
@@ -119,6 +120,9 @@ export default function KDSScreen() {
 
   const [localOrders, setLocalOrders] = useState<any[]>([]);
   const [seenOrderIds, setSeenOrderIds] = useState<Set<string>>(new Set());
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(
+    socketService.isConnected() ? "CONNECTED" : "DISCONNECTED"
+  );
 
   // Synchronize local state with API queue
   useEffect(() => {
@@ -129,7 +133,7 @@ export default function KDSScreen() {
     }
   }, [activeOrders]);
 
-  // Listen to Socket.IO events
+  // Listen to Socket.IO events and connection status
   useEffect(() => {
     const handleOrderCreated = ({ order }: { order: any }) => {
       setLocalOrders((prev) => {
@@ -170,11 +174,38 @@ export default function KDSScreen() {
     socketService.on("order.created", handleOrderCreated);
     socketService.on("order.updated", handleOrderUpdated);
 
+    // Connection lifecycle listeners
+    socketService.onConnect(() => {
+      setConnectionStatus("CONNECTED");
+      showToast({
+        type: "success",
+        title: "Koneksi Tersambung",
+        message: "Koneksi realtime tersambung ke server.",
+      });
+      // Synchronize latest queue state from backend once on reconnect
+      refetch();
+    });
+
+    socketService.onDisconnect(() => {
+      setConnectionStatus("DISCONNECTED");
+    });
+
+    socketService.onConnectError(() => {
+      setConnectionStatus("ERROR");
+    });
+
+    // Initial check
+    if (socketService.isConnected()) {
+      setConnectionStatus("CONNECTED");
+    } else {
+      setConnectionStatus("CONNECTING");
+    }
+
     return () => {
       socketService.off("order.created", handleOrderCreated);
       socketService.off("order.updated", handleOrderUpdated);
     };
-  }, []);
+  }, [refetch]);
 
   const handleUpdateStatus = async (orderId: string, nextStatus: OrderStatusType) => {
     try {
@@ -216,10 +247,7 @@ export default function KDSScreen() {
     );
   };
 
-  // Helper alert bridge
   const AlertConfirm = (title: string, msg: string, onConfirm: () => void) => {
-    // Basic confirmation prompt
-    // In React Native, Alert.alert is blocking and safe
     const Alert = require("react-native").Alert;
     Alert.alert(title, msg, [
       { text: "Batal", style: "cancel" },
@@ -243,8 +271,34 @@ export default function KDSScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#09090b" />
+      
+      {/* Realtime connection status banner */}
+      {connectionStatus !== "CONNECTED" && (
+        <View style={styles.connectionAlertBanner}>
+          <Text style={styles.connectionAlertText}>
+            ⚠️ KDS tidak terhubung ke server realtime
+          </Text>
+        </View>
+      )}
+
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Layar Dapur (KDS)</Text>
+        <View>
+          <Text style={styles.headerTitle}>Layar Dapur (KDS)</Text>
+          <View style={styles.connectionBadgeContainer}>
+            <View
+              style={[
+                styles.statusDot,
+                { backgroundColor: connectionStatus === "CONNECTED" ? "#10b981" : "#ef4444" },
+              ]}
+            />
+            <Text style={styles.connectionStatusText}>
+              {connectionStatus === "CONNECTED" && "Realtime tersambung"}
+              {connectionStatus === "CONNECTING" && "Menghubungkan..."}
+              {connectionStatus === "DISCONNECTED" && "Koneksi terputus"}
+              {connectionStatus === "ERROR" && "Kesalahan koneksi"}
+            </Text>
+          </View>
+        </View>
         <TouchableOpacity style={styles.refreshBtn} onPress={refetch}>
           <Text style={styles.refreshBtnText}>Perbarui</Text>
         </TouchableOpacity>
@@ -340,6 +394,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#09090b",
   },
+  connectionAlertBanner: {
+    backgroundColor: "#7f1d1d",
+    height: 36,
+    justifyContent: "center",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#ef444430",
+  },
+  connectionAlertText: {
+    color: "#fca5a5",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -354,6 +421,22 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     color: "#f4f4f5",
     letterSpacing: -0.5,
+  },
+  connectionBadgeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 2,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  connectionStatusText: {
+    fontSize: 11,
+    color: "#71717a",
+    fontWeight: "500",
   },
   refreshBtn: {
     backgroundColor: "#18181b",

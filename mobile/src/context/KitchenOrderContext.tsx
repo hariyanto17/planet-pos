@@ -14,13 +14,11 @@ const KitchenOrderContext = createContext<KitchenOrderContextType | undefined>(u
 export const KitchenOrderProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isFocused = useIsFocused();
 
-  // Fetch active queue orders while focused from /orders/queue
   const { data: orders = [], isLoading, isFetching, refetch } = useGetOrdersQueueQuery(
     undefined,
     {
-      pollingInterval: isFocused ? 5000 : undefined,
-      refetchOnFocus: true,
-      refetchOnReconnect: true,
+      refetchOnFocus: false,
+      refetchOnReconnect: false,
     }
   );
 
