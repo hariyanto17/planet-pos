@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, RefreshControl } from "react-native";
 import { StackScreenProps } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { useAppDispatch, useAppSelector } from "../lib/store/hooks";
@@ -24,9 +24,20 @@ export default function HomeScreen({ navigation }: Props) {
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   // Fetch metrics using optimized dedicated endpoints
-  const { data: pendingOrders = [] } = useGetPendingPaymentsQuery();
-  const { data: queueOrders = [] } = useGetOrdersQueueQuery();
-  const { data: shiftData } = useGetCurrentShiftQuery();
+  const { data: pendingOrders = [], refetch: refetchPending } = useGetPendingPaymentsQuery();
+  const { data: queueOrders = [], refetch: refetchQueue } = useGetOrdersQueueQuery();
+  const { data: shiftData, refetch: refetchShift } = useGetCurrentShiftQuery();
+
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const handleRefresh = React.useCallback(async () => {
+    setIsRefreshing(true);
+    await Promise.all([
+      refetchPending().unwrap().catch(() => {}),
+      refetchQueue().unwrap().catch(() => {}),
+      refetchShift().unwrap().catch(() => {}),
+    ]);
+    setIsRefreshing(false);
+  }, [refetchPending, refetchQueue, refetchShift]);
 
   const isShiftOpen = shiftData?.status === "OPEN";
 
@@ -62,7 +73,12 @@ export default function HomeScreen({ navigation }: Props) {
   });
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView 
+      contentContainerStyle={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+      }
+    >
       <View style={styles.header}>
         <Text style={styles.title}>Planet Cinema Concessions</Text>
         <Text style={styles.date}>{today}</Text>

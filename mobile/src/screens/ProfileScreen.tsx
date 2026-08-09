@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, useWindowDimensions } from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, useWindowDimensions, RefreshControl } from "react-native";
 import { StackScreenProps } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { useAppSelector, useAppDispatch } from "../lib/store/hooks";
@@ -17,11 +17,18 @@ type Props = StackScreenProps<RootStackParamList, "Profile">;
 export default function ProfileScreen({ navigation }: Props) {
   const dispatch = useAppDispatch();
   const currentUser = useAppSelector(selectCurrentUser);
-  const { data: shiftData } = useGetCurrentShiftQuery();
+  const { data: shiftData, refetch: refetchShift } = useGetCurrentShiftQuery();
   const { showToast } = useToast();
   const { showConfirmation } = useConfirmation();
   const { theme, mode, setMode } = useTheme();
   const { width: screenWidth } = useWindowDimensions();
+
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const handleRefresh = React.useCallback(async () => {
+    setIsRefreshing(true);
+    await refetchShift().unwrap().catch(() => {});
+    setIsRefreshing(false);
+  }, [refetchShift]);
 
   const styles = useMemo(() => createStyles(theme), [theme]);
   const isTablet = screenWidth > 600;
@@ -87,6 +94,9 @@ export default function ProfileScreen({ navigation }: Props) {
           isTablet && styles.scrollBodyTablet
         ]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+        }
       >
         {/* User Card */}
         {currentUser ? (
