@@ -180,35 +180,46 @@ export default function KDSScreen() {
     socketService.on("order.updated", handleOrderUpdated);
 
     // Connection lifecycle listeners
-    socketService.onConnect(() => {
+    const handleConnect = () => {
+      console.log("[KDS Socket] Connected successfully");
       setConnectionStatus("CONNECTED");
       showToast({
         type: "success",
         title: "Koneksi Tersambung",
         message: "Koneksi realtime tersambung ke server.",
       });
-      // Synchronize latest queue state from backend once on reconnect
       refetch();
-    });
+    };
 
-    socketService.onDisconnect(() => {
+    const handleDisconnect = (reason: string) => {
+      console.warn("[KDS Socket] Disconnected. Reason:", reason);
       setConnectionStatus("DISCONNECTED");
-    });
+    };
 
-    socketService.onConnectError(() => {
+    const handleConnectError = (err: any) => {
+      console.error("[KDS Socket] Connection error:", err);
       setConnectionStatus("ERROR");
-    });
+    };
+
+    socketService.onConnect(handleConnect);
+    socketService.onDisconnect(handleDisconnect);
+    socketService.onConnectError(handleConnectError);
 
     // Initial check
     if (socketService.isConnected()) {
+      console.log("[KDS Socket] Already connected on mount");
       setConnectionStatus("CONNECTED");
     } else {
+      console.log("[KDS Socket] Not connected on mount, current status: CONNECTING");
       setConnectionStatus("CONNECTING");
     }
 
     return () => {
       socketService.off("order.created", handleOrderCreated);
       socketService.off("order.updated", handleOrderUpdated);
+      socketService.offConnect(handleConnect);
+      socketService.offDisconnect(handleDisconnect);
+      socketService.offConnectError(handleConnectError);
     };
   }, [refetch]);
 

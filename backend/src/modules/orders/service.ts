@@ -217,7 +217,7 @@ export const createOrder = async (
         cashierId,
         tableId: input.tableId || null,
         orderType: input.orderType as any,
-        status: OrderStatus.PREPARING,
+        status: OrderStatus.NEW,
         subtotal: orderSubtotal,
         discountAmount: orderDiscount,
         taxAmount: orderTax,
@@ -290,15 +290,15 @@ export const createOrder = async (
     await tx.orderTimeline.create({
       data: {
         orderId: order.id,
-        status: OrderStatus.PREPARING,
-        description: "Order created and sent to kitchen",
+        status: OrderStatus.NEW,
+        description: "Order created",
         createdById: cashierId,
         metadata: { customerName: input.customerName, orderType: input.orderType },
       },
     });
 
     // Emit event
-    domainEvents.emit(DOMAIN_EVENTS.ORDER_PREPARING, { orderId: order.id, displayNumber: order.displayNumber });
+    domainEvents.emit(DOMAIN_EVENTS.ORDER_CREATED, { orderId: order.id, displayNumber: order.displayNumber });
 
     return order;
   };
@@ -321,20 +321,27 @@ export const updateOrderStatus = async (id: string, status: OrderStatus, userId:
       throw new AppError("NOT_FOUND", "Order not found");
     }
 
-    let targetStatus = status;
-    if (status === OrderStatus.READY) {
-      const totalPaid = order.payments
-        .filter((p) => p.status === "PAID")
-        .reduce((sum, p) => sum.add(p.amount), new Decimal(0));
-      if (totalPaid.gte(order.grandTotal)) {
-        targetStatus = OrderStatus.COMPLETED;
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new AppError("UNAUTHORIZED", "User not found");
+    }
+
+    if (
+      status === OrderStatus.PREPARING ||
+      status === OrderStatus.READY ||
+      status === OrderStatus.COMPLETED
+    ) {
+      if (user.role !== "KITCHEN" && user.role !== "ADMIN") {
+        throw new AppError("FORBIDDEN", "Only KITCHEN or ADMIN roles can update order operational status.");
       }
     }
 
-    if (!isValidOrderTransition(order.status, targetStatus)) {
+    if (!isValidOrderTransition(order.status, status)) {
       throw new AppError(
         "BAD_REQUEST",
-        `Invalid order status transition from ${order.status} to ${targetStatus}`
+        `Invalid order status transition from ${order.status} to ${status}`
       );
     }
 
@@ -342,21 +349,19 @@ export const updateOrderStatus = async (id: string, status: OrderStatus, userId:
     await tx.orderTimeline.create({
       data: {
         orderId: id,
-        status: targetStatus,
-        description: targetStatus === OrderStatus.COMPLETED
-          ? "Order marked READY and automatically completed (payment fully verified)"
-          : `Order status manually updated to ${targetStatus}`,
+        status: status,
+        description: `Order status manually updated to ${status}`,
         createdById: userId,
       },
     });
 
-    if (targetStatus === OrderStatus.COMPLETED) {
+    if (status === OrderStatus.COMPLETED) {
       await deductInventoryForCompletedOrder(tx, id, userId);
     }
 
     const updatedOrder = await tx.order.update({
       where: { id },
-      data: { status: targetStatus },
+      data: { status: status },
       include: {
         items: true,
         payments: true,
@@ -373,17 +378,17 @@ export const updateOrderStatus = async (id: string, status: OrderStatus, userId:
     });
 
     // Emit events
-    if (targetStatus === OrderStatus.READY) {
+    if (status === OrderStatus.READY) {
       domainEvents.emit(DOMAIN_EVENTS.ORDER_READY, {
         orderId: id,
         displayNumber: updatedOrder.displayNumber,
       });
-    } else if (targetStatus === OrderStatus.COMPLETED) {
+    } else if (status === OrderStatus.COMPLETED) {
       domainEvents.emit(DOMAIN_EVENTS.ORDER_COMPLETED, {
         orderId: id,
         displayNumber: updatedOrder.displayNumber,
       });
-    } else if (targetStatus === OrderStatus.CANCELLED) {
+    } else if (status === OrderStatus.CANCELLED) {
       domainEvents.emit(DOMAIN_EVENTS.ORDER_COMPLETED, {
         orderId: id,
         displayNumber: updatedOrder.displayNumber,
@@ -476,11 +481,11 @@ export const deductInventoryForCompletedOrder = async (
   });
 
   const defaultWarehouseCode = process.env.DEFAULT_SALES_WAREHOUSE_CODE || "CONCESSION";
-  let fallbackWarehouse = kitchenWarehouse;
+  let fallbackWarehouse = await tx.warehouse.findFirst({
+    where: { code: defaultWarehouseCode },
+  });
   if (!fallbackWarehouse) {
-    fallbackWarehouse = await tx.warehouse.findFirst({
-      where: { code: defaultWarehouseCode },
-    });
+    fallbackWarehouse = kitchenWarehouse;
   }
 
   const productIds = order.items.map((item) => item.productId);

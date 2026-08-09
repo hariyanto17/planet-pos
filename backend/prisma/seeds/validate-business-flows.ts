@@ -203,8 +203,8 @@ async function runValidation() {
   const initialQty = Number(stockBefore?.quantity || 0);
 
   // Transition: NEW -> PREPARING -> READY
-  await updateOrderStatus(cashOrder.id, OrderStatus.PREPARING, cashierUser.id);
-  await updateOrderStatus(cashOrder.id, OrderStatus.READY, cashierUser.id);
+  await updateOrderStatus(cashOrder.id, OrderStatus.PREPARING, adminUser.id);
+  await updateOrderStatus(cashOrder.id, OrderStatus.READY, adminUser.id);
 
   // Create and confirm cash payment
   await prisma.$transaction(async (tx) => {
@@ -293,8 +293,8 @@ async function runValidation() {
   console.log(`Pending QRIS Payment Created: status = ${qrisPayment.status}`);
 
   // Transition order to READY
-  await updateOrderStatus(qrisOrder.id, OrderStatus.PREPARING, cashierUser.id);
-  await updateOrderStatus(qrisOrder.id, OrderStatus.READY, cashierUser.id);
+  await updateOrderStatus(qrisOrder.id, OrderStatus.PREPARING, adminUser.id);
+  await updateOrderStatus(qrisOrder.id, OrderStatus.READY, adminUser.id);
 
   // Confirm payment
   console.log("Confirming pending QRIS payment...");
@@ -358,7 +358,7 @@ async function runValidation() {
   // Attempt invalid transition: NEW to COMPLETED directly
   console.log("Attempting invalid status transition: NEW -> COMPLETED...");
   try {
-    await updateOrderStatus(flowOrder.id, OrderStatus.COMPLETED, cashierUser.id);
+    await updateOrderStatus(flowOrder.id, OrderStatus.COMPLETED, adminUser.id);
     console.error("FAIL: Bypassed status flow transition limits!");
     process.exit(1);
   } catch (err: any) {
@@ -367,13 +367,13 @@ async function runValidation() {
 
   // Attempt invalid transition: READY to PREPARING
   console.log("Moving order NEW -> PREPARING...");
-  await updateOrderStatus(flowOrder.id, OrderStatus.PREPARING, cashierUser.id);
+  await updateOrderStatus(flowOrder.id, OrderStatus.PREPARING, adminUser.id);
   console.log("Moving order PREPARING -> READY...");
-  await updateOrderStatus(flowOrder.id, OrderStatus.READY, cashierUser.id);
+  await updateOrderStatus(flowOrder.id, OrderStatus.READY, adminUser.id);
 
   console.log("Attempting invalid status transition: READY -> PREPARING...");
   try {
-    await updateOrderStatus(flowOrder.id, OrderStatus.PREPARING, cashierUser.id);
+    await updateOrderStatus(flowOrder.id, OrderStatus.PREPARING, adminUser.id);
     console.error("FAIL: Allowed backward status flow regression!");
     process.exit(1);
   } catch (err: any) {
@@ -527,8 +527,8 @@ async function runValidation() {
     },
   });
 
-  await updateOrderStatus(rollbackOrder.id, OrderStatus.PREPARING, cashierUser.id);
-  await updateOrderStatus(rollbackOrder.id, OrderStatus.READY, cashierUser.id);
+  await updateOrderStatus(rollbackOrder.id, OrderStatus.PREPARING, adminUser.id);
+  await updateOrderStatus(rollbackOrder.id, OrderStatus.READY, adminUser.id);
 
   try {
     await prisma.$transaction(async (tx) => {

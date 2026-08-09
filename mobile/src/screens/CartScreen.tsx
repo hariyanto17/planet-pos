@@ -120,7 +120,7 @@ export default function CartScreen({ navigation }: Props) {
   const cashSuggestions = useMemo(() => {
     const suggestions: number[] = [subtotal];
     const denominations = [10000, 20000, 50000, 100000];
-    
+
     denominations.forEach((denom) => {
       if (denom > subtotal && !suggestions.includes(denom)) {
         suggestions.push(denom);
@@ -245,14 +245,88 @@ export default function CartScreen({ navigation }: Props) {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.mainLayout, isTablet && styles.mainLayoutTablet]}>
-          
+
           {/* Left Column: Items */}
           <View style={styles.leftColumn}>
             {/* Fulfillment Detail Info */}
-             {/* Fulfillment Detail Info */}
+
+
+            {/* Cart Items List */}
+            <View style={styles.itemsSection}>
+              <Text style={styles.sectionTitle}>Item Keranjang</Text>
+              {cartItems.length === 0 ? (
+                <View style={styles.emptyStateCard}>
+                  <Text style={styles.emptyStateText}>Keranjang Anda kosong</Text>
+                </View>
+              ) : (
+                cartItems.map((item: CartItem, idx) => (
+                  <View key={`${item.productId}-${idx}`} style={styles.cartItemCard}>
+                    <View style={styles.itemMain}>
+                      <View style={styles.details}>
+                        <Text style={styles.itemName}>{item.productName}</Text>
+                        <Text style={styles.itemPrice}>Rp {item.price.toLocaleString()} per item</Text>
+                        {item.note ? (
+                          <Text style={styles.itemNote}>Catatan: {item.note}</Text>
+                        ) : null}
+                      </View>
+
+                      <TouchableOpacity style={styles.noteBtn} onPress={() => handleOpenNoteModal(item)} disabled={isCheckoutLoading}>
+                        <Text style={styles.noteBtnText}>{item.note ? "Ubah Catatan" : "+ Catatan"}</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.itemFooter}>
+                      <Text style={styles.itemTotal}>Rp {(item.price * item.quantity).toLocaleString()}</Text>
+
+                      <View style={styles.qtyContainer}>
+                        <TouchableOpacity
+                          style={styles.qtyBtn}
+                          disabled={isCheckoutLoading}
+                          onPress={() => {
+                            if (item.quantity === 1) {
+                              dispatch(removeItem({ productId: item.productId, note: item.note }));
+                            } else {
+                              dispatch(updateQuantity({ productId: item.productId, note: item.note, quantity: item.quantity - 1 }));
+                            }
+                          }}
+                        >
+                          <Text style={styles.qtyText}>-</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.qtyCount}>{item.quantity}</Text>
+                        <TouchableOpacity
+                          style={styles.qtyBtn}
+                          disabled={isCheckoutLoading}
+                          onPress={() => {
+                            dispatch(updateQuantity({ productId: item.productId, note: item.note, quantity: item.quantity + 1 }));
+                          }}
+                        >
+                          <Text style={styles.qtyText}>+</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                ))
+              )}
+            </View>
+          </View>
+
+          {/* Right Column: Checkout workspace */}
+          <View style={styles.rightColumn}>
+            {/* Last Success Print Retry Banner */}
+
+
+            {/* Subtotal card */}
+            <View style={styles.totalsCard}>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalsLabel}>TOTAL</Text>
+                <Text style={styles.totalsValue}>Rp {subtotal.toLocaleString()}</Text>
+              </View>
+              <Text style={styles.disclaimer}>Diskon & Pajak akhir dihitung otomatis oleh billing backend.</Text>
+            </View>
+
             <View style={styles.infoCard}>
               <Text style={styles.infoTitle}>Detail Pemenuhan</Text>
-              
+
               <View style={styles.customerRow}>
                 <Text style={styles.infoText}>Pelanggan: <Text style={styles.boldText}>{customerName || "Langsung"}</Text></Text>
               </View>
@@ -302,79 +376,6 @@ export default function CartScreen({ navigation }: Props) {
                   </ScrollView>
                 </View>
               )}
-            </View>
-
-            {/* Cart Items List */}
-            <View style={styles.itemsSection}>
-              <Text style={styles.sectionTitle}>Item Keranjang</Text>
-              {cartItems.length === 0 ? (
-                <View style={styles.emptyStateCard}>
-                  <Text style={styles.emptyStateText}>Keranjang Anda kosong</Text>
-                </View>
-              ) : (
-                cartItems.map((item: CartItem, idx) => (
-                  <View key={`${item.productId}-${idx}`} style={styles.cartItemCard}>
-                    <View style={styles.itemMain}>
-                      <View style={styles.details}>
-                        <Text style={styles.itemName}>{item.productName}</Text>
-                        <Text style={styles.itemPrice}>Rp {item.price.toLocaleString()} per item</Text>
-                        {item.note ? (
-                          <Text style={styles.itemNote}>Catatan: {item.note}</Text>
-                        ) : null}
-                      </View>
-
-                      <TouchableOpacity style={styles.noteBtn} onPress={() => handleOpenNoteModal(item)} disabled={isCheckoutLoading}>
-                        <Text style={styles.noteBtnText}>{item.note ? "Ubah Catatan" : "+ Catatan"}</Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    <View style={styles.itemFooter}>
-                      <Text style={styles.itemTotal}>Rp {(item.price * item.quantity).toLocaleString()}</Text>
-                      
-                      <View style={styles.qtyContainer}>
-                        <TouchableOpacity
-                          style={styles.qtyBtn}
-                          disabled={isCheckoutLoading}
-                          onPress={() => {
-                            if (item.quantity === 1) {
-                              dispatch(removeItem({ productId: item.productId, note: item.note }));
-                            } else {
-                              dispatch(updateQuantity({ productId: item.productId, note: item.note, quantity: item.quantity - 1 }));
-                            }
-                          }}
-                        >
-                          <Text style={styles.qtyText}>-</Text>
-                        </TouchableOpacity>
-                        <Text style={styles.qtyCount}>{item.quantity}</Text>
-                        <TouchableOpacity
-                          style={styles.qtyBtn}
-                          disabled={isCheckoutLoading}
-                          onPress={() => {
-                            dispatch(updateQuantity({ productId: item.productId, note: item.note, quantity: item.quantity + 1 }));
-                          }}
-                        >
-                          <Text style={styles.qtyText}>+</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </View>
-                ))
-              )}
-            </View>
-          </View>
-
-          {/* Right Column: Checkout workspace */}
-          <View style={styles.rightColumn}>
-            {/* Last Success Print Retry Banner */}
-
-
-            {/* Subtotal card */}
-            <View style={styles.totalsCard}>
-              <View style={styles.totalRow}>
-                <Text style={styles.totalsLabel}>TOTAL</Text>
-                <Text style={styles.totalsValue}>Rp {subtotal.toLocaleString()}</Text>
-              </View>
-              <Text style={styles.disclaimer}>Diskon & Pajak akhir dihitung otomatis oleh billing backend.</Text>
             </View>
 
             {/* Payment Section Card */}
