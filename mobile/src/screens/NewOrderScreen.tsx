@@ -153,9 +153,16 @@ export default function NewOrderScreen({ navigation }: Props) {
     }
   };
 
-  const { data: products = [], isLoading: loadingProducts } = useGetProductsQuery({ sellable: true });
+  const { data: products = [], isLoading: loadingProducts, refetch: refetchProducts } = useGetProductsQuery({ sellable: true });
   const { data: categories = [], isLoading: loadingCategories } = useGetCategoriesQuery({ sellable: true });
   const { data: tables = [], isLoading: loadingTables } = useGetTablesQuery();
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await refetchProducts();
+    setIsRefreshing(false);
+  }, [refetchProducts]);
 
   const [activeCategory, setActiveCategory] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -321,6 +328,8 @@ export default function NewOrderScreen({ navigation }: Props) {
         initialNumToRender={12}
         maxToRenderPerBatch={16}
         windowSize={5}
+        refreshing={isRefreshing}
+        onRefresh={handleRefresh}
       />
     );
   };

@@ -36,7 +36,7 @@ export const checkoutApi = baseApi.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["Order", "Payment"],
+      invalidatesTags: ["Order", "Payment", "Product"],
     }),
   }),
 });
