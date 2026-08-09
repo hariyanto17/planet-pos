@@ -82,6 +82,15 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
     }
   };
 
+  const uniqueProducts = React.useMemo(() => {
+    const seen = new Set();
+    return products.filter((p) => {
+      if (seen.has(p.id)) return false;
+      seen.add(p.id);
+      return true;
+    });
+  }, [products]);
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Transfer Stok">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -136,7 +145,7 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
             required
           >
             <option value="">Pilih Produk...</option>
-            {products.map((p) => (
+            {uniqueProducts.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name} ({p.sku})
               </option>

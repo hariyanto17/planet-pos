@@ -71,7 +71,7 @@ export function InventoryStockTable({
         isLoading={isLoading}
       >
         {productsList.map((p: any) => (
-          <tr key={p.id} className="border-b border-zinc-800/40 hover:bg-zinc-800/10 animate-fade-in">
+          <tr key={`${p.id}-${p.warehouseId}`} className="border-b border-zinc-800/40 hover:bg-zinc-800/10 animate-fade-in">
             <td className="px-6 py-4 text-xs font-bold text-zinc-200">{p.name}</td>
             <td className="px-6 py-4 text-xs font-medium text-zinc-400 font-mono">{p.sku}</td>
             <td className="px-6 py-4 text-xs font-semibold text-zinc-300">{p.warehouseName}</td>

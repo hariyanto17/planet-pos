@@ -75,29 +75,7 @@ export const getProductStockList = async (filters: GetProductStockListFilters) =
   const limit = Number(filters.limit || 10);
   const skip = (page - 1) * limit;
 
-  // 1. Resolve active warehouse code or id
-  let targetWarehouseId = filters.warehouseId;
-  if (!targetWarehouseId) {
-    let defaultWarehouse = await prisma.warehouse.findFirst({
-      where: { code: DEFAULT_SALES_WAREHOUSE_CODE },
-    });
-    if (!defaultWarehouse) {
-      defaultWarehouse = await prisma.warehouse.findFirst({
-        where: { isActive: true },
-      });
-    }
-    targetWarehouseId = defaultWarehouse?.id;
-  }
-
-  if (!targetWarehouseId) {
-    // If no warehouses exist at all, return empty
-    return {
-      data: [],
-      pagination: { total: 0, page, limit, totalPages: 0 },
-    };
-  }
-
-  // 2. Build where clause
+  // Build where clause
   const whereClause: Prisma.ProductWhereInput = {
     deletedAt: null,
   };
@@ -109,50 +87,116 @@ export const getProductStockList = async (filters: GetProductStockListFilters) =
     ];
   }
 
-  // 3. Load all products matching constraints first
-  const allProducts = await prisma.product.findMany({
-    where: whereClause,
-    include: {
-      unit: true,
-      warehouseStocks: {
-        where: { warehouseId: targetWarehouseId },
-        include: {
-          warehouse: true,
+  const isAllWarehouses = !filters.warehouseId || filters.warehouseId === "all";
+
+  let mapped: any[] = [];
+
+  if (isAllWarehouses) {
+    const activeWarehouses = await prisma.warehouse.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+    });
+
+    if (activeWarehouses.length === 0) {
+      return {
+        data: [],
+        pagination: { total: 0, page, limit, totalPages: 0 },
+      };
+    }
+
+    const allProducts = await prisma.product.findMany({
+      where: whereClause,
+      include: {
+        unit: true,
+        warehouseStocks: {
+          where: {
+            warehouse: { isActive: true },
+          },
+          include: {
+            warehouse: true,
+          },
         },
       },
-    },
-    orderBy: { name: "asc" },
-  });
+      orderBy: { name: "asc" },
+    });
 
-  // 4. Map stock levels and compute backend status
-  const mapped = allProducts.map((p) => {
-    const ws = p.warehouseStocks[0];
-    const quantity = ws ? Number(ws.quantity) : 0;
-    const minimumStock = Number(p.minimumStock);
-    const status = getInventoryStatus(p.trackInventory, quantity, minimumStock);
+    for (const p of allProducts) {
+      for (const wh of activeWarehouses) {
+        const ws = p.warehouseStocks.find((s) => s.warehouseId === wh.id);
+        const quantity = ws ? Number(ws.quantity) : 0;
+        const minimumStock = Number(p.minimumStock);
+        const status = getInventoryStatus(p.trackInventory, quantity, minimumStock);
 
-    return {
-      id: p.id,
-      sku: p.sku || "-",
-      name: p.name,
-      trackInventory: p.trackInventory,
-      inventoryType: p.inventoryType,
-      unit: p.unit ? p.unit.symbol : "PCS",
-      warehouseName: ws?.warehouse.name || "Default Warehouse",
-      warehouseId: targetWarehouseId,
-      quantity,
-      minimumStock,
-      status,
-    };
-  });
+        mapped.push({
+          id: p.id,
+          sku: p.sku || "-",
+          name: p.name,
+          trackInventory: p.trackInventory,
+          inventoryType: p.inventoryType,
+          unit: p.unit ? p.unit.symbol : "PCS",
+          warehouseName: wh.name,
+          warehouseId: wh.id,
+          quantity,
+          minimumStock,
+          status,
+        });
+      }
+    }
+  } else {
+    const targetWarehouse = await prisma.warehouse.findUnique({
+      where: { id: filters.warehouseId },
+    });
 
-  // 5. Filter by stock status on JS level if filter is active
+    if (!targetWarehouse || !targetWarehouse.isActive) {
+      return {
+        data: [],
+        pagination: { total: 0, page, limit, totalPages: 0 },
+      };
+    }
+
+    const allProducts = await prisma.product.findMany({
+      where: whereClause,
+      include: {
+        unit: true,
+        warehouseStocks: {
+          where: { warehouseId: filters.warehouseId },
+          include: {
+            warehouse: true,
+          },
+        },
+      },
+      orderBy: { name: "asc" },
+    });
+
+    mapped = allProducts.map((p) => {
+      const ws = p.warehouseStocks[0];
+      const quantity = ws ? Number(ws.quantity) : 0;
+      const minimumStock = Number(p.minimumStock);
+      const status = getInventoryStatus(p.trackInventory, quantity, minimumStock);
+
+      return {
+        id: p.id,
+        sku: p.sku || "-",
+        name: p.name,
+        trackInventory: p.trackInventory,
+        inventoryType: p.inventoryType,
+        unit: p.unit ? p.unit.symbol : "PCS",
+        warehouseName: targetWarehouse.name,
+        warehouseId: filters.warehouseId,
+        quantity,
+        minimumStock,
+        status,
+      };
+    });
+  }
+
+  // Filter by stock status on JS level if filter is active
   let filtered = mapped;
   if (filters.stockStatus) {
     filtered = mapped.filter((item) => item.status === filters.stockStatus);
   }
 
-  // 6. Paginate result subset
+  // Paginate result subset
   const total = filtered.length;
   const sliced = filtered.slice(skip, skip + limit);
 
