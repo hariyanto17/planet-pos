@@ -4,7 +4,7 @@ export const getKitchenQueue = async () => {
   const orders = await prisma.order.findMany({
     where: {
       status: {
-        in: ["PREPARING", "READY"],
+        in: ["NEW", "PREPARING", "READY"],
       },
     },
     select: {
@@ -41,7 +41,7 @@ export const getKitchenQueue = async () => {
     },
   });
 
-  // Sorting priorities: READY first, PREPARING second. Oldest (createdAt asc) first.
+  // Sorting priorities: READY first, PREPARING second, NEW third. Oldest (createdAt asc) first.
   const ready = orders
     .filter((o) => o.status === "READY")
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
@@ -50,5 +50,9 @@ export const getKitchenQueue = async () => {
     .filter((o) => o.status === "PREPARING")
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-  return [...ready, ...preparing];
+  const newOrders = orders
+    .filter((o) => o.status === "NEW")
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+  return [...ready, ...preparing, ...newOrders];
 };

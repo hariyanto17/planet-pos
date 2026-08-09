@@ -427,7 +427,7 @@ async function runValidation() {
 
   const expectedStock = stockBeforeFlow + 10.5 - 2.25 - 1.1;
   console.log(`Calculated Expected Stock: ${expectedStock}, DB Snapshot: ${stockAfterFlow?.quantity}`);
-  if (Number(stockAfterFlow?.quantity) !== expectedStock) {
+  if (Math.abs(Number(stockAfterFlow?.quantity) - expectedStock) > 0.001) {
     console.error(`FAIL: Stock balance discrepancy. Expected ${expectedStock}, got ${stockAfterFlow?.quantity}`);
     process.exit(1);
   }

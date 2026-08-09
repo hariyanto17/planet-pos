@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { PrismaClient, OrderStatus, PaymentMethod, PaymentStatus } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { createOrder, updateOrderStatus, confirmPayment } from "./service";
+import { getKitchenQueue } from "./queue.service";
 
 const prisma = new PrismaClient();
 
@@ -274,5 +275,91 @@ test("Order Timeline and Status Transitions Regression Tests", async (t) => {
     assert.equal(dbOrder.status, OrderStatus.COMPLETED);
     assert.equal(dbOrder.timelines.length, 5);
     assert.equal(dbOrder.timelines[4].status, OrderStatus.COMPLETED);
+  });
+
+  await t.test("Test 11 — KDS queue contains NEW cashier order", async () => {
+    const orderInput = {
+      customerName: "KDS Queue Tester 1",
+      orderType: "TAKEAWAY" as any,
+      items: [{ productId: product.id, quantity: 1 }],
+    };
+    const order = await createOrder(cashierUser.id, orderInput);
+    
+    const queue = await getKitchenQueue();
+    const found = queue.some((o) => o.id === order.id);
+    assert.ok(found, "NEW cashier order must appear in KDS queue");
+  });
+
+  await t.test("Test 12 — KDS queue contains PAID but NEW cashier order", async () => {
+    const orderInput = {
+      customerName: "KDS Queue Tester 2",
+      orderType: "TAKEAWAY" as any,
+      items: [{ productId: product.id, quantity: 1 }],
+    };
+    const order = await createOrder(cashierUser.id, orderInput);
+
+    await prisma.payment.create({
+      data: {
+        orderId: order.id,
+        amount: order.grandTotal,
+        method: PaymentMethod.CASH,
+        status: PaymentStatus.PAID,
+        confirmedById: cashierUser.id,
+        confirmedAt: new Date(),
+        cashierShiftId: shiftId,
+      },
+    });
+
+    await prisma.$transaction(async (tx) => {
+      await confirmPayment(order.id, order.grandTotal, cashierUser.id, tx);
+    });
+
+    const queue = await getKitchenQueue();
+    const found = queue.some((o) => o.id === order.id);
+    assert.ok(found, "Paid but NEW cashier order must appear in KDS queue");
+  });
+
+  await t.test("Test 13 — KDS queue contains SELF_ORDER in NEW status", async () => {
+    const orderInput = {
+      customerName: "KDS Queue Tester 3",
+      orderType: "DINE_IN" as any,
+      tableId: table.id,
+      items: [{ productId: product.id, quantity: 1 }],
+    };
+    const order = await createOrder(null, orderInput);
+
+    const queue = await getKitchenQueue();
+    const found = queue.some((o) => o.id === order.id);
+    assert.ok(found, "NEW self-order must appear in KDS queue");
+  });
+
+  await t.test("Test 14 — Completed order is not in active queue", async () => {
+    const orderInput = {
+      customerName: "KDS Queue Tester 4",
+      orderType: "TAKEAWAY" as any,
+      items: [{ productId: product.id, quantity: 1 }],
+    };
+    const order = await createOrder(cashierUser.id, orderInput);
+    await updateOrderStatus(order.id, OrderStatus.PREPARING, kitchenUser.id);
+    await updateOrderStatus(order.id, OrderStatus.READY, kitchenUser.id);
+    await updateOrderStatus(order.id, OrderStatus.COMPLETED, kitchenUser.id);
+
+    const queue = await getKitchenQueue();
+    const found = queue.some((o) => o.id === order.id);
+    assert.ok(!found, "COMPLETED order must not appear in KDS queue");
+  });
+
+  await t.test("Test 15 — Cancelled order is not in active queue", async () => {
+    const orderInput = {
+      customerName: "KDS Queue Tester 5",
+      orderType: "TAKEAWAY" as any,
+      items: [{ productId: product.id, quantity: 1 }],
+    };
+    const order = await createOrder(cashierUser.id, orderInput);
+    await updateOrderStatus(order.id, OrderStatus.CANCELLED, cashierUser.id);
+
+    const queue = await getKitchenQueue();
+    const found = queue.some((o) => o.id === order.id);
+    assert.ok(!found, "CANCELLED order must not appear in KDS queue");
   });
 });

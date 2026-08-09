@@ -60,8 +60,12 @@ export const initSocket = (httpServer: HttpServer) => {
   });
 
   // Listen to domain events and emit to Socket.IO kitchen room
-  domainEvents.on(DOMAIN_EVENTS.ORDER_PREPARING, async (data) => {
+  domainEvents.on(DOMAIN_EVENTS.ORDER_CREATED, async (data) => {
     emitOrderEvent("order.created", data.orderId);
+  });
+
+  domainEvents.on(DOMAIN_EVENTS.ORDER_PREPARING, async (data) => {
+    emitOrderEvent("order.updated", data.orderId);
   });
 
   domainEvents.on(DOMAIN_EVENTS.ORDER_READY, async (data) => {
