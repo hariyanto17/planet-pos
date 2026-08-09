@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   StyleSheet,
   View,
@@ -19,6 +19,7 @@ import { logout } from "../lib/store/features/auth/slice";
 import { baseApi } from "../lib/api/baseApi";
 import KitchenOrderCard from "../components/KitchenOrderCard";
 import { LoadingSpinner } from "../components/LoadingSpinner";
+import { useTheme, Theme } from "../theme";
 
 type NavigationProp = StackNavigationProp<RootStackParamList, "KitchenHome">;
 
@@ -26,6 +27,8 @@ export default function KitchenHomeScreen() {
   const navigation = useNavigation<NavigationProp>();
   const dispatch = useAppDispatch();
   const currentUser = useAppSelector(selectCurrentUser);
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   // Consume from abstract context provider
   const { activeOrders, isLoading, isFetching, refetch } = useKitchenOrders();
@@ -99,7 +102,7 @@ export default function KitchenHomeScreen() {
           {readyOrders.length > 0 && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: "#10b981" }]}>
+                <Text style={[styles.sectionTitle, { color: theme.success }]}>
                   SIAP ({readyOrders.length})
                 </Text>
                 <View style={styles.dividerGreen} />
@@ -118,7 +121,7 @@ export default function KitchenHomeScreen() {
           {preparingOrders.length > 0 && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: "#3b82f6" }]}>
+                <Text style={[styles.sectionTitle, { color: theme.info }]}>
                   DISIAPKAN ({preparingOrders.length})
                 </Text>
                 <View style={styles.dividerBlue} />
@@ -138,29 +141,30 @@ export default function KitchenHomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
   },
   header: {
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#18181b",
+    borderBottomColor: theme.border,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: theme.background,
   },
   welcomeText: {
     fontSize: 20,
     fontWeight: "900",
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     letterSpacing: -0.5,
   },
   userText: {
     fontSize: 12,
-    color: "#71717a",
+    color: theme.textMuted,
     marginTop: 2,
     textTransform: "uppercase",
     fontWeight: "600",
@@ -170,25 +174,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerBtn: {
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
   },
   headerBtnText: {
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     fontSize: 12,
     fontWeight: "bold",
   },
   logoutBtn: {
-    backgroundColor: "#7f1d1d",
+    backgroundColor: theme.error,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#b91c1c",
+    borderColor: theme.error,
   },
   logoutBtnText: {
     color: "#ffffff",
@@ -215,18 +219,19 @@ const styles = StyleSheet.create({
   dividerGreen: {
     flex: 1,
     height: 1,
-    backgroundColor: "#064e3b",
+    backgroundColor: theme.success,
   },
   dividerBlue: {
     flex: 1,
     height: 1,
-    backgroundColor: "#1e3a8a",
+    backgroundColor: theme.info,
   },
   emptyContainer: {
     flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 32,
+    backgroundColor: theme.background,
   },
   emptyIcon: {
     fontSize: 48,
@@ -235,17 +240,17 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     marginBottom: 4,
   },
   emptySubtitle: {
     fontSize: 13,
-    color: "#71717a",
+    color: theme.textSecondary,
     textAlign: "center",
     marginBottom: 16,
   },
   refreshBtn: {
-    backgroundColor: "#4f46e5",
+    backgroundColor: theme.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,

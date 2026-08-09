@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from "react-native";
 import { StackScreenProps } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
@@ -11,6 +11,7 @@ import { baseApi } from "../lib/api/baseApi";
 import { useToast } from "../hooks/useToast";
 import { useConfirmation } from "../hooks/useConfirmation";
 import { WarningIcon } from "../components/CustomIcons";
+import { useTheme, Theme } from "../theme";
 
 type Props = StackScreenProps<RootStackParamList, "Home">;
 
@@ -19,6 +20,8 @@ export default function HomeScreen({ navigation }: Props) {
   const currentUser = useAppSelector(selectCurrentUser);
   const { showToast } = useToast();
   const { showConfirmation } = useConfirmation();
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   // Fetch metrics using optimized dedicated endpoints
   const { data: pendingOrders = [] } = useGetPendingPaymentsQuery();
@@ -79,7 +82,7 @@ export default function HomeScreen({ navigation }: Props) {
       {!isShiftOpen ? (
         <View style={styles.alertCard}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
-            <WarningIcon color="#fecaca" />
+            <WarningIcon color={theme.error} />
             <Text style={styles.alertTitle}>Tidak Ada Shift Aktif</Text>
           </View>
           <Text style={styles.alertText}>
@@ -99,7 +102,7 @@ export default function HomeScreen({ navigation }: Props) {
           <Text style={styles.statNumber}>{pendingPaymentsCount}</Text>
           <Text style={styles.statLabel}>Pembayaran Tertunda</Text>
         </View>
-        <View style={[styles.statCard, { borderLeftWidth: 1, borderLeftColor: "#27272a" }]}>
+        <View style={[styles.statCard, { borderLeftWidth: 1, borderLeftColor: theme.border }]}>
           <Text style={styles.statNumber}>{preparingOrdersCount}</Text>
           <Text style={styles.statLabel}>Pesanan Disiapkan</Text>
         </View>
@@ -143,10 +146,10 @@ export default function HomeScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flexGrow: 1,
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
     padding: 24,
     justifyContent: "center",
   },
@@ -157,19 +160,19 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#f4f4f5",
+    color: theme.textPrimary,
   },
   date: {
     fontSize: 14,
-    color: "#71717a",
+    color: theme.textMuted,
     marginTop: 6,
   },
   userCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 16,
     padding: 16,
     gap: 16,
@@ -179,7 +182,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#4f46e5",
+    backgroundColor: theme.primary,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -191,19 +194,19 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#f4f4f5",
+    color: theme.textPrimary,
   },
   userRole: {
     fontSize: 12,
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     marginTop: 2,
     fontWeight: "500",
   },
   statsRow: {
     flexDirection: "row",
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 16,
     paddingVertical: 16,
     marginBottom: 32,
@@ -215,11 +218,11 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 22,
     fontWeight: "bold",
-    color: "#f4f4f5",
+    color: theme.textPrimary,
   },
   statLabel: {
     fontSize: 12,
-    color: "#71717a",
+    color: theme.textMuted,
     marginTop: 4,
   },
   menu: {
@@ -227,19 +230,19 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   menuButton: {
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 12,
     padding: 18,
   },
   menuButtonText: {
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     fontSize: 16,
     fontWeight: "bold",
   },
   menuButtonDesc: {
-    color: "#71717a",
+    color: theme.textSecondary,
     fontSize: 12,
     marginTop: 4,
   },
@@ -247,20 +250,20 @@ const styles = StyleSheet.create({
     height: 48,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#e11d48",
+    borderColor: theme.error,
     borderRadius: 8,
   },
   logoutText: {
-    color: "#e11d48",
+    color: theme.error,
     fontSize: 15,
     fontWeight: "600",
   },
   alertCard: {
-    backgroundColor: "#7f1d1d",
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
     borderWidth: 1,
-    borderColor: "#b91c1c",
+    borderColor: "rgba(239, 68, 68, 0.2)",
     borderRadius: 16,
     padding: 16,
     marginBottom: 24,
@@ -269,14 +272,14 @@ const styles = StyleSheet.create({
   alertTitle: {
     fontSize: 15,
     fontWeight: "bold",
-    color: "#fecaca",
+    color: theme.error,
   },
   alertText: {
     fontSize: 12,
-    color: "#fca5a5",
+    color: theme.textSecondary,
   },
   alertButton: {
-    backgroundColor: "#ef4444",
+    backgroundColor: theme.error,
     borderRadius: 8,
     paddingVertical: 10,
     alignItems: "center",
@@ -289,9 +292,9 @@ const styles = StyleSheet.create({
   },
   menuButtonDisabled: {
     opacity: 0.5,
-    backgroundColor: "#09090b",
+    backgroundColor: theme.surfaceSecondary,
   },
   menuTextDisabled: {
-    color: "#71717a",
+    color: theme.textMuted,
   },
 });

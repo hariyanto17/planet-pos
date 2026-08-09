@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { formatOrderNumber } from "../lib/utils/formatters";
 import { ORDER_STATUS_CONFIG, OrderStatusKey } from "../lib/utils/constants";
+import { useTheme, Theme } from "../theme";
 
 // Helper Timer component for calculating elapsed durations local to each card
-const ElapsedTime = ({ createdAt }: { createdAt: string }) => {
+const ElapsedTime = ({ createdAt, styles }: { createdAt: string; styles: any }) => {
   const [elapsed, setElapsed] = useState("00:00");
 
   useEffect(() => {
@@ -34,6 +35,8 @@ interface KitchenOrderCardProps {
 }
 
 export const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({ order, onPress }) => {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const statusKey = (order.status || "PREPARING") as OrderStatusKey;
   const statusCfg = ORDER_STATUS_CONFIG[statusKey] || ORDER_STATUS_CONFIG.PREPARING;
   const isReady = order.status === "READY";
@@ -57,7 +60,7 @@ export const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({ order, onPre
             </Text>
           </View>
         </View>
-        <ElapsedTime createdAt={order.createdAt} />
+        <ElapsedTime createdAt={order.createdAt} styles={styles} />
       </View>
 
       <View style={styles.cardBody}>
@@ -69,7 +72,7 @@ export const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({ order, onPre
         </View>
         <View style={styles.row}>
           <Text style={styles.label}>Total Kuantitas</Text>
-          <Text style={[styles.value, { color: "#818cf8", fontWeight: "800" }]}>
+          <Text style={[styles.value, { color: theme.primary, fontWeight: "800" }]}>
             {totalItemsCount} Item
           </Text>
         </View>
@@ -98,25 +101,25 @@ export const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({ order, onPre
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   card: {
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
   },
   cardReady: {
-    borderColor: "#059669",
-    backgroundColor: "#064e3b",
+    borderColor: theme.success,
+    backgroundColor: "rgba(34, 197, 94, 0.1)",
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: "#27272a",
+    borderBottomColor: theme.border,
     paddingBottom: 10,
     marginBottom: 12,
   },
@@ -128,7 +131,7 @@ const styles = StyleSheet.create({
   displayNumber: {
     fontSize: 15,
     fontWeight: "900",
-    color: "#ffffff",
+    color: theme.textPrimary,
   },
   statusBadge: {
     paddingHorizontal: 8,
@@ -145,13 +148,13 @@ const styles = StyleSheet.create({
   },
   timerLabel: {
     fontSize: 9,
-    color: "#71717a",
+    color: theme.textMuted,
     textTransform: "uppercase",
     fontWeight: "bold",
     letterSpacing: 0.5,
   },
   timeText: {
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     fontSize: 12,
     fontFamily: "Courier",
     fontWeight: "bold",
@@ -165,18 +168,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   label: {
-    color: "#71717a",
+    color: theme.textSecondary,
     fontSize: 13,
   },
   value: {
-    color: "#e4e4e7",
+    color: theme.textPrimary,
     fontSize: 13,
     fontWeight: "600",
   },
   sourceHighlight: {
-    color: "#e4e4e7",
+    color: theme.textPrimary,
     fontWeight: "bold",
     fontSize: 12,
   },
 });
+
 export default KitchenOrderCard;

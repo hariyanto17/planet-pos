@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   StyleSheet,
   Text,
@@ -15,7 +15,9 @@ import { useGetOrderQuery } from "../lib/api/orderApi";
 import { useConfirmPaymentMutation } from "../lib/api/paymentApi";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { useToast } from "../hooks/useToast";
-import { WarningIcon, ArrowLeftIcon } from "../components/CustomIcons";
+import { WarningIcon, ArrowLeftIcon, PrinterIcon } from "../components/CustomIcons";
+import { useTheme, Theme } from "../theme";
+import PrinterService from "../services/PrinterService";
 
 const formatOrderTime = (createdAt: string) => {
   const date = new Date(createdAt);
@@ -42,6 +44,8 @@ export default function OrderDetailScreen({ route, navigation }: Props) {
   const { orderId, mode } = route.params;
   const [refreshing, setRefreshing] = useState(false);
   const { showToast } = useToast();
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const { data: order, isLoading, isError, refetch } = useGetOrderQuery(orderId, {
     refetchOnMountOrArgChange: true,
@@ -56,6 +60,43 @@ export default function OrderDetailScreen({ route, navigation }: Props) {
     setRefreshing(false);
   };
 
+  const handlePrint = async () => {
+    if (!order) return;
+    const isConnected = await PrinterService.isConnected();
+    if (!isConnected) {
+      showToast({
+        type: "error",
+        title: "Printer Terputus",
+        message: "Silakan hubungkan printer di menu profil terlebih dahulu.",
+      });
+      return;
+    }
+
+    try {
+      const receiptText = PrinterService.formatReceipt(order);
+      const success = await PrinterService.printReceipt(receiptText);
+      if (success) {
+        showToast({
+          type: "success",
+          title: "Sukses",
+          message: "Struk berhasil dicetak.",
+        });
+      } else {
+        showToast({
+          type: "error",
+          title: "Cetak Gagal",
+          message: "Gagal mengirim data cetak ke printer.",
+        });
+      }
+    } catch (error) {
+      showToast({
+        type: "error",
+        title: "Cetak Gagal",
+        message: "Terjadi kesalahan saat mencetak.",
+      });
+    }
+  };
+
   if (isLoading) {
     return <LoadingSpinner />;
   }
@@ -66,7 +107,7 @@ export default function OrderDetailScreen({ route, navigation }: Props) {
         <Text style={styles.errorText}>Tidak dapat menemukan detail tiket konsesi.</Text>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-            <ArrowLeftIcon color="#a1a1aa" />
+            <ArrowLeftIcon color={theme.textSecondary} />
             <Text style={styles.backText}>Kembali</Text>
           </View>
         </TouchableOpacity>
@@ -115,7 +156,9 @@ export default function OrderDetailScreen({ route, navigation }: Props) {
           </View>
         </TouchableOpacity>
         <Text style={styles.title}>Pesanan #{order.displayNumber.split("-")[0]}</Text>
-        <View style={{ width: 60 }} />
+        <TouchableOpacity style={styles.printBtn} onPress={handlePrint}>
+          <PrinterIcon color={theme.textPrimary} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -327,10 +370,10 @@ export default function OrderDetailScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
   },
   center: {
     justifyContent: "center",
@@ -344,45 +387,72 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#18181b",
+    borderBottomColor: theme.border,
+    backgroundColor: theme.background,
   },
   backBtn: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
+  },
+  printBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: theme.surface,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: theme.border,
+    justifyContent: "center",
+    alignItems: "center",
   },
   backText: {
-    color: "#e4e4e7",
+    color: theme.textPrimary,
     fontSize: 12,
     fontWeight: "bold",
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: theme.textPrimary,
   },
   title: {
     fontSize: 16,
     fontWeight: "900",
-    color: "#f4f4f5",
+    color: theme.textPrimary,
   },
   content: {
     padding: 16,
     gap: 16,
   },
   sectionCard: {
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     padding: 16,
   },
   cardTitle: {
-    color: "#ffffff",
+    color: theme.textPrimary,
     fontSize: 13,
     fontWeight: "800",
     textTransform: "uppercase",
     letterSpacing: 0.5,
     borderBottomWidth: 1,
-    borderBottomColor: "#27272a",
+    borderBottomColor: theme.border,
+    paddingBottom: 8,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    color: theme.textPrimary,
+    fontSize: 13,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
     paddingBottom: 8,
     marginBottom: 12,
   },
@@ -393,11 +463,11 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   label: {
-    color: "#71717a",
+    color: theme.textSecondary,
     fontSize: 13,
   },
   value: {
-    color: "#e4e4e7",
+    color: theme.textPrimary,
     fontSize: 13,
     fontWeight: "600",
   },
@@ -407,15 +477,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "#27272a",
+    borderBottomColor: theme.border,
   },
   itemName: {
     fontSize: 14,
-    color: "#ffffff",
+    color: theme.textPrimary,
     fontWeight: "600",
   },
   noteContainer: {
-    backgroundColor: "#7f1d1d",
+    backgroundColor: theme.surfaceSecondary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -423,19 +493,19 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   itemNote: {
-    color: "#fca5a5",
+    color: theme.error,
     fontSize: 11,
     fontWeight: "bold",
   },
   itemQty: {
     fontSize: 14,
     fontWeight: "800",
-    color: "#4f46e5",
+    color: theme.primary,
     marginHorizontal: 16,
   },
   itemPrice: {
     fontSize: 13,
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     width: 90,
     textAlign: "right",
   },
@@ -448,31 +518,31 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#4f46e5",
+    backgroundColor: theme.primary,
     marginTop: 6,
   },
   timelineStatus: {
     fontSize: 12,
     fontWeight: "bold",
-    color: "#ffffff",
+    color: theme.textPrimary,
   },
   timelineDesc: {
     fontSize: 11,
-    color: "#71717a",
+    color: theme.textSecondary,
     marginTop: 1,
   },
   timelineTime: {
     fontSize: 11,
-    color: "#71717a",
+    color: theme.textSecondary,
   },
   footer: {
     borderTopWidth: 1,
-    borderTopColor: "#18181b",
+    borderTopColor: theme.border,
     padding: 16,
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
   },
   confirmBtn: {
-    backgroundColor: "#059669",
+    backgroundColor: theme.success,
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: "center",
@@ -483,7 +553,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   errorText: {
-    color: "#ef4444",
+    color: theme.error,
     fontSize: 14,
     textAlign: "center",
     marginBottom: 16,
@@ -491,19 +561,19 @@ const styles = StyleSheet.create({
   notesBlock: {
     marginTop: 10,
     padding: 10,
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
   },
   notesLabel: {
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     fontSize: 11,
     fontWeight: "bold",
     marginBottom: 4,
   },
   notesText: {
-    color: "#e4e4e7",
+    color: theme.textPrimary,
     fontSize: 12,
     fontStyle: "italic",
   },
@@ -515,10 +585,10 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalContent: {
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     padding: 20,
     width: "100%",
     maxWidth: 360,
@@ -526,37 +596,37 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "900",
-    color: "#ffffff",
+    color: theme.textPrimary,
     textAlign: "center",
     marginBottom: 4,
   },
   modalSubtitle: {
     fontSize: 12,
-    color: "#71717a",
+    color: theme.textSecondary,
     textAlign: "center",
     marginBottom: 16,
   },
   modalDetails: {
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     gap: 6,
     marginBottom: 16,
   },
   mLabel: {
-    color: "#71717a",
+    color: theme.textSecondary,
     fontSize: 13,
   },
   mValue: {
-    color: "#ffffff",
+    color: theme.textPrimary,
     fontSize: 13,
     fontWeight: "600",
   },
   modalPrompt: {
     fontSize: 13,
-    color: "#e4e4e7",
+    color: theme.textPrimary,
     textAlign: "center",
     fontWeight: "bold",
     marginBottom: 20,
@@ -572,14 +642,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   mBtnCancel: {
-    backgroundColor: "#27272a",
+    backgroundColor: theme.surfaceSecondary,
   },
   mBtnCancelText: {
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     fontWeight: "bold",
   },
   mBtnConfirm: {
-    backgroundColor: "#059669",
+    backgroundColor: theme.success,
   },
   mBtnConfirmText: {
     color: "#ffffff",

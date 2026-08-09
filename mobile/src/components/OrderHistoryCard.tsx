@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { ORDER_STATUS_CONFIG, OrderStatusKey, PAYMENT_STATUS_CONFIG, PaymentStatusKey } from "../lib/utils/constants";
 import { formatOrderNumber } from "../lib/utils/formatters";
+import { useTheme, Theme } from "../theme";
 
 interface OrderHistoryCardProps {
   order: any;
@@ -9,6 +10,8 @@ interface OrderHistoryCardProps {
 }
 
 export const OrderHistoryCard: React.FC<OrderHistoryCardProps> = React.memo(({ order, onPress }) => {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const latestPayment = order.payments?.[0];
   const paymentMethod = latestPayment?.method || "CASH";
   const paymentStatus = (latestPayment?.status || "PENDING") as PaymentStatusKey;
@@ -30,147 +33,120 @@ export const OrderHistoryCard: React.FC<OrderHistoryCardProps> = React.memo(({ o
     const diffMs = Date.now() - new Date(dateStr).getTime();
     const diffMins = Math.floor(Math.max(0, diffMs) / 60000);
     if (diffMins < 1) return "Baru saja";
-    if (diffMins < 60) return `${diffMins} menit lalu`;
+    if (diffMins < 60) return `${diffMins}m lalu`;
     const hours = Math.floor(diffMins / 60);
-    if (hours < 24) return `${hours} jam lalu`;
+    if (hours < 24) return `${hours}j lalu`;
     return new Date(dateStr).toLocaleDateString("id-ID");
   };
 
   const orderCfg = ORDER_STATUS_CONFIG[orderStatus] || ORDER_STATUS_CONFIG.PREPARING;
   const paymentCfg = PAYMENT_STATUS_CONFIG[paymentStatus] || PAYMENT_STATUS_CONFIG.PENDING;
 
+  const itemsSummary = useMemo(() => {
+    if (!order.items || order.items.length === 0) return "";
+    const list = order.items;
+    const primaryItems = list.slice(0, 2).map((i: any) => `${i.quantity}x ${i.productName}`).join(", ");
+    if (list.length > 2) {
+      return `${primaryItems} + ${list.length - 2} item lainnya`;
+    }
+    return primaryItems;
+  }, [order.items]);
+
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.header}>
-        <View style={styles.orderNoContainer}>
-          <Text style={styles.orderNo}>{formatOrderNumber(order.displayNumber)}</Text>
-          <Text style={styles.itemsCount}>
-            {totalItemsCount} Item
-          </Text>
+        <Text style={styles.orderNo}>{formatOrderNumber(order.displayNumber)}</Text>
+        <View style={[styles.badge, { backgroundColor: orderCfg.backgroundColor }]}>
+          <Text style={[styles.badgeText, { color: orderCfg.color }]}>{orderCfg.label}</Text>
         </View>
-        <Text style={styles.timeText}>
-          {formatTime(order.createdAt)} • {formatRelativeTime(order.createdAt)}
-        </Text>
       </View>
 
-      <View style={styles.row}>
-        <Text style={styles.label}>Pelanggan</Text>
-        <Text style={styles.value}>{order.customerName}</Text>
-      </View>
+      <Text style={styles.timeText}>
+        {formatTime(order.createdAt)} • {formatRelativeTime(order.createdAt)}
+        {order.customerName ? ` • ${order.customerName}` : ""}
+        {order.table?.name ? ` • Meja ${order.table.name}` : ""}
+      </Text>
 
-      <View style={styles.row}>
-        <Text style={styles.label}>Lokasi / Meja</Text>
-        <Text style={styles.value}>
-          {order.table?.name || (order.orderType === "DINE_IN" ? "Makan di Sini" : "Bawa Pulang")}
+      {itemsSummary ? (
+        <Text style={styles.itemsSummaryText} numberOfLines={1}>
+          {itemsSummary}
         </Text>
-      </View>
-
-      <View style={styles.row}>
-        <Text style={styles.label}>Sumber & Pembayaran</Text>
-        <Text style={styles.value}>
-          {order.source === "SELF_ORDER" ? "Mandiri" : "Kasir"} ({paymentMethod === "CASH" ? "TUNAI" : paymentMethod})
-        </Text>
-      </View>
+      ) : null}
 
       <View style={styles.footer}>
-        <View style={styles.badges}>
-          <View style={[styles.badge, { backgroundColor: orderCfg.backgroundColor }]}>
-            <Text style={[styles.badgeText, { color: orderCfg.color }]}>{orderCfg.label}</Text>
-          </View>
+        <Text style={styles.totalPrice}>Rp {Number(order.grandTotal).toLocaleString()}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <View style={[styles.badge, { backgroundColor: paymentCfg.backgroundColor }]}>
             <Text style={[styles.badgeText, { color: paymentCfg.color }]}>{paymentCfg.label}</Text>
           </View>
+          <Text style={styles.paymentMethodText}>
+            {paymentMethod === "CASH" ? "Tunai" : paymentMethod}
+          </Text>
         </View>
-        <Text style={styles.totalPrice}>Rp {Number(order.grandTotal).toLocaleString()}</Text>
       </View>
     </TouchableOpacity>
   );
 });
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   card: {
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    padding: 12,
+    marginBottom: 8,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    borderBottomWidth: 1,
-    borderBottomColor: "#27272a",
-    paddingBottom: 10,
-    marginBottom: 10,
-  },
-  orderNoContainer: {
-    flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    marginBottom: 6,
   },
   orderNo: {
     fontSize: 14,
     fontWeight: "bold",
-    color: "#f4f4f5",
-  },
-  itemsCount: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#818cf8",
-    backgroundColor: "rgba(129, 140, 248, 0.1)",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    color: theme.textPrimary,
   },
   timeText: {
     fontSize: 11,
-    color: "#71717a",
+    color: theme.textMuted,
     fontWeight: "500",
+    marginBottom: 8,
   },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginVertical: 3,
-  },
-  label: {
+  itemsSummaryText: {
     fontSize: 12,
-    color: "#71717a",
-  },
-  value: {
-    fontSize: 12,
-    color: "#e4e4e7",
-    fontWeight: "500",
+    color: theme.textSecondary,
+    marginBottom: 10,
   },
   footer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 10,
     borderTopWidth: 1,
-    borderTopColor: "#27272a",
-    paddingTop: 10,
-  },
-  badges: {
-    flexDirection: "row",
-    gap: 6,
+    borderTopColor: theme.border,
+    paddingTop: 8,
+    marginTop: 2,
   },
   badge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
   badgeText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "bold",
     textTransform: "uppercase",
+  },
+  paymentMethodText: {
+    fontSize: 11,
+    color: theme.textSecondary,
+    fontWeight: "600",
   },
   totalPrice: {
     fontSize: 14,
     fontWeight: "bold",
-    color: "#f4f4f5",
+    color: theme.textPrimary,
   },
 });
 

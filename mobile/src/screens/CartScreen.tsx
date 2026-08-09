@@ -1,8 +1,9 @@
-import React, { useState } from "react";
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal } from "react-native";
+import React, { useState, useMemo } from "react";
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, useWindowDimensions } from "react-native";
 import { StackScreenProps } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { useAppDispatch, useAppSelector } from "../lib/store/hooks";
+import { useTheme, Theme } from "../theme";
 import {
   selectCartItems,
   selectCartSubtotal,
@@ -10,21 +11,35 @@ import {
   selectCartCustomerName,
   selectCartOrderType,
   selectCartTableId,
+  selectCartNotes,
 } from "../lib/store/features/cart/selectors";
-import { updateQuantity, removeItem, updateItemNote } from "../lib/store/features/cart/slice";
+import { updateQuantity, removeItem, updateItemNote, clearCart } from "../lib/store/features/cart/slice";
 import { CartItem } from "../lib/store/features/cart/types";
 import { useGetTablesQuery } from "../lib/api/tableApi";
+import { useCheckoutMutation } from "../lib/api/checkoutApi";
+import { useLazyGetOrderQuery } from "../lib/api/orderApi";
+import { PaymentMethod } from "@shared/types";
+import { useToast } from "../hooks/useToast";
+import PrinterService from "../services/PrinterService";
 
 type Props = StackScreenProps<RootStackParamList, "Cart">;
 
 export default function CartScreen({ navigation }: Props) {
   const dispatch = useAppDispatch();
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { showToast } = useToast();
+  const { width: screenWidth } = useWindowDimensions();
+  const isTablet = screenWidth > 600;
+
+  // Cart selectors
   const cartItems = useAppSelector(selectCartItems);
   const totalItems = useAppSelector(selectCartTotalItems);
   const subtotal = useAppSelector(selectCartSubtotal);
   const customerName = useAppSelector(selectCartCustomerName);
   const orderType = useAppSelector(selectCartOrderType);
   const tableId = useAppSelector(selectCartTableId);
+  const cartNotes = useAppSelector(selectCartNotes);
 
   const { data: tables = [] } = useGetTablesQuery();
   const selectedTable = tables.find((t: any) => t.id === tableId);
@@ -32,6 +47,14 @@ export default function CartScreen({ navigation }: Props) {
   // Note Modal States
   const [editingItem, setEditingItem] = useState<CartItem | null>(null);
   const [noteInput, setNoteInput] = useState("");
+
+  // Payment states
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
+  const [cashReceivedInput, setCashReceivedInput] = useState("");
+
+  // API mutations & lazy queries
+  const [checkout, { isLoading: isCheckoutLoading }] = useCheckoutMutation();
+  const [getOrderTrigger] = useLazyGetOrderQuery();
 
   const handleOpenNoteModal = (item: CartItem) => {
     setEditingItem(item);
@@ -51,93 +74,348 @@ export default function CartScreen({ navigation }: Props) {
     }
   };
 
+  // Payment derivations
+  const receivedCash = useMemo(() => {
+    return Number(cashReceivedInput) || 0;
+  }, [cashReceivedInput]);
+
+  const changeAmount = useMemo(() => {
+    if (paymentMethod !== "CASH") return 0;
+    const diff = receivedCash - subtotal;
+    return diff > 0 ? diff : 0;
+  }, [paymentMethod, receivedCash, subtotal]);
+
+  const isCashInsufficient = useMemo(() => {
+    if (paymentMethod !== "CASH") return false;
+    return receivedCash < subtotal;
+  }, [paymentMethod, receivedCash, subtotal]);
+
+  const cashShortage = useMemo(() => {
+    if (paymentMethod !== "CASH") return 0;
+    return subtotal - receivedCash;
+  }, [paymentMethod, receivedCash, subtotal]);
+
+  // Dynamic cash suggestions
+  const cashSuggestions = useMemo(() => {
+    const suggestions: number[] = [subtotal];
+    const denominations = [10000, 20000, 50000, 100000];
+    
+    denominations.forEach((denom) => {
+      if (denom > subtotal && !suggestions.includes(denom)) {
+        suggestions.push(denom);
+      }
+    });
+
+    const next50k = Math.ceil(subtotal / 50000) * 50000;
+    if (next50k > subtotal && !suggestions.includes(next50k)) {
+      suggestions.push(next50k);
+    }
+    const next100k = Math.ceil(subtotal / 100000) * 100000;
+    if (next100k > subtotal && !suggestions.includes(next100k)) {
+      suggestions.push(next100k);
+    }
+
+    return suggestions.slice(0, 4).sort((a, b) => a - b);
+  }, [subtotal]);
+
+  // Printing Helper (Asynchronous background printing)
+  const printOrderReceipt = async (orderId: string) => {
+    try {
+      const orderData = await getOrderTrigger(orderId).unwrap();
+      const isConnected = await PrinterService.isConnected();
+      if (!isConnected) {
+        showToast({
+          type: "warning",
+          title: "Printer Terputus",
+          message: "Pesanan berhasil, printer sedang offline.",
+        });
+        return;
+      }
+      const receiptText = PrinterService.formatReceipt(orderData);
+      await PrinterService.printReceipt(receiptText);
+    } catch (error) {
+      console.error("Auto print error:", error);
+    }
+  };
+
+  // Main ORDER handler
+  const handlePlaceOrder = async () => {
+    if (isCheckoutLoading) return;
+
+    if (cartItems.length === 0) {
+      showToast({
+        type: "warning",
+        title: "Keranjang Kosong",
+        message: "Silakan pilih produk terlebih dahulu.",
+      });
+      return;
+    }
+
+    if (paymentMethod === "CASH" && receivedCash < subtotal) {
+      showToast({
+        type: "warning",
+        title: "Kesalahan Validasi",
+        message: `Silakan masukkan nominal pembayaran minimal Rp ${subtotal.toLocaleString()}.`,
+      });
+      return;
+    }
+
+    try {
+      const itemsPayload = cartItems.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        note: item.note || undefined,
+      }));
+
+      const payload = {
+        source: "CASHIER" as const,
+        customerName: customerName || "Pelanggan Langsung",
+        tableId: tableId || null,
+        orderType,
+        notes: cartNotes || undefined,
+        items: itemsPayload,
+        paymentMethod,
+        receivedCash: paymentMethod === "CASH" ? receivedCash : undefined,
+      };
+
+      const result = await checkout(payload).unwrap();
+
+      // Trigger automatic printing in background (non-blocking)
+      printOrderReceipt(result.orderId).catch((err) =>
+        console.error("Background print error:", err)
+      );
+
+      // Clear local cart and inputs
+      dispatch(clearCart());
+      setCashReceivedInput("");
+
+      showToast({
+        type: "success",
+        title: "Sukses",
+        message: "Pesanan berhasil diproses.",
+      });
+
+      // Instantly reset navigation stack to return to Home (CashierTabs)
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "CashierTabs" }],
+      });
+    } catch (err) {
+      console.error("Order creation failed:", err);
+      showToast({
+        type: "error",
+        title: "Gagal Membuat Pesanan",
+        message: "Gagal memproses transaksi. Silakan coba lagi.",
+      });
+    }
+  };
+
+  const isOrderBtnDisabled = isCheckoutLoading || cartItems.length === 0 || isCashInsufficient;
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} disabled={isCheckoutLoading}>
           <Text style={styles.backText}>Kembali</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Tinjau Keranjang ({totalItems})</Text>
         <View style={{ width: 44 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* Customer & Fulfillment summary info */}
-        <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>Detail Pemenuhan</Text>
-          <Text style={styles.infoText}>Pelanggan: <Text style={styles.boldText}>{customerName || "Langsung"}</Text></Text>
-          <Text style={styles.infoText}>Pemenuhan: <Text style={styles.boldText}>{orderType === "DINE_IN" ? "Makan di Sini" : "Bawa Pulang"}</Text></Text>
-          {orderType === "DINE_IN" && selectedTable && (
-            <Text style={styles.infoText}>Lokasi Meja: <Text style={styles.boldText}>{selectedTable.name}</Text></Text>
-          )}
-        </View>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={[styles.mainLayout, isTablet && styles.mainLayoutTablet]}>
+          
+          {/* Left Column: Items */}
+          <View style={styles.leftColumn}>
+            {/* Fulfillment Detail Info */}
+            <View style={styles.infoCard}>
+              <Text style={styles.infoTitle}>Detail Pemenuhan</Text>
+              <Text style={styles.infoText}>Pelanggan: <Text style={styles.boldText}>{customerName || "Langsung"}</Text></Text>
+              <Text style={styles.infoText}>Pemenuhan: <Text style={styles.boldText}>{orderType === "DINE_IN" ? "Makan di Sini" : "Bawa Pulang"}</Text></Text>
+              {orderType === "DINE_IN" && selectedTable && (
+                <Text style={styles.infoText}>Lokasi Meja: <Text style={styles.boldText}>{selectedTable.name}</Text></Text>
+              )}
+            </View>
 
-        {/* Selected Items */}
-        <View style={styles.itemsSection}>
-          <Text style={styles.sectionTitle}>Item Keranjang</Text>
-          {cartItems.map((item: CartItem, idx) => (
-            <View key={`${item.productId}-${idx}`} style={styles.cartItemCard}>
-              <View style={styles.itemMain}>
-                <View style={styles.details}>
-                  <Text style={styles.itemName}>{item.productName}</Text>
-                  <Text style={styles.itemPrice}>Rp {item.price.toLocaleString()} per item</Text>
-                  {item.note ? (
-                    <Text style={styles.itemNote}>Catatan: {item.note}</Text>
-                  ) : null}
+            {/* Cart Items List */}
+            <View style={styles.itemsSection}>
+              <Text style={styles.sectionTitle}>Item Keranjang</Text>
+              {cartItems.length === 0 ? (
+                <View style={styles.emptyStateCard}>
+                  <Text style={styles.emptyStateText}>Keranjang Anda kosong</Text>
                 </View>
+              ) : (
+                cartItems.map((item: CartItem, idx) => (
+                  <View key={`${item.productId}-${idx}`} style={styles.cartItemCard}>
+                    <View style={styles.itemMain}>
+                      <View style={styles.details}>
+                        <Text style={styles.itemName}>{item.productName}</Text>
+                        <Text style={styles.itemPrice}>Rp {item.price.toLocaleString()} per item</Text>
+                        {item.note ? (
+                          <Text style={styles.itemNote}>Catatan: {item.note}</Text>
+                        ) : null}
+                      </View>
 
-                {/* Edit Note Action Button */}
-                <TouchableOpacity style={styles.noteBtn} onPress={() => handleOpenNoteModal(item)}>
-                  <Text style={styles.noteBtnText}>{item.note ? "Ubah Catatan" : "+ Catatan"}</Text>
+                      <TouchableOpacity style={styles.noteBtn} onPress={() => handleOpenNoteModal(item)} disabled={isCheckoutLoading}>
+                        <Text style={styles.noteBtnText}>{item.note ? "Ubah Catatan" : "+ Catatan"}</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.itemFooter}>
+                      <Text style={styles.itemTotal}>Rp {(item.price * item.quantity).toLocaleString()}</Text>
+                      
+                      <View style={styles.qtyContainer}>
+                        <TouchableOpacity
+                          style={styles.qtyBtn}
+                          disabled={isCheckoutLoading}
+                          onPress={() => {
+                            if (item.quantity === 1) {
+                              dispatch(removeItem({ productId: item.productId, note: item.note }));
+                            } else {
+                              dispatch(updateQuantity({ productId: item.productId, note: item.note, quantity: item.quantity - 1 }));
+                            }
+                          }}
+                        >
+                          <Text style={styles.qtyText}>-</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.qtyCount}>{item.quantity}</Text>
+                        <TouchableOpacity
+                          style={styles.qtyBtn}
+                          disabled={isCheckoutLoading}
+                          onPress={() => {
+                            dispatch(updateQuantity({ productId: item.productId, note: item.note, quantity: item.quantity + 1 }));
+                          }}
+                        >
+                          <Text style={styles.qtyText}>+</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                ))
+              )}
+            </View>
+          </View>
+
+          {/* Right Column: Checkout workspace */}
+          <View style={styles.rightColumn}>
+            {/* Last Success Print Retry Banner */}
+
+
+            {/* Subtotal card */}
+            <View style={styles.totalsCard}>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalsLabel}>TOTAL</Text>
+                <Text style={styles.totalsValue}>Rp {subtotal.toLocaleString()}</Text>
+              </View>
+              <Text style={styles.disclaimer}>Diskon & Pajak akhir dihitung otomatis oleh billing backend.</Text>
+            </View>
+
+            {/* Payment Section Card */}
+            <View style={styles.paymentCard}>
+              <Text style={styles.sectionTitle}>Metode Pembayaran</Text>
+              <View style={styles.tabs}>
+                <TouchableOpacity
+                  style={[styles.tab, paymentMethod === "CASH" && styles.tabActive]}
+                  onPress={() => !isCheckoutLoading && setPaymentMethod("CASH")}
+                  disabled={isCheckoutLoading}
+                >
+                  <Text style={[styles.tabText, paymentMethod === "CASH" && styles.tabTextActive]}>TUNAI</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.tab, paymentMethod === "QRIS" && styles.tabActive]}
+                  onPress={() => !isCheckoutLoading && setPaymentMethod("QRIS")}
+                  disabled={isCheckoutLoading}
+                >
+                  <Text style={[styles.tabText, paymentMethod === "QRIS" && styles.tabTextActive]}>QRIS</Text>
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.itemFooter}>
-                <Text style={styles.itemTotal}>Rp {(item.price * item.quantity).toLocaleString()}</Text>
-                
-                <View style={styles.qtyContainer}>
-                  <TouchableOpacity
-                    style={styles.qtyBtn}
-                    onPress={() => {
-                      if (item.quantity === 1) {
-                        dispatch(removeItem({ productId: item.productId, note: item.note }));
-                      } else {
-                        dispatch(updateQuantity({ productId: item.productId, note: item.note, quantity: item.quantity - 1 }));
-                      }
-                    }}
-                  >
-                    <Text style={styles.qtyText}>-</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.qtyCount}>{item.quantity}</Text>
-                  <TouchableOpacity
-                    style={styles.qtyBtn}
-                    onPress={() => {
-                      dispatch(updateQuantity({ productId: item.productId, note: item.note, quantity: item.quantity + 1 }));
-                    }}
-                  >
-                    <Text style={styles.qtyText}>+</Text>
-                  </TouchableOpacity>
+              {paymentMethod === "CASH" && (
+                <View style={styles.cashForm}>
+                  <Text style={styles.cashLabel}>Jumlah Pembayaran (Rp)</Text>
+                  <TextInput
+                    style={[styles.input, isCashInsufficient && styles.inputWarning]}
+                    placeholder="mis. 50000"
+                    placeholderTextColor="#71717a"
+                    keyboardType="numeric"
+                    value={cashReceivedInput}
+                    onChangeText={setCashReceivedInput}
+                    editable={!isCheckoutLoading}
+                  />
+
+                  {/* Quick cash suggest */}
+                  <View style={styles.suggestionsRow}>
+                    {cashSuggestions.map((amount) => (
+                      <TouchableOpacity
+                        key={amount}
+                        style={styles.suggestionPill}
+                        onPress={() => !isCheckoutLoading && setCashReceivedInput(amount.toString())}
+                        disabled={isCheckoutLoading}
+                      >
+                        <Text style={styles.suggestionPillText}>
+                          {amount === subtotal ? "Uang Pas" : `Rp ${amount.toLocaleString()}`}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <View style={styles.divider} />
+
+                  <View style={styles.changeRow}>
+                    <Text style={styles.changeLabel}>Kembalian</Text>
+                    <Text style={[styles.changeValue, isCashInsufficient && styles.changeValueZero]}>
+                      Rp {changeAmount.toLocaleString()}
+                    </Text>
+                  </View>
+
+                  {/* Warning feedback */}
+                  {isCashInsufficient && cashReceivedInput.trim().length > 0 && (
+                    <View style={styles.warningBox}>
+                      <Text style={styles.warningText}>
+                        Uang diterima kurang Rp {cashShortage.toLocaleString()}
+                      </Text>
+                    </View>
+                  )}
                 </View>
-              </View>
+              )}
+
+              {paymentMethod === "QRIS" && (
+                <View style={styles.qrisInfo}>
+                  <Text style={styles.qrisText}>
+                    Verifikasi pembayaran QRIS statis di meja pembayaran telah sukses sebelum melakukan order.
+                  </Text>
+                </View>
+              )}
             </View>
-          ))}
+
+            {/* ORDER button */}
+            <View style={styles.orderButtonContainer}>
+              <TouchableOpacity
+                style={[styles.orderBtn, isOrderBtnDisabled && styles.orderBtnDisabled]}
+                onPress={handlePlaceOrder}
+                disabled={isOrderBtnDisabled}
+              >
+                {isCheckoutLoading ? (
+                  <View style={styles.processingRow}>
+                    <ActivityIndicator color="#ffffff" size="small" />
+                    <Text style={styles.orderBtnText}>Memproses...</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.orderBtnText}>ORDER</Text>
+                )}
+              </TouchableOpacity>
+              {isCheckoutLoading && (
+                <Text style={styles.processingNotice}>
+                  Memproses transaksi. Jangan tutup aplikasi atau kembali.
+                </Text>
+              )}
+            </View>
+
+          </View>
         </View>
       </ScrollView>
 
-      {/* Cart Totals & Checkout Button */}
-      <View style={styles.totalsCard}>
-        <View style={styles.totalRow}>
-          <Text style={styles.totalsLabel}>Estimasi Subtotal</Text>
-          <Text style={styles.totalsValue}>Rp {subtotal.toLocaleString()}</Text>
-        </View>
-        <Text style={styles.disclaimer}>Pajak, paket promosi, dan diskon tepat akan dihitung pada invoice pembayaran.</Text>
-
-        <TouchableOpacity style={styles.checkoutBtn} onPress={() => navigation.navigate("Checkout")}>
-          <Text style={styles.checkoutBtnText}>Lanjutkan ke Pembayaran</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Item Note Modal Dialog */}
+      {/* Note Modal Dialog */}
       <Modal visible={!!editingItem} transparent animationType="fade">
         <View style={styles.modalBg}>
           <View style={styles.modalContent}>
@@ -166,10 +444,10 @@ export default function CartScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
   },
   header: {
     height: 56,
@@ -177,65 +455,95 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderBottomWidth: 1,
-    borderBottomColor: "#18181b",
+    borderBottomColor: theme.border,
     paddingHorizontal: 16,
+    backgroundColor: theme.background,
   },
   backBtn: {
-    width: 44,
+    width: 64,
   },
   backText: {
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     fontSize: 14,
   },
   title: {
     flex: 1,
     fontSize: 16,
     fontWeight: "bold",
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     textAlign: "center",
   },
   content: {
     padding: 16,
     paddingBottom: 40,
   },
+  mainLayout: {
+    flexDirection: "column",
+    gap: 16,
+  },
+  mainLayoutTablet: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  leftColumn: {
+    flex: 1,
+    gap: 16,
+  },
+  rightColumn: {
+    flex: 1,
+    gap: 16,
+    minWidth: 320,
+  },
   infoCard: {
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 20,
     gap: 4,
   },
   infoTitle: {
-    color: "#a1a1aa",
-    fontSize: 12,
-    fontWeight: "600",
+    color: theme.textMuted,
+    fontSize: 11,
+    fontWeight: "bold",
     textTransform: "uppercase",
     letterSpacing: 0.8,
     marginBottom: 6,
   },
   infoText: {
-    color: "#a1a1aa",
-    fontSize: 14,
+    color: theme.textSecondary,
+    fontSize: 13,
   },
   boldText: {
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     fontWeight: "bold",
   },
   itemsSection: {
     gap: 12,
   },
   sectionTitle: {
-    color: "#d4d4d8",
-    fontSize: 14,
-    fontWeight: "600",
+    color: theme.textSecondary,
+    fontSize: 12,
+    fontWeight: "bold",
+    textTransform: "uppercase",
     marginBottom: 4,
   },
-  cartItemCard: {
-    backgroundColor: "#18181b",
+  emptyStateCard: {
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
+    borderRadius: 12,
+    padding: 30,
+    alignItems: "center",
+  },
+  emptyStateText: {
+    color: theme.textMuted,
+    fontSize: 14,
+  },
+  cartItemCard: {
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
     borderRadius: 12,
     padding: 16,
     gap: 12,
@@ -249,17 +557,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemName: {
-    color: "#f4f4f5",
-    fontSize: 15,
+    color: theme.textPrimary,
+    fontSize: 14,
     fontWeight: "bold",
   },
   itemPrice: {
-    color: "#71717a",
+    color: theme.textSecondary,
     fontSize: 12,
     marginTop: 2,
   },
   itemNote: {
-    color: "#eab308",
+    color: theme.warning,
     fontSize: 12,
     fontWeight: "500",
     marginTop: 4,
@@ -267,11 +575,11 @@ const styles = StyleSheet.create({
   noteBtn: {
     paddingVertical: 4,
     paddingHorizontal: 8,
-    backgroundColor: "#27272a",
+    backgroundColor: theme.surfaceSecondary,
     borderRadius: 6,
   },
   noteBtnText: {
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     fontSize: 11,
     fontWeight: "500",
   },
@@ -280,49 +588,77 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderTopWidth: 1,
-    borderTopColor: "#27272a",
+    borderTopColor: theme.border,
     paddingTop: 12,
     marginTop: 4,
   },
   itemTotal: {
-    color: "#f4f4f5",
-    fontSize: 14,
+    color: theme.textPrimary,
+    fontSize: 13,
     fontWeight: "bold",
   },
   qtyContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
     borderWidth: 1,
-    borderColor: "#27272a",
-    borderRadius: 8,
-    padding: 2,
-    gap: 10,
+    borderColor: theme.border,
+    borderRadius: 6,
+    overflow: "hidden",
   },
   qtyBtn: {
-    width: 26,
-    height: 26,
-    borderRadius: 6,
-    backgroundColor: "#18181b",
+    width: 32,
+    height: 32,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: theme.surfaceSecondary,
   },
   qtyText: {
-    color: "#f4f4f5",
-    fontSize: 12,
+    color: theme.textPrimary,
+    fontSize: 16,
     fontWeight: "bold",
   },
   qtyCount: {
-    color: "#f4f4f5",
+    paddingHorizontal: 12,
+    color: theme.textPrimary,
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "bold",
+  },
+  retryBanner: {
+    backgroundColor: theme.warning + "15",
+    borderWidth: 1,
+    borderColor: theme.warning + "40",
+    borderRadius: 12,
+    padding: 14,
+    alignItems: "center",
+    gap: 10,
+  },
+  retryBannerText: {
+    color: theme.warning,
+    fontSize: 12,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  retryBannerBtn: {
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.warning,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  retryBannerBtnText: {
+    color: theme.warning,
+    fontSize: 12,
+    fontWeight: "bold",
   },
   totalsCard: {
-    backgroundColor: "#18181b",
-    borderTopWidth: 1,
-    borderTopColor: "#27272a",
-    padding: 20,
-    gap: 12,
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 12,
+    padding: 16,
+    gap: 8,
   },
   totalRow: {
     flexDirection: "row",
@@ -330,96 +666,233 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   totalsLabel: {
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     fontSize: 14,
-  },
-  totalsValue: {
-    color: "#4f46e5",
-    fontSize: 18,
     fontWeight: "bold",
   },
+  totalsValue: {
+    color: theme.primary,
+    fontSize: 22,
+    fontWeight: "900",
+  },
   disclaimer: {
-    color: "#71717a",
     fontSize: 11,
+    color: theme.textMuted,
     lineHeight: 15,
   },
-  checkoutBtn: {
+  paymentCard: {
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 12,
+    padding: 16,
+  },
+  tabs: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 16,
+  },
+  tab: {
+    flex: 1,
     height: 44,
-    backgroundColor: "#4f46e5",
+    backgroundColor: theme.background,
+    borderWidth: 1,
+    borderColor: theme.border,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
   },
-  checkoutBtnText: {
-    color: "#ffffff",
+  tabActive: {
+    borderColor: theme.primary,
+    backgroundColor: theme.primarySoft,
+  },
+  tabText: {
+    color: theme.textSecondary,
+    fontSize: 13,
+    fontWeight: "bold",
+  },
+  tabTextActive: {
+    color: theme.primary,
+  },
+  cashForm: {
+    gap: 10,
+  },
+  cashLabel: {
+    fontSize: 13,
+    color: theme.textSecondary,
+    fontWeight: "500",
+  },
+  input: {
+    height: 44,
+    backgroundColor: theme.background,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    color: theme.textPrimary,
     fontSize: 15,
     fontWeight: "600",
   },
-  modalBg: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
+  inputWarning: {
+    borderColor: theme.error,
+    backgroundColor: theme.error + "10",
+  },
+  suggestionsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 4,
+  },
+  suggestionPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    backgroundColor: theme.background,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  suggestionPillText: {
+    fontSize: 12,
+    color: theme.textPrimary,
+    fontWeight: "500",
+  },
+  divider: {
+    height: 1,
+    backgroundColor: theme.border,
+    marginVertical: 4,
+  },
+  changeRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    height: 32,
+  },
+  changeLabel: {
+    color: theme.textSecondary,
+    fontSize: 13,
+  },
+  changeValue: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: theme.success,
+  },
+  changeValueZero: {
+    color: theme.textSecondary,
+  },
+  warningBox: {
+    backgroundColor: theme.error + "10",
+    padding: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: theme.error + "30",
+  },
+  warningText: {
+    color: theme.error,
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  qrisInfo: {
+    backgroundColor: theme.background,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 8,
+    padding: 12,
+  },
+  qrisText: {
+    color: theme.textSecondary,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  orderButtonContainer: {
+    gap: 8,
+  },
+  orderBtn: {
+    height: 48,
+    backgroundColor: theme.primary,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    padding: 20,
+  },
+  orderBtnDisabled: {
+    backgroundColor: theme.border,
+    opacity: 0.6,
+  },
+  orderBtnText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "bold",
+    letterSpacing: 0.5,
+  },
+  processingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  processingNotice: {
+    fontSize: 11,
+    color: theme.textMuted,
+    textAlign: "center",
+  },
+  modalBg: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContent: {
-    backgroundColor: "#18181b",
-    borderWidth: 1,
-    borderColor: "#27272a",
-    borderRadius: 16,
+    width: "85%",
+    maxWidth: 400,
+    backgroundColor: theme.surface,
+    borderRadius: 12,
     padding: 20,
-    width: "100%",
-    maxWidth: 340,
     gap: 12,
+    borderWidth: 1,
+    borderColor: theme.border,
   },
   modalTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#f4f4f5",
-    textAlign: "center",
+    color: theme.textPrimary,
   },
   modalSubtitle: {
-    fontSize: 13,
-    color: "#71717a",
-    textAlign: "center",
-    marginTop: -4,
+    fontSize: 12,
+    color: theme.textSecondary,
   },
   modalInput: {
     height: 40,
-    backgroundColor: "#09090b",
     borderWidth: 1,
-    borderColor: "#27272a",
-    borderRadius: 8,
+    borderColor: theme.border,
+    borderRadius: 6,
     paddingHorizontal: 12,
-    color: "#f4f4f5",
-    fontSize: 14,
+    color: theme.textPrimary,
+    backgroundColor: theme.background,
   },
   modalActions: {
     flexDirection: "row",
+    justifyContent: "flex-end",
     gap: 12,
     marginTop: 8,
   },
   mBtn: {
-    flex: 1,
-    height: 38,
-    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
     alignItems: "center",
-    justifyContent: "center",
   },
   mBtnCancel: {
-    backgroundColor: "#27272a",
+    backgroundColor: theme.surfaceSecondary,
+    borderWidth: 1,
+    borderColor: theme.border,
   },
   mBtnCancelText: {
-    color: "#a1a1aa",
-    fontSize: 13,
+    color: theme.textSecondary,
     fontWeight: "600",
   },
   mBtnConfirm: {
-    backgroundColor: "#4f46e5",
+    backgroundColor: theme.primary,
   },
   mBtnConfirmText: {
     color: "#ffffff",
-    fontSize: 13,
     fontWeight: "600",
   },
 });

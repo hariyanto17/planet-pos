@@ -10,20 +10,26 @@ import {
   Image,
   Dimensions,
   SafeAreaView,
+  Modal,
 } from "react-native";
 import { StackScreenProps } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { useGetProductsQuery } from "../lib/api/productApi";
 import { useGetCategoriesQuery } from "../lib/api/categoryApi";
 import { useGetTablesQuery } from "../lib/api/tableApi";
+import { useGetCurrentShiftQuery } from "../lib/api/shiftApi";
 import { useAppDispatch, useAppSelector } from "../lib/store/hooks";
 import { addItem, removeItem, updateQuantity, setCustomerInfo, clearCart } from "../lib/store/features/cart/slice";
+import { logout } from "../lib/store/features/auth/slice";
+import { baseApi } from "../lib/api/baseApi";
 import { selectCartItems, selectCartTotalItems, selectCartSubtotal } from "../lib/store/features/cart/selectors";
 import { OrderType } from "@shared/types";
 import { useToast } from "../hooks/useToast";
-import { SearchIcon, CartIcon, CloseIcon } from "../components/CustomIcons";
+import { useConfirmation } from "../hooks/useConfirmation";
+import { SearchIcon, CartIcon, CloseIcon, WarningIcon } from "../components/CustomIcons";
+import { useTheme, Theme } from "../theme";
 
-type Props = StackScreenProps<RootStackParamList, "NewOrder">;
+type Props = any;
 
 // Centralized placeholder image
 const localPlaceholder = require("../assets/placeholder.png");
@@ -34,6 +40,7 @@ interface ProductCardProps {
   categoryName?: string;
   quantity: number;
   onAdd: (product: any) => void;
+  styles: any;
 }
 
 const ProductCard: React.FC<ProductCardProps> = React.memo(({
@@ -41,6 +48,7 @@ const ProductCard: React.FC<ProductCardProps> = React.memo(({
   categoryName,
   quantity,
   onAdd,
+  styles,
 }) => {
   const [imageError, setImageError] = useState(false);
 
@@ -86,7 +94,7 @@ const ProductCard: React.FC<ProductCardProps> = React.memo(({
 });
 
 // 2. Loading Skeleton Card
-const ProductCardSkeleton: React.FC = () => (
+const ProductCardSkeleton: React.FC<{ styles: any }> = ({ styles }) => (
   <View style={styles.skeletonCard}>
     <View style={styles.skeletonImage} />
     <View style={styles.cardBody}>
@@ -101,9 +109,30 @@ const ProductCardSkeleton: React.FC = () => (
 export default function NewOrderScreen({ navigation }: Props) {
   const dispatch = useAppDispatch();
   const { showToast } = useToast();
+  const { showConfirmation } = useConfirmation();
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const cartItems = useAppSelector(selectCartItems);
   const totalItems = useAppSelector(selectCartTotalItems);
   const subtotal = useAppSelector(selectCartSubtotal);
+
+  const { data: shiftData, isLoading: loadingShift } = useGetCurrentShiftQuery();
+  const isShiftOpen = shiftData?.status === "OPEN";
+
+  const handleLogout = async () => {
+    const confirmed = await showConfirmation({
+      title: "Keluar",
+      message: "Apakah Anda yakin ingin keluar dari sesi Anda?",
+      confirmText: "Keluar",
+      cancelText: "Batal",
+      variant: "danger",
+    });
+
+    if (confirmed) {
+      dispatch(logout());
+      dispatch(baseApi.util.resetApiState());
+    }
+  };
 
   const { data: products = [], isLoading: loadingProducts } = useGetProductsQuery({ sellable: true });
   const { data: categories = [], isLoading: loadingCategories } = useGetCategoriesQuery({ sellable: true });
@@ -221,6 +250,7 @@ export default function NewOrderScreen({ navigation }: Props) {
         categoryName={category?.name}
         quantity={qty}
         onAdd={handleAdd}
+        styles={styles}
       />
     );
   };
@@ -233,7 +263,7 @@ export default function NewOrderScreen({ navigation }: Props) {
           key={`loading-${numColumns}`}
           keyExtractor={(item) => `skel-${item}`}
           numColumns={numColumns}
-          renderItem={() => <ProductCardSkeleton />}
+          renderItem={() => <ProductCardSkeleton styles={styles} />}
           columnWrapperStyle={styles.gridRow}
           contentContainerStyle={styles.listPadding}
         />
@@ -320,9 +350,13 @@ export default function NewOrderScreen({ navigation }: Props) {
     <SafeAreaView style={styles.container}>
       {/* Header bar */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>Batal</Text>
-        </TouchableOpacity>
+        {navigation.canGoBack() ? (
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Text style={styles.backText}>Batal</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 44 }} />
+        )}
         <Text style={styles.title}>Pesanan Pelanggan Baru</Text>
         <TouchableOpacity style={styles.clearBtn} onPress={handleReset}>
           <Text style={styles.clearText}>Reset</Text>
@@ -490,14 +524,46 @@ export default function NewOrderScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
       )}
+      <Modal
+        visible={!loadingShift && !isShiftOpen}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalIconContainer}>
+              <WarningIcon color="#fecaca" />
+            </View>
+            <Text style={styles.modalTitle}>Shift Belum Buka</Text>
+            <Text style={styles.modalMessage}>
+              Anda harus membuka shift kasir sebelum dapat membuat pesanan baru.
+            </Text>
+            <TouchableOpacity
+              style={styles.modalBtn}
+              onPress={() => {
+                navigation.navigate("OpenShift");
+              }}
+            >
+              <Text style={styles.modalBtnText}>Buka Shift Kasir</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.modalLogoutBtn}
+              onPress={handleLogout}
+            >
+              <Text style={styles.modalLogoutBtnText}>Keluar Sesi</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
   },
   header: {
     height: 56,
@@ -505,9 +571,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderBottomWidth: 1,
-    borderBottomColor: "#18181b",
+    borderBottomColor: theme.border,
     paddingHorizontal: 16,
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
     gap: 8,
   },
   backBtn: {
@@ -515,14 +581,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   backText: {
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     fontSize: 14,
   },
   title: {
     flex: 1,
     fontSize: 16,
     fontWeight: "bold",
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     textAlign: "center",
   },
   clearBtn: {
@@ -530,7 +596,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   clearText: {
-    color: "#e11d48",
+    color: theme.error,
     fontSize: 14,
   },
   mainLayout: {
@@ -539,7 +605,7 @@ const styles = StyleSheet.create({
   },
   catalogPane: {
     flex: 1,
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
   },
   // Search bar styles
   searchRow: {
@@ -548,9 +614,9 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surfaceSecondary,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 24,
     paddingHorizontal: 12,
     height: 44,
@@ -558,11 +624,11 @@ const styles = StyleSheet.create({
   searchIcon: {
     fontSize: 16,
     marginRight: 8,
-    color: "#71717a",
+    color: theme.textMuted,
   },
   searchInput: {
     flex: 1,
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     fontSize: 14,
     paddingVertical: 8,
   },
@@ -570,7 +636,7 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   clearSearchText: {
-    color: "#71717a",
+    color: theme.textMuted,
     fontSize: 14,
     fontWeight: "bold",
   },
@@ -585,17 +651,17 @@ const styles = StyleSheet.create({
   categoryChip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 20,
   },
   categoryChipActive: {
-    backgroundColor: "#4f46e5",
-    borderColor: "#4f46e5",
+    backgroundColor: theme.primary,
+    borderColor: theme.primary,
   },
   categoryChipText: {
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     fontSize: 13,
     fontWeight: "600",
   },
@@ -614,7 +680,7 @@ const styles = StyleSheet.create({
   // Memoized Product Card Styles
   card: {
     flex: 1,
-    backgroundColor: "#ffffff", // Pure white background as requested
+    backgroundColor: theme.surface,
     borderRadius: 12,
     borderWidth: 2,
     borderColor: "transparent",
@@ -628,12 +694,12 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   cardSelected: {
-    borderColor: "#10b981", // Green border for visual feedback
+    borderColor: theme.success,
   },
   imageContainer: {
     width: "100%",
     height: 100,
-    backgroundColor: "#f4f4f5",
+    backgroundColor: theme.surfaceSecondary,
     position: "relative",
   },
   cardImage: {
@@ -644,7 +710,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 8,
     right: 8,
-    backgroundColor: "#10b981",
+    backgroundColor: theme.success,
     minWidth: 24,
     height: 24,
     borderRadius: 12,
@@ -664,20 +730,20 @@ const styles = StyleSheet.create({
   cardCategory: {
     fontSize: 10,
     fontWeight: "600",
-    color: "#71717a",
+    color: theme.textMuted,
     textTransform: "uppercase",
   },
   cardTitle: {
     fontSize: 14,
     fontWeight: "bold",
-    color: "#18181b", // Dark grey text for light card contrast
+    color: theme.textPrimary,
     height: 38,
     lineHeight: 18,
   },
   cardPrice: {
     fontSize: 14,
     fontWeight: "bold",
-    color: "#4f46e5",
+    color: theme.primary,
     marginVertical: 2,
   },
   cardActions: {
@@ -685,7 +751,7 @@ const styles = StyleSheet.create({
   },
   addBtn: {
     height: 36,
-    backgroundColor: "#4f46e5",
+    backgroundColor: theme.primary,
     borderRadius: 6,
     alignItems: "center",
     justifyContent: "center",
@@ -696,7 +762,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   addBtnSelected: {
-    backgroundColor: "#10b981",
+    backgroundColor: theme.success,
   },
   addBtnTextSelected: {
     color: "#ffffff",
@@ -705,7 +771,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#f4f4f5",
+    backgroundColor: theme.surfaceSecondary,
     borderRadius: 6,
     padding: 2,
   },
@@ -713,7 +779,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 4,
-    backgroundColor: "#ffffff",
+    backgroundColor: theme.surface,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
@@ -723,21 +789,21 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   qtyBtnText: {
-    color: "#18181b",
+    color: theme.textPrimary,
     fontSize: 14,
     fontWeight: "bold",
   },
   qtyText: {
     fontSize: 13,
     fontWeight: "bold",
-    color: "#18181b",
+    color: theme.textPrimary,
   },
   // Loading Skeleton Styles
   skeletonCard: {
     flex: 1,
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 12,
     overflow: "hidden",
     marginHorizontal: 4,
@@ -745,15 +811,15 @@ const styles = StyleSheet.create({
   skeletonImage: {
     width: "100%",
     height: 120,
-    backgroundColor: "#27272a",
+    backgroundColor: theme.surfaceSecondary,
   },
   skeletonLine: {
-    backgroundColor: "#27272a",
+    backgroundColor: theme.surfaceSecondary,
     borderRadius: 4,
   },
   skeletonButton: {
     height: 36,
-    backgroundColor: "#27272a",
+    backgroundColor: theme.surfaceSecondary,
     borderRadius: 6,
   },
   // Empty State Styles
@@ -771,47 +837,47 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 13,
-    color: "#71717a",
+    color: theme.textSecondary,
     textAlign: "center",
   },
   // Tablet Cart Panel Styles
   cartPane: {
     width: 350,
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderLeftWidth: 1,
-    borderLeftColor: "#27272a",
+    borderLeftColor: theme.border,
     padding: 16,
     gap: 12,
   },
   paneTitle: {
     fontSize: 14,
     fontWeight: "bold",
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginTop: 8,
   },
   formContainer: {
     gap: 12,
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 10,
     padding: 12,
   },
   formInput: {
     height: 40,
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 8,
     paddingHorizontal: 12,
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     fontSize: 13,
   },
   typeTabs: {
@@ -823,22 +889,22 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#27272a",
-    backgroundColor: "#18181b",
+    borderColor: theme.border,
+    backgroundColor: theme.surface,
     alignItems: "center",
     justifyContent: "center",
   },
   typeTabActive: {
-    borderColor: "#4f46e5",
-    backgroundColor: "rgba(79, 70, 229, 0.1)",
+    borderColor: theme.primary,
+    backgroundColor: theme.primarySoft,
   },
   typeTabText: {
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     fontSize: 12,
     fontWeight: "600",
   },
   typeTabTextActive: {
-    color: "#ffffff",
+    color: theme.textPrimary,
   },
   tablesWrapper: {
     gap: 6,
@@ -846,7 +912,7 @@ const styles = StyleSheet.create({
   },
   tablesLabel: {
     fontSize: 11,
-    color: "#71717a",
+    color: theme.textMuted,
     fontWeight: "bold",
     textTransform: "uppercase",
   },
@@ -856,17 +922,17 @@ const styles = StyleSheet.create({
   tablePill: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 6,
   },
   tablePillActive: {
-    backgroundColor: "#4f46e5",
-    borderColor: "#4f46e5",
+    backgroundColor: theme.primary,
+    borderColor: theme.primary,
   },
   tablePillText: {
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     fontSize: 12,
     fontWeight: "600",
   },
@@ -876,10 +942,10 @@ const styles = StyleSheet.create({
   // Cart items scrolling area
   cartItemsScroll: {
     flex: 1,
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     padding: 10,
   },
   emptyCartContainer: {
@@ -887,10 +953,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderStyle: "dashed",
   },
   emptyCartIcon: {
@@ -900,23 +966,23 @@ const styles = StyleSheet.create({
   emptyCartTitle: {
     fontSize: 13,
     fontWeight: "bold",
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     marginBottom: 4,
   },
   emptyCartSubtitle: {
     fontSize: 11,
-    color: "#71717a",
+    color: theme.textMuted,
     textAlign: "center",
   },
   cartItemRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     padding: 10,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
   },
   cartItemInfo: {
     flex: 1,
@@ -926,11 +992,11 @@ const styles = StyleSheet.create({
   cartItemName: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#f4f4f5",
+    color: theme.textPrimary,
   },
   cartItemPrice: {
     fontSize: 11,
-    color: "#4f46e5",
+    color: theme.primary,
     fontWeight: "bold",
   },
   cartItemActions: {
@@ -942,27 +1008,27 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 4,
-    backgroundColor: "#27272a",
+    backgroundColor: theme.surfaceSecondary,
     alignItems: "center",
     justifyContent: "center",
   },
   cartQtyText: {
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     fontSize: 12,
     fontWeight: "bold",
   },
   cartQtyVal: {
     fontSize: 12,
     fontWeight: "bold",
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     minWidth: 16,
     textAlign: "center",
   },
   // Price Summary Panel
   summaryContainer: {
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 10,
     padding: 12,
     gap: 8,
@@ -974,36 +1040,36 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 12,
-    color: "#a1a1aa",
+    color: theme.textSecondary,
   },
   summaryValue: {
     fontSize: 12,
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     fontWeight: "600",
   },
   summaryCalculated: {
     fontSize: 11,
-    color: "#71717a",
+    color: theme.textMuted,
     fontStyle: "italic",
   },
   divider: {
     height: 1,
-    backgroundColor: "#27272a",
+    backgroundColor: theme.border,
     marginVertical: 2,
   },
   grandLabel: {
     fontSize: 13,
     fontWeight: "bold",
-    color: "#f4f4f5",
+    color: theme.textPrimary,
   },
   grandValue: {
     fontSize: 15,
     fontWeight: "bold",
-    color: "#10b981",
+    color: theme.success,
   },
   paneCheckoutBtn: {
     height: 44,
-    backgroundColor: "#4f46e5",
+    backgroundColor: theme.primary,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
@@ -1024,20 +1090,20 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 72,
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderTopWidth: 1,
-    borderTopColor: "#27272a",
+    borderTopColor: theme.border,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
   },
   footerQty: {
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     fontSize: 12,
   },
   footerPrice: {
-    color: "#4f46e5",
+    color: theme.primary,
     fontSize: 15,
     fontWeight: "bold",
     marginTop: 2,
@@ -1045,13 +1111,88 @@ const styles = StyleSheet.create({
   checkoutBtn: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: "#4f46e5",
+    backgroundColor: theme.primary,
     borderRadius: 8,
   },
   checkoutText: {
     color: "#ffffff",
     fontSize: 14,
     fontWeight: "600",
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(9, 9, 11, 0.85)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  modalContent: {
+    width: "100%",
+    maxWidth: 400,
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  modalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.2)",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: theme.textPrimary,
+    marginBottom: 8,
+  },
+  modalMessage: {
+    fontSize: 14,
+    color: theme.textSecondary,
+    textAlign: "center",
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  modalBtn: {
+    width: "100%",
+    height: 48,
+    backgroundColor: theme.primary,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  modalBtnText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "bold",
+  },
+  modalLogoutBtn: {
+    width: "100%",
+    height: 48,
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: theme.error,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalLogoutBtnText: {
+    color: theme.error,
+    fontSize: 15,
+    fontWeight: "bold",
   },
 });
 

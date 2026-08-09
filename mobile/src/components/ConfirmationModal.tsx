@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import {
   StyleSheet,
   Text,
@@ -11,6 +11,7 @@ import {
   Dimensions,
 } from "react-native";
 import { ALERT_THEME } from "../lib/theme/alert";
+import { useTheme, Theme } from "../theme";
 
 interface ConfirmationModalProps {
   visible: boolean;
@@ -41,6 +42,8 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   const [shouldRender, setShouldRender] = useState(visible);
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const sheetTranslateY = useRef(new Animated.Value(300)).current;
+  const { theme: appTheme } = useTheme();
+  const styles = useMemo(() => createStyles(appTheme), [appTheme]);
 
   const theme = ALERT_THEME[variant] || ALERT_THEME.info;
 
@@ -142,7 +145,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: "flex-end",
@@ -158,11 +161,11 @@ const styles = StyleSheet.create({
   },
   sheetPanel: {
     width: isTablet ? "50%" : "100%",
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     padding: 24,
     paddingBottom: 36,
     gap: 16,
@@ -187,11 +190,11 @@ const styles = StyleSheet.create({
   titleText: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#f4f4f5",
+    color: theme.textPrimary,
   },
   messageText: {
     fontSize: 14,
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     lineHeight: 20,
   },
   actionsRow: {
@@ -207,12 +210,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   cancelBtn: {
-    backgroundColor: "#27272a",
+    backgroundColor: theme.surfaceSecondary,
     borderWidth: 1,
-    borderColor: "#3f3f46",
+    borderColor: theme.border,
   },
   cancelBtnText: {
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     fontSize: 15,
     fontWeight: "600",
   },

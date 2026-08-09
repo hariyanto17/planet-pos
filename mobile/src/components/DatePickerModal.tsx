@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { StyleSheet, Text, View, Modal, TouchableOpacity } from "react-native";
+import { useTheme, Theme } from "../theme";
 
 interface DatePickerModalProps {
   visible: boolean;
@@ -14,6 +15,8 @@ export default function DatePickerModal({
   onSelect,
   initialDateStr,
 }: DatePickerModalProps) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const today = new Date();
   const initDate = initialDateStr ? new Date(initialDateStr) : today;
   const [currentYear, setCurrentYear] = useState(initDate.getFullYear() || today.getFullYear());
@@ -125,7 +128,7 @@ export default function DatePickerModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.75)",
@@ -134,9 +137,9 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   container: {
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 16,
     padding: 16,
     width: "100%",
@@ -154,12 +157,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   navText: {
-    color: "#818cf8",
+    color: theme.primary,
     fontSize: 18,
     fontWeight: "bold",
   },
   headerTitle: {
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     fontSize: 16,
     fontWeight: "bold",
   },
@@ -168,11 +171,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "#27272a",
+    borderBottomColor: theme.border,
     paddingBottom: 6,
   },
   weekLabel: {
-    color: "#71717a",
+    color: theme.textMuted,
     width: "14%",
     textAlign: "center",
     fontSize: 12,
@@ -196,10 +199,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 6,
-    backgroundColor: "#27272a",
+    backgroundColor: theme.surfaceSecondary,
   },
   dayText: {
-    color: "#e4e4e7",
+    color: theme.textPrimary,
     fontSize: 12,
     fontWeight: "500",
   },
@@ -207,11 +210,11 @@ const styles = StyleSheet.create({
     marginTop: 16,
     alignItems: "center",
     paddingVertical: 10,
-    backgroundColor: "#27272a",
+    backgroundColor: theme.surfaceSecondary,
     borderRadius: 8,
   },
   closeBtnText: {
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     fontSize: 14,
     fontWeight: "bold",
   },

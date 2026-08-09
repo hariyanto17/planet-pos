@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   StyleSheet,
   View,
@@ -22,6 +22,7 @@ import { ORDER_STATUS_CONFIG, OrderStatusKey } from "../lib/utils/constants";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { useToast } from "../hooks/useToast";
 import { useConfirmation } from "../hooks/useConfirmation";
+import { useTheme, Theme } from "../theme";
 
 type ScreenRouteProp = RouteProp<RootStackParamList, "KitchenOrderDetail">;
 type NavigationProp = StackNavigationProp<RootStackParamList, "KitchenOrderDetail">;
@@ -32,6 +33,8 @@ export default function KitchenOrderDetailScreen() {
   const { orderId } = route.params;
   const { showToast } = useToast();
   const { showConfirmation } = useConfirmation();
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [refreshing, setRefreshing] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
@@ -55,12 +58,12 @@ export default function KitchenOrderDetailScreen() {
   if (isError || !order) {
     return (
       <SafeAreaView style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
-        <Text style={{ color: "#ef4444", fontSize: 16, marginBottom: 16 }}>Gagal mengambil detail tiket.</Text>
+        <Text style={{ color: theme.error, fontSize: 16, marginBottom: 16 }}>Gagal mengambil detail tiket.</Text>
         <TouchableOpacity
-          style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: "#27272a", borderRadius: 6 }}
+          style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: theme.surfaceSecondary, borderRadius: 6 }}
           onPress={() => navigation.goBack()}
         >
-          <Text style={{ color: "#a1a1aa", fontSize: 14 }}>Kembali</Text>
+          <Text style={{ color: theme.textSecondary, fontSize: 14 }}>Kembali</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -351,10 +354,10 @@ export default function KitchenOrderDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: "row",
@@ -363,45 +366,46 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#18181b",
+    borderBottomColor: theme.border,
+    backgroundColor: theme.background,
   },
   backBtn: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
   },
   backBtnText: {
-    color: "#e4e4e7",
+    color: theme.textPrimary,
     fontSize: 12,
     fontWeight: "bold",
   },
   headerTitle: {
     fontSize: 16,
     fontWeight: "900",
-    color: "#f4f4f5",
+    color: theme.textPrimary,
   },
   content: {
     padding: 16,
     gap: 16,
   },
   sectionCard: {
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     padding: 16,
   },
   sectionTitle: {
-    color: "#ffffff",
+    color: theme.textPrimary,
     fontSize: 13,
     fontWeight: "800",
     textTransform: "uppercase",
     letterSpacing: 0.5,
     borderBottomWidth: 1,
-    borderBottomColor: "#27272a",
+    borderBottomColor: theme.border,
     paddingBottom: 8,
     marginBottom: 12,
   },
@@ -412,16 +416,16 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   label: {
-    color: "#71717a",
+    color: theme.textSecondary,
     fontSize: 13,
   },
   value: {
-    color: "#e4e4e7",
+    color: theme.textPrimary,
     fontSize: 13,
     fontWeight: "600",
   },
   notesText: {
-    color: "#e4e4e7",
+    color: theme.textPrimary,
     fontSize: 12,
     fontStyle: "italic",
     lineHeight: 18,
@@ -429,7 +433,7 @@ const styles = StyleSheet.create({
   itemRow: {
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "#27272a",
+    borderBottomColor: theme.border,
   },
   itemHeader: {
     flexDirection: "row",
@@ -439,21 +443,21 @@ const styles = StyleSheet.create({
   itemQty: {
     fontSize: 14,
     fontWeight: "800",
-    color: "#4f46e5",
+    color: theme.primary,
   },
   itemName: {
     fontSize: 14,
-    color: "#ffffff",
+    color: theme.textPrimary,
     fontWeight: "600",
   },
   footer: {
     borderTopWidth: 1,
-    borderTopColor: "#18181b",
+    borderTopColor: theme.border,
     padding: 16,
-    backgroundColor: "#09090b",
+    backgroundColor: theme.surface,
   },
   primaryBtn: {
-    backgroundColor: "#4f46e5",
+    backgroundColor: theme.primary,
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: "center",
@@ -464,7 +468,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   readyBtn: {
-    backgroundColor: "#059669",
+    backgroundColor: theme.success,
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: "center",
@@ -482,10 +486,10 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalContent: {
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     padding: 20,
     width: "100%",
     maxWidth: 360,
@@ -493,37 +497,37 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "900",
-    color: "#ffffff",
+    color: theme.textPrimary,
     textAlign: "center",
     marginBottom: 4,
   },
   modalSubtitle: {
     fontSize: 12,
-    color: "#71717a",
+    color: theme.textSecondary,
     textAlign: "center",
     marginBottom: 16,
   },
   modalDetails: {
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     gap: 6,
     marginBottom: 16,
   },
   mLabel: {
-    color: "#71717a",
+    color: theme.textSecondary,
     fontSize: 13,
   },
   mValue: {
-    color: "#ffffff",
+    color: theme.textPrimary,
     fontSize: 13,
     fontWeight: "600",
   },
   modalPrompt: {
     fontSize: 13,
-    color: "#e4e4e7",
+    color: theme.textPrimary,
     textAlign: "center",
     fontWeight: "bold",
     marginBottom: 20,
@@ -539,14 +543,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   mBtnCancel: {
-    backgroundColor: "#27272a",
+    backgroundColor: theme.surfaceSecondary,
   },
   mBtnCancelText: {
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     fontWeight: "bold",
   },
   mBtnConfirm: {
-    backgroundColor: "#059669",
+    backgroundColor: theme.success,
   },
   mBtnConfirmText: {
     color: "#ffffff",

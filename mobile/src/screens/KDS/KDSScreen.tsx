@@ -15,6 +15,7 @@ import { useKitchenOrders } from "../../context/KitchenOrderContext";
 import { useUpdateOrderStatusMutation } from "../../lib/api/orderApi";
 import { socketService } from "../../services/socket";
 import { useToast } from "../../hooks/useToast";
+import { useTheme, Theme } from "../../theme";
 
 type OrderStatusType = "NEW" | "PREPARING" | "READY" | "COMPLETED" | "CANCELLED";
 type ConnectionStatus = "CONNECTED" | "CONNECTING" | "DISCONNECTED" | "ERROR";
@@ -23,9 +24,11 @@ interface OrderCardProps {
   order: any;
   onUpdateStatus: (orderId: string, nextStatus: OrderStatusType) => void;
   onCancel: (orderId: string) => void;
+  styles: any;
+  theme: Theme;
 }
 
-function OrderCard({ order, onUpdateStatus, onCancel }: OrderCardProps) {
+function OrderCard({ order, onUpdateStatus, onCancel, styles, theme }: OrderCardProps) {
   const [elapsedMinutes, setElapsedMinutes] = useState(0);
 
   useEffect(() => {
@@ -40,9 +43,9 @@ function OrderCard({ order, onUpdateStatus, onCancel }: OrderCardProps) {
   }, [order.createdAt]);
 
   const getTimerColor = () => {
-    if (elapsedMinutes >= 15) return "#ef4444"; // Urgent/Overdue
-    if (elapsedMinutes >= 8) return "#f59e0b"; // Warning
-    return "#10b981"; // Normal
+    if (elapsedMinutes >= 15) return theme.error; // Urgent/Overdue
+    if (elapsedMinutes >= 8) return theme.warning; // Warning
+    return theme.success; // Normal
   };
 
   return (
@@ -93,7 +96,7 @@ function OrderCard({ order, onUpdateStatus, onCancel }: OrderCardProps) {
 
         {order.status === "PREPARING" && (
           <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: "#3b82f6" }]}
+            style={[styles.actionBtn, { backgroundColor: theme.info }]}
             onPress={() => onUpdateStatus(order.id, "READY")}
           >
             <Text style={styles.actionBtnText}>Siap Diantar</Text>
@@ -102,7 +105,7 @@ function OrderCard({ order, onUpdateStatus, onCancel }: OrderCardProps) {
 
         {order.status === "READY" && (
           <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: "#10b981" }]}
+            style={[styles.actionBtn, { backgroundColor: theme.success }]}
             onPress={() => onUpdateStatus(order.id, "COMPLETED")}
           >
             <Text style={styles.actionBtnText}>Selesai</Text>
@@ -117,6 +120,8 @@ export default function KDSScreen() {
   const { activeOrders, isLoading, isFetching, refetch } = useKitchenOrders();
   const [updateOrderStatus] = useUpdateOrderStatusMutation();
   const { showToast } = useToast();
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [localOrders, setLocalOrders] = useState<any[]>([]);
   const [seenOrderIds, setSeenOrderIds] = useState<Set<string>>(new Set());
@@ -325,6 +330,8 @@ export default function KDSScreen() {
                 order={o}
                 onUpdateStatus={handleUpdateStatus}
                 onCancel={handleCancelOrder}
+                styles={styles}
+                theme={theme}
               />
             ))}
             {newOrders.length === 0 && <Text style={styles.emptyText}>Kosong</Text>}
@@ -333,7 +340,7 @@ export default function KDSScreen() {
 
         {/* Column 2: Sedang Disiapkan (PREPARING) */}
         <View style={styles.column}>
-          <Text style={[styles.columnHeader, { color: "#3b82f6" }]}>
+          <Text style={[styles.columnHeader, { color: theme.info }]}>
             Sedang Disiapkan ({preparingOrders.length})
           </Text>
           <ScrollView
@@ -349,6 +356,8 @@ export default function KDSScreen() {
                 order={o}
                 onUpdateStatus={handleUpdateStatus}
                 onCancel={handleCancelOrder}
+                styles={styles}
+                theme={theme}
               />
             ))}
             {preparingOrders.length === 0 && <Text style={styles.emptyText}>Kosong</Text>}
@@ -357,7 +366,7 @@ export default function KDSScreen() {
 
         {/* Column 3: Siap Diantar (READY) */}
         <View style={styles.column}>
-          <Text style={[styles.columnHeader, { color: "#10b981" }]}>
+          <Text style={[styles.columnHeader, { color: theme.success }]}>
             Siap Diantar ({readyOrders.length})
           </Text>
           <ScrollView
@@ -373,6 +382,8 @@ export default function KDSScreen() {
                 order={o}
                 onUpdateStatus={handleUpdateStatus}
                 onCancel={handleCancelOrder}
+                styles={styles}
+                theme={theme}
               />
             ))}
             {readyOrders.length === 0 && <Text style={styles.emptyText}>Kosong</Text>}
@@ -383,27 +394,27 @@ export default function KDSScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
   },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
   },
   connectionAlertBanner: {
-    backgroundColor: "#7f1d1d",
+    backgroundColor: theme.error,
     height: 36,
     justifyContent: "center",
     alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: "#ef444430",
+    borderBottomColor: theme.border,
   },
   connectionAlertText: {
-    color: "#fca5a5",
+    color: "#ffffff",
     fontSize: 12,
     fontWeight: "bold",
   },
@@ -414,12 +425,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#18181b",
+    borderBottomColor: theme.border,
+    backgroundColor: theme.background,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: "900",
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     letterSpacing: -0.5,
   },
   connectionBadgeContainer: {
@@ -435,19 +447,19 @@ const styles = StyleSheet.create({
   },
   connectionStatusText: {
     fontSize: 11,
-    color: "#71717a",
+    color: theme.textSecondary,
     fontWeight: "500",
   },
   refreshBtn: {
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
   },
   refreshBtnText: {
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     fontSize: 12,
     fontWeight: "bold",
   },
@@ -457,9 +469,9 @@ const styles = StyleSheet.create({
   },
   column: {
     width: 280,
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 12,
     padding: 12,
     gap: 12,
@@ -467,11 +479,11 @@ const styles = StyleSheet.create({
   columnHeader: {
     fontSize: 13,
     fontWeight: "900",
-    color: "#818cf8",
+    color: theme.primary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     borderBottomWidth: 1,
-    borderBottomColor: "#27272a",
+    borderBottomColor: theme.border,
     paddingBottom: 8,
     marginBottom: 4,
   },
@@ -480,15 +492,15 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   emptyText: {
-    color: "#71717a",
+    color: theme.textMuted,
     textAlign: "center",
     fontSize: 12,
     paddingVertical: 20,
   },
   card: {
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 8,
     padding: 12,
     gap: 8,
@@ -499,7 +511,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   orderNumber: {
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     fontWeight: "bold",
     fontSize: 14,
   },
@@ -511,12 +523,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   customerText: {
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     fontWeight: "600",
     fontSize: 13,
   },
   orderTypeText: {
-    color: "#71717a",
+    color: theme.textSecondary,
     fontSize: 11,
     fontWeight: "500",
     textTransform: "uppercase",
@@ -531,30 +543,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   itemName: {
-    color: "#e4e4e7",
+    color: theme.textPrimary,
     fontSize: 12,
     flex: 1,
   },
   itemQty: {
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     fontSize: 12,
     fontWeight: "600",
   },
   itemNote: {
-    color: "#ef4444",
+    color: theme.error,
     fontSize: 10,
     marginLeft: 4,
   },
   notesBox: {
     marginTop: 6,
-    backgroundColor: "#ef444415",
+    backgroundColor: theme.error + "15",
     padding: 6,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: "#ef444430",
+    borderColor: theme.error + "30",
   },
   notesText: {
-    color: "#ef4444",
+    color: theme.error,
     fontSize: 11,
   },
   cardActions: {
@@ -567,21 +579,21 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 32,
     borderWidth: 1,
-    borderColor: "#7f1d1d",
-    backgroundColor: "#7f1d1d20",
+    borderColor: theme.error,
+    backgroundColor: theme.error + "15",
     borderRadius: 6,
     alignItems: "center",
     justifyContent: "center",
   },
   cancelBtnText: {
-    color: "#ef4444",
+    color: theme.error,
     fontSize: 11,
     fontWeight: "bold",
   },
   actionBtn: {
     flex: 2,
     height: 32,
-    backgroundColor: "#4f46e5",
+    backgroundColor: theme.primary,
     borderRadius: 6,
     alignItems: "center",
     justifyContent: "center",

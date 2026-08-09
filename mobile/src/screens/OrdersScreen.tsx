@@ -8,6 +8,8 @@ import {
   RefreshControl,
   TextInput,
   ScrollView,
+  Modal,
+  useWindowDimensions,
 } from "react-native";
 import { StackScreenProps } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
@@ -18,18 +20,60 @@ import { setFilters, resetFilters } from "../lib/store/features/order/slice";
 import { selectOrderFilters } from "../lib/store/features/order/selectors";
 import OrderHistoryCard from "../components/OrderHistoryCard";
 import DatePickerModal from "../components/DatePickerModal";
-
-import { ArrowLeftIcon, CloseIcon } from "../components/CustomIcons";
+import { ArrowLeftIcon, CloseIcon, FilterIcon, SearchIcon } from "../components/CustomIcons";
+import { useTheme, Theme } from "../theme";
 
 type Props = StackScreenProps<RootStackParamList, "Orders">;
 
 export default function OrdersScreen({ navigation }: Props) {
   const dispatch = useAppDispatch();
+  const { theme } = useTheme();
+  const { width: screenWidth } = useWindowDimensions();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const filters = useAppSelector(selectOrderFilters);
 
   const [localSearch, setLocalSearch] = useState(filters.search);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Filter Modal States
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [tempDate, setTempDate] = useState(filters.businessDate);
+  const [tempStatus, setTempStatus] = useState(filters.status);
+  const [tempPaymentStatus, setTempPaymentStatus] = useState(filters.paymentStatus);
+  const [tempPaymentMethod, setTempPaymentMethod] = useState(filters.paymentMethod);
+
+  // Sync temporary state when modal opens
+  const openFilterModal = () => {
+    setTempDate(filters.businessDate);
+    setTempStatus(filters.status);
+    setTempPaymentStatus(filters.paymentStatus);
+    setTempPaymentMethod(filters.paymentMethod);
+    setFilterModalVisible(true);
+  };
+
+  const applyFilters = () => {
+    dispatch(
+      setFilters({
+        businessDate: tempDate,
+        status: tempStatus,
+        paymentStatus: tempPaymentStatus,
+        paymentMethod: tempPaymentMethod,
+        page: 1,
+      })
+    );
+    setFilterModalVisible(false);
+  };
+
+  const handleResetFilters = () => {
+    dispatch(resetFilters());
+    setTempDate("TODAY");
+    setTempStatus("");
+    setTempPaymentStatus("");
+    setTempPaymentMethod("");
+    setLocalSearch("");
+    setFilterModalVisible(false);
+  };
 
   // Fetch orders and active shift stats using RTK Query
   const {
@@ -66,7 +110,8 @@ export default function OrdersScreen({ navigation }: Props) {
   };
 
   const handleSelectDate = (dateStr: string) => {
-    dispatch(setFilters({ businessDate: dateStr }));
+    setTempDate(dateStr);
+    setDatePickerVisible(false);
   };
 
   const ordersList = useMemo(() => data?.orders || [], [data]);
@@ -86,29 +131,25 @@ export default function OrdersScreen({ navigation }: Props) {
       filters.status !== "" ||
       filters.paymentStatus !== "" ||
       filters.paymentMethod !== "" ||
+      filters.businessDate !== "TODAY" ||
       filters.search !== ""
     );
   }, [filters]);
 
   const renderEmptyState = () => {
-    if (isFilterActive) {
-      return (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyTitle}>Pesanan tidak cocok</Text>
-          <Text style={styles.emptyText}>Tidak ada pesanan yang cocok dengan filter terpilih.</Text>
-          <TouchableOpacity
-            style={styles.resetBtn}
-            onPress={() => dispatch(resetFilters())}
-          >
-            <Text style={styles.resetBtnText}>Hapus Semua Filter</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyTitle}>Tidak ada transaksi hari ini</Text>
-        <Text style={styles.emptyText}>Belum ada pesanan yang dibuat hari ini.</Text>
+        <Text style={styles.emptyText}>
+          {isFilterActive ? "Pesanan tidak cocok" : "Belum ada pesanan"}
+        </Text>
+        {isFilterActive && (
+          <TouchableOpacity
+            style={styles.resetBtn}
+            onPress={handleResetFilters}
+          >
+            <Text style={styles.resetBtnText}>Hapus Filter</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   };
@@ -133,14 +174,10 @@ export default function OrdersScreen({ navigation }: Props) {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-            <ArrowLeftIcon color="#a1a1aa" />
-            <Text style={styles.backText}>Kembali</Text>
-          </View>
-        </TouchableOpacity>
-        <Text style={styles.title}>Riwayat Pesanan</Text>
-        <View style={{ width: 68 }} />
+        <View>
+          <Text style={styles.title}>Pesanan</Text>
+          <Text style={styles.subtitle}>Riwayat transaksi</Text>
+        </View>
       </View>
 
       {/* Main Content Area */}
@@ -155,201 +192,98 @@ export default function OrdersScreen({ navigation }: Props) {
         )}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#818cf8" />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.primary} />
         }
         ListHeaderComponent={
           <View style={styles.headerComponent}>
             {/* Shift Metrics Dashboard Header */}
             {shiftData?.status === "OPEN" && stats ? (
-              <View style={styles.statsCard}>
-                <Text style={styles.statsTitle}>Ringkasan Shift Aktif</Text>
-                <View style={styles.statsGrid}>
-                  <View style={styles.statsCol}>
-                    <Text style={styles.statsVal}>{stats.completedOrders}</Text>
-                    <Text style={styles.statsLbl}>Pesanan Selesai</Text>
-                  </View>
-                  <View style={styles.statsCol}>
-                    <Text style={styles.statsVal}>
-                      Rp {Number(stats.completedRevenue).toLocaleString()}
-                    </Text>
-                    <Text style={styles.statsLbl}>Total Pendapatan</Text>
-                  </View>
-                </View>
-                <View style={styles.statsDivider} />
-                <View style={styles.statsGrid}>
-                  <View style={styles.statsCol}>
-                    <Text style={styles.subStatsVal}>
-                      Rp {Number(stats.cashRevenue).toLocaleString()}
-                    </Text>
-                    <Text style={styles.statsLbl}>Tunai</Text>
-                  </View>
-                  <View style={styles.statsCol}>
-                    <Text style={styles.subStatsVal}>
-                      Rp {Number(stats.qrisRevenue).toLocaleString()}
-                    </Text>
-                    <Text style={styles.statsLbl}>QRIS</Text>
-                  </View>
-                  <View style={styles.statsCol}>
-                    <Text style={styles.subStatsVal}>
-                      Rp {Number(stats.averageOrderValue).toLocaleString()}
-                    </Text>
-                    <Text style={styles.statsLbl}>AOV</Text>
+              <View style={styles.compactStatsCard}>
+                <View style={styles.statsHeaderRow}>
+                  <Text style={styles.statsTitle}>SHIFT AKTIF</Text>
+                  <Text style={styles.statsSummaryText}>
+                    {stats.completedOrders} Pesanan • Rp {Number(stats.completedRevenue).toLocaleString()}
+                  </Text>
+                  <View style={styles.statsDetailsRow}>
+                    <Text style={styles.statsSubText}>Tunai: Rp {Number(stats.cashRevenue).toLocaleString()}</Text>
+                    <Text style={styles.statsSubText}>QRIS: Rp {Number(stats.qrisRevenue).toLocaleString()}</Text>
                   </View>
                 </View>
               </View>
             ) : null}
 
-            {/* Search Input */}
-            <View style={styles.searchContainer}>
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Cari no tiket, pelanggan, meja, SKU..."
-                placeholderTextColor="#71717a"
-                value={localSearch}
-                onChangeText={setLocalSearch}
-              />
-              {localSearch ? (
-                <TouchableOpacity onPress={() => setLocalSearch("")} style={styles.clearSearchBtn}>
-                  <CloseIcon color="#a1a1aa" />
-                </TouchableOpacity>
-              ) : null}
-            </View>
-
-            {/* Date Filters Row */}
-            <View style={styles.filterSection}>
-              <Text style={styles.filterGroupLabel}>Rentang Tanggal</Text>
-              <View style={styles.filterRow}>
-                {["TODAY", "YESTERDAY"].map((d) => (
-                  <TouchableOpacity
-                    key={d}
-                    style={[
-                      styles.filterPill,
-                      filters.businessDate === d && styles.filterPillActive,
-                    ]}
-                    onPress={() => dispatch(setFilters({ businessDate: d }))}
-                  >
-                    <Text
-                      style={[
-                        styles.filterPillText,
-                        filters.businessDate === d && styles.filterPillTextActive,
-                      ]}
-                    >
-                      {d === "TODAY" ? "Hari Ini" : "Kemarin"}
-                    </Text>
+            {/* Search and Filter Row */}
+            <View style={styles.controlsRow}>
+              <View style={styles.searchContainer}>
+                <SearchIcon color={theme.textSecondary} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Cari pesanan..."
+                  placeholderTextColor="#71717a"
+                  value={localSearch}
+                  onChangeText={setLocalSearch}
+                />
+                {localSearch ? (
+                  <TouchableOpacity onPress={() => setLocalSearch("")} style={styles.clearSearchBtn}>
+                    <Text style={styles.clearSearchText}>×</Text>
                   </TouchableOpacity>
-                ))}
-                <TouchableOpacity
-                  style={[
-                    styles.filterPill,
-                    filters.businessDate !== "TODAY" &&
-                      filters.businessDate !== "YESTERDAY" &&
-                      styles.filterPillActive,
-                  ]}
-                  onPress={() => setDatePickerVisible(true)}
-                >
-                  <Text
-                    style={[
-                      styles.filterPillText,
-                      filters.businessDate !== "TODAY" &&
-                        filters.businessDate !== "YESTERDAY" &&
-                        styles.filterPillTextActive,
-                    ]}
-                  >
-                    {filters.businessDate !== "TODAY" && filters.businessDate !== "YESTERDAY"
-                      ? filters.businessDate
-                      : "Pilih Tanggal"}
-                  </Text>
-                </TouchableOpacity>
+                ) : null}
               </View>
+
+              <TouchableOpacity style={styles.filterBtn} onPress={openFilterModal}>
+                <FilterIcon color={theme.textPrimary} />
+                <Text style={styles.filterBtnText}>Filter</Text>
+              </TouchableOpacity>
             </View>
 
-            {/* Order Status Filters */}
-            <View style={styles.filterSection}>
-              <Text style={styles.filterGroupLabel}>Status Pesanan</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScrollRow}>
-                {[
-                  { label: "Semua", value: "" },
-                  { label: "Disiapkan", value: "PREPARING" },
-                  { label: "Siap", value: "READY" },
-                  { label: "Selesai", value: "COMPLETED" },
-                ].map((s) => (
-                  <TouchableOpacity
-                    key={s.value}
-                    style={[styles.filterPill, filters.status === s.value && styles.filterPillActive]}
-                    onPress={() => dispatch(setFilters({ status: s.value }))}
-                  >
-                    <Text
-                      style={[
-                        styles.filterPillText,
-                        filters.status === s.value && styles.filterPillTextActive,
-                      ]}
-                    >
-                      {s.label}
+            {/* Active Filter Chips */}
+            {isFilterActive && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsScroll}>
+                {filters.businessDate !== "TODAY" && (
+                  <View style={styles.chip}>
+                    <Text style={styles.chipText}>
+                      {filters.businessDate === "YESTERDAY" ? "Kemarin" : filters.businessDate}
                     </Text>
-                  </TouchableOpacity>
-                ))}
+                    <TouchableOpacity onPress={() => dispatch(setFilters({ businessDate: "TODAY" }))}>
+                      <Text style={styles.chipCloseText}>×</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+                {filters.status !== "" && (
+                  <View style={styles.chip}>
+                    <Text style={styles.chipText}>
+                      {filters.status === "PREPARING" ? "Disiapkan" : filters.status === "READY" ? "Siap" : "Selesai"}
+                    </Text>
+                    <TouchableOpacity onPress={() => dispatch(setFilters({ status: "" }))}>
+                      <Text style={styles.chipCloseText}>×</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+                {filters.paymentStatus !== "" && (
+                  <View style={styles.chip}>
+                    <Text style={styles.chipText}>
+                      {filters.paymentStatus === "PENDING" ? "Tertunda" : "Dibayar"}
+                    </Text>
+                    <TouchableOpacity onPress={() => dispatch(setFilters({ paymentStatus: "" }))}>
+                      <Text style={styles.chipCloseText}>×</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+                {filters.paymentMethod !== "" && (
+                  <View style={styles.chip}>
+                    <Text style={styles.chipText}>
+                      {filters.paymentMethod === "CASH" ? "Tunai" : "QRIS"}
+                    </Text>
+                    <TouchableOpacity onPress={() => dispatch(setFilters({ paymentMethod: "" }))}>
+                      <Text style={styles.chipCloseText}>×</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+                <TouchableOpacity onPress={handleResetFilters} style={styles.clearAllChipsBtn}>
+                  <Text style={styles.clearAllChipsText}>Hapus Semua</Text>
+                </TouchableOpacity>
               </ScrollView>
-            </View>
-
-            {/* Payment Status Filters */}
-            <View style={styles.filterSection}>
-              <Text style={styles.filterGroupLabel}>Status Pembayaran</Text>
-              <View style={styles.filterRow}>
-                {[
-                  { label: "Semua", value: "" },
-                  { label: "Tertunda", value: "PENDING" },
-                  { label: "Dibayar", value: "PAID" },
-                ].map((p) => (
-                  <TouchableOpacity
-                    key={p.value}
-                    style={[
-                      styles.filterPill,
-                      filters.paymentStatus === p.value && styles.filterPillActive,
-                    ]}
-                    onPress={() => dispatch(setFilters({ paymentStatus: p.value }))}
-                  >
-                    <Text
-                      style={[
-                        styles.filterPillText,
-                        filters.paymentStatus === p.value && styles.filterPillTextActive,
-                      ]}
-                    >
-                      {p.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Payment Method Filters */}
-            <View style={styles.filterSection}>
-              <Text style={styles.filterGroupLabel}>Metode Pembayaran</Text>
-              <View style={styles.filterRow}>
-                {[
-                  { label: "Semua", value: "" },
-                  { label: "Tunai", value: "CASH" },
-                  { label: "QRIS", value: "QRIS" },
-                ].map((m) => (
-                  <TouchableOpacity
-                    key={m.value}
-                    style={[
-                      styles.filterPill,
-                      filters.paymentMethod === m.value && styles.filterPillActive,
-                    ]}
-                    onPress={() => dispatch(setFilters({ paymentMethod: m.value }))}
-                  >
-                    <Text
-                      style={[
-                        styles.filterPillText,
-                        filters.paymentMethod === m.value && styles.filterPillTextActive,
-                      ]}
-                    >
-                      {m.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
+            )}
           </View>
         }
         ListFooterComponent={
@@ -386,219 +320,419 @@ export default function OrdersScreen({ navigation }: Props) {
         onClose={() => setDatePickerVisible(false)}
         onSelect={handleSelectDate}
         initialDateStr={
-          filters.businessDate !== "TODAY" && filters.businessDate !== "YESTERDAY"
-            ? filters.businessDate
+          tempDate !== "TODAY" && tempDate !== "YESTERDAY"
+            ? tempDate
             : undefined
         }
       />
+
+      {/* Bottom Sheet Filter Modal */}
+      <Modal
+        visible={filterModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setFilterModalVisible(false)}
+      >
+        <View style={[styles.modalOverlay, screenWidth > 600 && styles.modalOverlayTablet]}>
+          <View style={[styles.modalContent, screenWidth > 600 && styles.modalContentTablet]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Filter Pesanan</Text>
+              <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
+                <CloseIcon color={theme.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView contentContainerStyle={styles.modalScrollBody} showsVerticalScrollIndicator={false}>
+              {/* Date Group */}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterGroupLabel}>Rentang Tanggal</Text>
+                <View style={styles.filterRow}>
+                  {["TODAY", "YESTERDAY"].map((d) => (
+                    <TouchableOpacity
+                      key={d}
+                      style={[
+                        styles.filterPill,
+                        tempDate === d && styles.filterPillActive,
+                      ]}
+                      onPress={() => setTempDate(d)}
+                    >
+                      <Text
+                        style={[
+                          styles.filterPillText,
+                          tempDate === d && styles.filterPillTextActive,
+                        ]}
+                      >
+                        {d === "TODAY" ? "Hari Ini" : "Kemarin"}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                  <TouchableOpacity
+                    style={[
+                      styles.filterPill,
+                      tempDate !== "TODAY" &&
+                      tempDate !== "YESTERDAY" &&
+                      styles.filterPillActive,
+                    ]}
+                    onPress={() => setDatePickerVisible(true)}
+                  >
+                    <Text
+                      style={[
+                        styles.filterPillText,
+                        tempDate !== "TODAY" &&
+                        tempDate !== "YESTERDAY" &&
+                        styles.filterPillTextActive,
+                      ]}
+                    >
+                      {tempDate !== "TODAY" && tempDate !== "YESTERDAY"
+                        ? tempDate
+                        : "Pilih Tanggal"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Status Pesanan */}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterGroupLabel}>Status Pesanan</Text>
+                <View style={styles.filterRow}>
+                  {[
+                    { label: "Semua", value: "" },
+                    { label: "Disiapkan", value: "PREPARING" },
+                    { label: "Siap", value: "READY" },
+                    { label: "Selesai", value: "COMPLETED" },
+                  ].map((s) => (
+                    <TouchableOpacity
+                      key={s.value}
+                      style={[styles.filterPill, tempStatus === s.value && styles.filterPillActive]}
+                      onPress={() => setTempStatus(s.value)}
+                    >
+                      <Text
+                        style={[
+                          styles.filterPillText,
+                          tempStatus === s.value && styles.filterPillTextActive,
+                        ]}
+                      >
+                        {s.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Status Pembayaran */}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterGroupLabel}>Status Pembayaran</Text>
+                <View style={styles.filterRow}>
+                  {[
+                    { label: "Semua", value: "" },
+                    { label: "Tertunda", value: "PENDING" },
+                    { label: "Dibayar", value: "PAID" },
+                  ].map((p) => (
+                    <TouchableOpacity
+                      key={p.value}
+                      style={[
+                        styles.filterPill,
+                        tempPaymentStatus === p.value && styles.filterPillActive,
+                      ]}
+                      onPress={() => setTempPaymentStatus(p.value)}
+                    >
+                      <Text
+                        style={[
+                          styles.filterPillText,
+                          tempPaymentStatus === p.value && styles.filterPillTextActive,
+                        ]}
+                      >
+                        {p.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Metode Pembayaran */}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterGroupLabel}>Metode Pembayaran</Text>
+                <View style={styles.filterRow}>
+                  {[
+                    { label: "Semua", value: "" },
+                    { label: "Tunai", value: "CASH" },
+                    { label: "QRIS", value: "QRIS" },
+                  ].map((m) => (
+                    <TouchableOpacity
+                      key={m.value}
+                      style={[
+                        styles.filterPill,
+                        tempPaymentMethod === m.value && styles.filterPillActive,
+                      ]}
+                      onPress={() => setTempPaymentMethod(m.value)}
+                    >
+                      <Text
+                        style={[
+                          styles.filterPillText,
+                          tempPaymentMethod === m.value && styles.filterPillTextActive,
+                        ]}
+                      >
+                        {m.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalResetBtn} onPress={handleResetFilters}>
+                <Text style={styles.modalResetBtnText}>Reset</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalApplyBtn} onPress={applyFilters}>
+                <Text style={styles.modalApplyBtnText}>Terapkan Filter</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#18181b",
-  },
-  backBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: "#18181b",
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#27272a",
-  },
-  backText: {
-    color: "#e4e4e7",
-    fontSize: 12,
-    fontWeight: "bold",
+    borderBottomColor: theme.border,
+    backgroundColor: theme.background,
   },
   title: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "900",
-    color: "#f4f4f5",
+    color: theme.textPrimary,
+  },
+  subtitle: {
+    fontSize: 12,
+    color: theme.textSecondary,
+    marginTop: 2,
   },
   headerComponent: {
     marginBottom: 8,
   },
-  statsCard: {
-    backgroundColor: "#18181b",
+  compactStatsCard: {
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#27272a",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  statsTitle: {
-    fontSize: 11,
-    fontWeight: "bold",
-    color: "#71717a",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    borderColor: theme.border,
+    borderRadius: 10,
+    padding: 10,
     marginBottom: 12,
+    alignSelf: "center",
+    width: "100%",
   },
-  statsGrid: {
+  statsHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
   },
-  statsCol: {
-    flex: 1,
-  },
-  statsVal: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#f4f4f5",
-  },
-  subStatsVal: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#e4e4e7",
-  },
-  statsLbl: {
+  statsTitle: {
     fontSize: 10,
-    color: "#71717a",
-    marginTop: 2,
+    fontWeight: "bold",
+    color: theme.primary,
+    letterSpacing: 0.5,
+  },
+  statsSummaryText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: theme.textPrimary,
   },
   statsDivider: {
     height: 1,
-    backgroundColor: "#27272a",
-    marginVertical: 12,
+    backgroundColor: theme.border,
+    marginVertical: 6,
+  },
+  statsDetailsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  statsSubText: {
+    fontSize: 11,
+    color: theme.textSecondary,
+    marginHorizontal: 8,
+  },
+  controlsRow: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+    marginBottom: 8,
   },
   searchContainer: {
-    position: "relative",
-    marginBottom: 16,
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 38,
   },
   searchInput: {
-    height: 44,
-    backgroundColor: "#18181b",
-    borderWidth: 1,
-    borderColor: "#27272a",
-    borderRadius: 8,
-    paddingLeft: 12,
-    paddingRight: 40,
-    color: "#f4f4f5",
-    fontSize: 14,
+    flex: 1,
+    marginLeft: 8,
+    color: theme.textPrimary,
+    fontSize: 13,
+    padding: 0,
   },
   clearSearchBtn: {
-    position: "absolute",
-    right: 12,
-    top: 10,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#27272a",
-    alignItems: "center",
-    justifyContent: "center",
+    padding: 4,
   },
   clearSearchText: {
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     fontSize: 16,
     fontWeight: "bold",
   },
+  filterBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 38,
+    gap: 4,
+  },
+  filterBtnText: {
+    color: theme.textPrimary,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  chipsScroll: {
+    flexDirection: "row",
+    gap: 6,
+    alignItems: "center",
+    paddingVertical: 4,
+    marginBottom: 8,
+  },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.surfaceSecondary,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 6,
+    paddingLeft: 8,
+    paddingRight: 6,
+    paddingVertical: 4,
+    gap: 4,
+  },
+  chipText: {
+    color: theme.textPrimary,
+    fontSize: 11,
+    fontWeight: "500",
+  },
+  chipCloseText: {
+    color: theme.textSecondary,
+    fontSize: 14,
+    fontWeight: "bold",
+    lineHeight: 14,
+  },
+  clearAllChipsBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  clearAllChipsText: {
+    color: theme.primary,
+    fontSize: 11,
+    fontWeight: "600",
+  },
   filterSection: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
   filterGroupLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     textTransform: "uppercase",
-    marginBottom: 6,
+    marginBottom: 8,
   },
   filterRow: {
     flexDirection: "row",
-    gap: 8,
-  },
-  filterScrollRow: {
-    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   filterPill: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: "#18181b",
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: theme.background,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
   },
   filterPillActive: {
-    backgroundColor: "#4f46e5",
-    borderColor: "#6366f1",
+    backgroundColor: theme.primarySoft,
+    borderColor: theme.primary,
   },
   filterPillText: {
-    color: "#a1a1aa",
+    color: theme.textPrimary,
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "500",
   },
   filterPillTextActive: {
-    color: "#ffffff",
+    color: theme.primary,
+    fontWeight: "700",
   },
   listContent: {
     padding: 16,
+    paddingTop: 8,
   },
   paginationFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 20,
-    marginBottom: 40,
+    marginTop: 16,
+    marginBottom: 32,
   },
   pageBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    backgroundColor: "#18181b",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#27272a",
-    borderRadius: 8,
+    borderColor: theme.border,
+    borderRadius: 6,
   },
   pageBtnDisabled: {
     opacity: 0.3,
   },
   pageBtnText: {
-    color: "#e4e4e7",
-    fontSize: 13,
+    color: theme.textPrimary,
+    fontSize: 12,
     fontWeight: "600",
   },
   pageInfo: {
-    color: "#71717a",
-    fontSize: 13,
+    color: theme.textSecondary,
+    fontSize: 12,
     fontWeight: "500",
   },
   emptyContainer: {
-    padding: 32,
+    paddingVertical: 60,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#18181b",
-    borderWidth: 1,
-    borderColor: "#27272a",
-    borderRadius: 12,
-    marginTop: 16,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#f4f4f5",
-    marginBottom: 6,
+    gap: 12,
   },
   emptyText: {
-    fontSize: 13,
-    color: "#71717a",
+    fontSize: 14,
+    color: theme.textSecondary,
     textAlign: "center",
+    fontWeight: "500",
   },
   resetBtn: {
-    marginTop: 12,
+    marginTop: 8,
     paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: "#27272a",
+    backgroundColor: theme.primary,
     borderRadius: 6,
   },
   resetBtnText: {
@@ -607,28 +741,102 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   skeletonContainer: {
-    gap: 12,
-    marginTop: 16,
+    gap: 8,
+    marginTop: 8,
   },
   skeletonCard: {
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 12,
-    padding: 16,
-    gap: 8,
+    padding: 12,
+    gap: 6,
   },
   skeletonHeader: {
-    height: 16,
-    backgroundColor: "#27272a",
-    borderRadius: 4,
-    width: "40%",
+    height: 14,
+    backgroundColor: theme.surfaceSecondary,
+    borderRadius: 3,
+    width: "35%",
   },
   skeletonLine: {
-    height: 12,
-    backgroundColor: "#27272a",
-    borderRadius: 3,
-    width: "80%",
+    height: 10,
+    backgroundColor: theme.surfaceSecondary,
+    borderRadius: 2,
+    width: "75%",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalOverlayTablet: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: theme.surface,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 24,
+    maxHeight: "80%",
+  },
+  modalContentTablet: {
+    width: 500,
+    borderRadius: 16,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: theme.textPrimary,
+  },
+  modalScrollBody: {
+    paddingBottom: 16,
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: theme.border,
+    paddingTop: 12,
+  },
+  modalResetBtn: {
+    flex: 1,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalResetBtnText: {
+    color: theme.textPrimary,
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  modalApplyBtn: {
+    flex: 2,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: theme.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalApplyBtnText: {
+    color: "#ffffff",
+    fontWeight: "bold",
+    fontSize: 14,
   },
 });
 

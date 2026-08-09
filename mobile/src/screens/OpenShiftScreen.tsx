@@ -1,13 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ActivityIndicator } from "react-native";
 import { StackScreenProps } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { useOpenShiftMutation } from "../lib/api/shiftApi";
 import { useToast } from "../hooks/useToast";
+import { useTheme, Theme } from "../theme";
 
 type Props = StackScreenProps<RootStackParamList, "OpenShift">;
 
 export default function OpenShiftScreen({ navigation }: Props) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [openingCashInput, setOpeningCashInput] = useState("500000");
   const [openShift, { isLoading }] = useOpenShiftMutation();
   const { showToast } = useToast();
@@ -82,10 +85,10 @@ export default function OpenShiftScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
   },
   header: {
     height: 56,
@@ -93,21 +96,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderBottomWidth: 1,
-    borderBottomColor: "#18181b",
+    borderBottomColor: theme.border,
     paddingHorizontal: 16,
+    backgroundColor: theme.background,
   },
   backBtn: {
     width: 44,
   },
   backText: {
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     fontSize: 14,
   },
   title: {
     flex: 1,
     fontSize: 16,
     fontWeight: "bold",
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     textAlign: "center",
   },
   content: {
@@ -116,38 +120,38 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   card: {
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 12,
     padding: 20,
     gap: 16,
   },
   subtitle: {
     fontSize: 13,
-    color: "#71717a",
+    color: theme.textMuted,
     marginBottom: 8,
   },
   label: {
     fontSize: 11,
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     fontWeight: "bold",
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   input: {
     height: 48,
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 8,
     paddingHorizontal: 12,
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     fontSize: 15,
   },
   openButton: {
     height: 48,
-    backgroundColor: "#4f46e5",
+    backgroundColor: theme.primary,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",

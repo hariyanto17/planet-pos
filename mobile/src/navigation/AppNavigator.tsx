@@ -18,6 +18,7 @@ import OrderDetailScreen from "../screens/OrderDetailScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import OpenShiftScreen from "../screens/OpenShiftScreen";
 import CloseShiftScreen from "../screens/CloseShiftScreen";
+import PrinterSettingsScreen from "../screens/PrinterSettingsScreen";
 import KitchenBottomTabNavigator from "./KitchenBottomTabNavigator";
 import KitchenOrderDetailScreen from "../screens/KitchenOrderDetailScreen";
 import { KitchenOrderProvider } from "../context/KitchenOrderContext";
@@ -43,10 +44,12 @@ export type RootStackParamList = {
     grandTotal: number;
     changeAmount: number;
     paymentMethod: string;
+    orderId?: string;
   };
   OrderDetail: { orderId: string; mode: "CASHIER" | "HISTORY" };
   KitchenHome: undefined;
   KitchenOrderDetail: { orderId: string };
+  PrinterSettings: undefined;
 };
 
 export type CashierTabParamList = {
@@ -86,7 +89,7 @@ function CashierTabNavigator() {
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: "Beranda" }} />
+      <Tab.Screen name="Home" component={NewOrderScreen} options={{ tabBarLabel: "Beranda" }} />
       <Tab.Screen name="Orders" component={OrdersScreen} options={{ tabBarLabel: "Pesanan" }} />
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: "Profil" }} />
     </Tab.Navigator>
@@ -150,6 +153,7 @@ export default function AppNavigator() {
             <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
             <Stack.Screen name="OpenShift" component={OpenShiftScreen} />
             <Stack.Screen name="CloseShift" component={CloseShiftScreen} />
+            <Stack.Screen name="PrinterSettings" component={PrinterSettingsScreen} />
           </>
         )}
       </Stack.Navigator>

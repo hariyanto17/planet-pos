@@ -46,6 +46,7 @@ export const {
   useGetOrdersQueueQuery,
   useGetPendingPaymentsQuery,
   useGetOrderQuery,
+  useLazyGetOrderQuery,
   useCreateOrderMutation,
   useUpdateOrderStatusMutation,
 } = orderApi;

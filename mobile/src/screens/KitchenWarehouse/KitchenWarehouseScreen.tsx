@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   StyleSheet,
   Text,
@@ -29,6 +29,7 @@ import {
 import { useGetProductsQuery } from "../../lib/api/productApi";
 import { useToast } from "../../hooks/useToast";
 import { useConfirmation } from "../../hooks/useConfirmation";
+import { useTheme, Theme } from "../../theme";
 
 type TabType = "Stok" | "Riwayat" | "Transfer" | "Aktivitas";
 
@@ -36,6 +37,8 @@ export default function KitchenWarehouseScreen() {
   const [activeTab, setActiveTab] = useState<TabType>("Stok");
   const { showToast } = useToast();
   const { showConfirmation } = useConfirmation();
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   // Queries
   const { data: warehouses, isLoading: isLoadingWh } = useGetWarehousesQuery();
@@ -566,7 +569,7 @@ export default function KitchenWarehouseScreen() {
                           setOpeningItems(openingItems.filter((_, i) => i !== idx));
                         }}
                       >
-                        <Text style={{ color: "#ef4444" }}>Hapus</Text>
+                        <Text style={{ color: theme.error }}>Hapus</Text>
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -609,27 +612,28 @@ export default function KitchenWarehouseScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
   },
   header: {
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#18181b",
+    borderBottomColor: theme.border,
+    backgroundColor: theme.background,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: "900",
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     letterSpacing: -0.5,
   },
   tabContainer: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: "#18181b",
+    borderBottomColor: theme.border,
   },
   tabButton: {
     flex: 1,
@@ -638,28 +642,28 @@ const styles = StyleSheet.create({
   },
   tabButtonActive: {
     borderBottomWidth: 2,
-    borderBottomColor: "#818cf8",
+    borderBottomColor: theme.primary,
   },
   tabButtonText: {
-    color: "#71717a",
+    color: theme.textSecondary,
     fontSize: 13,
     fontWeight: "600",
   },
   tabButtonTextActive: {
-    color: "#818cf8",
+    color: theme.primary,
   },
   content: {
     flex: 1,
     padding: 16,
   },
   searchInput: {
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 8,
     paddingHorizontal: 12,
     height: 40,
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     marginBottom: 12,
   },
   listContent: {
@@ -667,9 +671,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   card: {
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 12,
     padding: 16,
     gap: 8,
@@ -682,7 +686,7 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 14,
     fontWeight: "bold",
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     flex: 1,
   },
   statusBadge: {
@@ -702,27 +706,27 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   cardLabel: {
-    color: "#71717a",
+    color: theme.textSecondary,
     fontSize: 11,
   },
   cardValue: {
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     fontSize: 13,
     fontWeight: "bold",
   },
   cardFooter: {
     borderTopWidth: 1,
-    borderTopColor: "#27272a",
+    borderTopColor: theme.border,
     paddingTop: 8,
     marginTop: 4,
   },
   cardSubText: {
     fontSize: 11,
-    color: "#71717a",
+    color: theme.textSecondary,
   },
   movementTypeBadge: {
-    backgroundColor: "#27272a",
-    color: "#a1a1aa",
+    backgroundColor: theme.surfaceSecondary,
+    color: theme.textSecondary,
     fontSize: 10,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -731,28 +735,28 @@ const styles = StyleSheet.create({
   },
   remarksText: {
     fontSize: 11,
-    color: "#a1a1aa",
-    backgroundColor: "#27272a40",
+    color: theme.textSecondary,
+    backgroundColor: theme.surfaceSecondary,
     padding: 6,
     borderRadius: 4,
   },
   transferCode: {
-    color: "#818cf8",
+    color: theme.primary,
     fontWeight: "bold",
     fontSize: 13,
   },
   transferPath: {
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     fontSize: 12,
     fontWeight: "600",
     marginBottom: 8,
   },
   transferItemText: {
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     fontSize: 12,
   },
   actionBtn: {
-    backgroundColor: "#4f46e5",
+    backgroundColor: theme.primary,
     borderRadius: 6,
     height: 36,
     alignItems: "center",
@@ -765,7 +769,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   primaryBtn: {
-    backgroundColor: "#4f46e5",
+    backgroundColor: theme.primary,
     borderRadius: 8,
     height: 40,
     alignItems: "center",
@@ -779,7 +783,7 @@ const styles = StyleSheet.create({
   },
   secondaryBtn: {
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 6,
     height: 36,
     alignItems: "center",
@@ -787,30 +791,30 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   secondaryBtnText: {
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     fontSize: 12,
   },
   activityContainer: {
     gap: 12,
   },
   sectionTitle: {
-    color: "#818cf8",
+    color: theme.primary,
     fontSize: 12,
     fontWeight: "bold",
     textTransform: "uppercase",
     marginBottom: 8,
   },
   activityBtn: {
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 8,
     height: 48,
     justifyContent: "center",
     paddingHorizontal: 16,
   },
   activityBtnText: {
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     fontWeight: "bold",
     fontSize: 14,
   },
@@ -824,9 +828,9 @@ const styles = StyleSheet.create({
   modalContent: {
     width: "100%",
     maxHeight: "80%",
-    backgroundColor: "#18181b",
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 16,
     padding: 20,
     gap: 16,
@@ -834,21 +838,21 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#f4f4f5",
+    color: theme.textPrimary,
   },
   label: {
     fontSize: 12,
-    color: "#a1a1aa",
+    color: theme.textSecondary,
     marginBottom: 4,
   },
   modalInput: {
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 8,
     paddingHorizontal: 12,
     height: 40,
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     marginBottom: 12,
   },
   pickerWrapper: {
@@ -858,24 +862,24 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   pickerItem: {
-    backgroundColor: "#09090b",
+    backgroundColor: theme.background,
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 6,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
   pickerItemActive: {
-    borderColor: "#818cf8",
-    backgroundColor: "#818cf820",
+    borderColor: theme.primary,
+    backgroundColor: theme.primarySoft,
   },
   pickerItemText: {
-    color: "#f4f4f5",
+    color: theme.textPrimary,
     fontSize: 11,
   },
   openingItemRow: {
     borderWidth: 1,
-    borderColor: "#27272a",
+    borderColor: theme.border,
     borderRadius: 8,
     padding: 10,
     marginBottom: 10,
@@ -893,11 +897,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cancelBtnText: {
-    color: "#71717a",
+    color: theme.textMuted,
     fontWeight: "600",
   },
   confirmBtn: {
-    backgroundColor: "#4f46e5",
+    backgroundColor: theme.primary,
     height: 40,
     paddingHorizontal: 16,
     borderRadius: 8,

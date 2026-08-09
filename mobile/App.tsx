@@ -18,8 +18,8 @@ import { ThemeProvider } from "./src/theme";
 function App() {
   return (
     <Provider store={store}>
-      <PersistGate loading={<LoadingSpinner />} persistor={persistor}>
-        <ThemeProvider>
+      <ThemeProvider>
+        <PersistGate loading={<LoadingSpinner />} persistor={persistor}>
           <SafeAreaProvider>
             <ToastProvider>
               <ConfirmationProvider>
@@ -27,8 +27,8 @@ function App() {
               </ConfirmationProvider>
             </ToastProvider>
           </SafeAreaProvider>
-        </ThemeProvider>
-      </PersistGate>
+        </PersistGate>
+      </ThemeProvider>
     </Provider>
   );
 }

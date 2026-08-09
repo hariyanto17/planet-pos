@@ -2047,6 +2047,11 @@
   resolved "https://registry.yarnpkg.com/@ungap/structured-clone/-/structured-clone-1.3.3.tgz#094041e1a4cb1987f038335421281ac8be390bcc"
   integrity sha512-60YRaenCQcVjYEKOcG824+DRGGIQ3VKErcBoAEDJZz5bKIs2ZG+X/H9Nk+Q6EVkwJk5QNApxbrc5QtBSwtrXAg==
 
+"@vardrz/react-native-bluetooth-escpos-printer@^0.1.2":
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/@vardrz/react-native-bluetooth-escpos-printer/-/react-native-bluetooth-escpos-printer-0.1.2.tgz#aab96c3ace1dc011e5b2abb0afea91284415c8df"
+  integrity sha512-pAERaqyo5b69+G3M0anOkOEVlw07D5mdo2PDQlGyP5xmUYzpP0GSKbWazo8cOf+TPUSdYsCpJW+oO6UKr+bXRw==
+
 "@vscode/sudo-prompt@^9.0.0":
   version "9.3.2"
   resolved "https://registry.yarnpkg.com/@vscode/sudo-prompt/-/sudo-prompt-9.3.2.tgz#692ba38df40bd3502ccc4e9f099fbbaedbd5f04e"

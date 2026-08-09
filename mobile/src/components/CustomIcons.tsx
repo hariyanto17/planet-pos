@@ -389,3 +389,129 @@ export function ArrowLeftIcon({ color }: IconProps) {
     </View>
   );
 }
+
+export function PrinterIcon({ color }: IconProps) {
+  return (
+    <View style={{ width: 24, height: 24, justifyContent: "center", alignItems: "center" }}>
+      <View style={{ width: 18, height: 16, position: "relative" }}>
+        {/* Main printer body */}
+        <View
+          style={{
+            position: "absolute",
+            top: 4,
+            left: 0,
+            width: 18,
+            height: 8,
+            borderWidth: 2,
+            borderColor: color,
+            borderRadius: 1,
+          }}
+        />
+        {/* Paper top feed */}
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 4,
+            width: 10,
+            height: 4,
+            borderWidth: 2,
+            borderColor: color,
+            borderBottomWidth: 0,
+          }}
+        />
+        {/* Paper bottom exit */}
+        <View
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 4,
+            width: 10,
+            height: 6,
+            borderWidth: 2,
+            borderColor: color,
+            borderTopWidth: 0,
+          }}
+        />
+      </View>
+    </View>
+  );
+}
+
+export function FilterIcon({ color }: IconProps) {
+  return (
+    <View style={{ width: 24, height: 24, justifyContent: "center", alignItems: "center" }}>
+      <View style={{ width: 18, height: 16, position: "relative" }}>
+        {/* Top bar */}
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: 18,
+            height: 2,
+            backgroundColor: color,
+            borderRadius: 1,
+          }}
+        />
+        {/* Middle bar */}
+        <View
+          style={{
+            position: "absolute",
+            top: 7,
+            left: 3,
+            width: 12,
+            height: 2,
+            backgroundColor: color,
+            borderRadius: 1,
+          }}
+        />
+        {/* Bottom bar */}
+        <View
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 6,
+            width: 6,
+            height: 2,
+            backgroundColor: color,
+            borderRadius: 1,
+          }}
+        />
+      </View>
+    </View>
+  );
+}
+
+export function ChevronRightIcon({ color }: IconProps) {
+  return (
+    <View style={{ width: 24, height: 24, justifyContent: "center", alignItems: "center" }}>
+      <View style={{ width: 8, height: 8, transform: [{ rotate: "45deg" }], borderTopWidth: 2, borderRightWidth: 2, borderColor: color }} />
+    </View>
+  );
+}
+
+export function LogoutIcon({ color }: IconProps) {
+  return (
+    <View style={{ width: 24, height: 24, justifyContent: "center", alignItems: "center" }}>
+      {/* Box / Bracket */}
+      <View style={{ width: 14, height: 16, borderWidth: 2, borderColor: color, borderRightWidth: 0, position: "relative", justifyContent: "center" }}>
+        {/* Arrow shaft */}
+        <View style={{ width: 8, height: 2, backgroundColor: color, position: "absolute", right: -6 }} />
+        {/* Arrow head */}
+        <View style={{ width: 6, height: 6, borderTopWidth: 2, borderRightWidth: 2, borderColor: color, transform: [{ rotate: "45deg" }], position: "absolute", right: -6 }} />
+      </View>
+    </View>
+  );
+}
+
+export function LockIcon({ color }: IconProps) {
+  return (
+    <View style={{ width: 24, height: 24, justifyContent: "center", alignItems: "center" }}>
+      {/* Shackle */}
+      <View style={{ width: 10, height: 8, borderTopLeftRadius: 5, borderTopRightRadius: 5, borderWidth: 2, borderColor: color, borderBottomWidth: 0, marginBottom: -2 }} />
+      {/* Body */}
+      <View style={{ width: 16, height: 11, borderWidth: 2, borderColor: color, borderRadius: 2 }} />
+    </View>
+  );
+}
