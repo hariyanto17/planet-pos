@@ -39,7 +39,10 @@ test("Order Timeline and Status Transitions Regression Tests", async (t) => {
     }
   })).id;
 
-  const product = await prisma.product.findFirst({ where: { deletedAt: null } });
+  let product = await prisma.product.findFirst({ where: { deletedAt: null, trackInventory: false } });
+  if (!product) {
+    product = await prisma.product.findFirst({ where: { deletedAt: null } });
+  }
   if (!product) {
     throw new Error("Product not found in database. Run seed first.");
   }

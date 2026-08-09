@@ -18,7 +18,7 @@ export const getAllProducts = async (sellableOnly: boolean = false) => {
   const whereClause: any = sellableOnly
     ? getSellableProductWhereClause()
     : { deletedAt: null };
-  return prisma.product.findMany({
+  const products = await prisma.product.findMany({
     where: whereClause,
     include: { 
       category: true, 
@@ -39,6 +39,82 @@ export const getAllProducts = async (sellableOnly: boolean = false) => {
       }
     },
     orderBy: { createdAt: "desc" },
+  });
+
+  const activeWarehouseStocks = await prisma.warehouseStock.findMany({
+    where: {
+      warehouse: {
+        isActive: true,
+      },
+    },
+    select: {
+      productId: true,
+      quantity: true,
+    },
+  });
+
+  const totalStockMap = new Map<string, number>();
+  for (const ws of activeWarehouseStocks) {
+    const current = totalStockMap.get(ws.productId) || 0;
+    totalStockMap.set(ws.productId, current + Number(ws.quantity));
+  }
+
+  const committedMap = await getCommittedStockMap(prisma);
+
+  return products.map((product: any) => {
+    let availableStock: number | null = null;
+
+    if (product.inventoryType === "FINISHED_GOOD" && product.trackInventory) {
+      if (product.recipe && product.recipe.items && product.recipe.items.length > 0) {
+        let minProducible = Infinity;
+        for (const item of product.recipe.items) {
+          if (item.componentProduct && !item.componentProduct.trackInventory) {
+            continue;
+          }
+          const componentPhysical = totalStockMap.get(item.componentProductId) || 0;
+          const componentCommitted = committedMap.get(item.componentProductId) || 0;
+          const componentStock = componentPhysical - componentCommitted;
+
+          const requiredQty = Number(item.quantity);
+          const producible = Math.floor(componentStock / requiredQty);
+          if (producible < minProducible) {
+            minProducible = producible;
+          }
+        }
+        availableStock = minProducible === Infinity ? null : Math.max(0, minProducible);
+      } else {
+        const ownPhysical = totalStockMap.get(product.id) || 0;
+        const ownCommitted = committedMap.get(product.id) || 0;
+        const ownStock = ownPhysical - ownCommitted;
+        availableStock = Math.max(0, ownStock);
+      }
+    }
+
+    const mappedRecipe = product.recipe
+      ? {
+          id: product.recipe.id,
+          isActive: true,
+          items: product.recipe.items.map((item: any) => ({
+            id: item.id,
+            quantity: item.quantity,
+            product: item.componentProduct
+              ? {
+                  id: item.componentProduct.id,
+                  name: item.componentProduct.name,
+                  inventoryType: item.componentProduct.inventoryType,
+                  trackInventory: item.componentProduct.trackInventory,
+                  unit: item.componentProduct.unit,
+                }
+              : null,
+          })),
+        }
+      : null;
+
+    return {
+      ...product,
+      availableStock,
+      recipe: mappedRecipe,
+    };
   });
 };
 
@@ -210,3 +286,53 @@ export const upsertRecipeForProduct = async (productId: string, items: Array<{ c
     });
   });
 };
+
+export const getCommittedStockMap = async (tx: any) => {
+  const activeOrders = await tx.order.findMany({
+    where: {
+      status: {
+        in: ["NEW", "PREPARING", "READY"],
+      },
+    },
+    include: {
+      items: true,
+    },
+  });
+
+  const products = await tx.product.findMany({
+    where: { deletedAt: null },
+    include: {
+      recipe: {
+        include: {
+          items: true,
+        },
+      },
+    },
+  });
+  const productMap = new Map(products.map((p: any) => [p.id, p]));
+
+  const committedMap = new Map<string, number>();
+  for (const order of activeOrders) {
+    for (const item of order.items) {
+      const product = productMap.get(item.productId) as any;
+      if (!product) continue;
+
+      if (product.trackInventory) {
+        if (product.recipe && product.recipe.items.length > 0) {
+          for (const recipeItem of product.recipe.items) {
+            const current = committedMap.get(recipeItem.componentProductId) || 0;
+            committedMap.set(
+              recipeItem.componentProductId,
+              current + (Number(item.quantity) * Number(recipeItem.quantity))
+            );
+          }
+        } else {
+          const current = committedMap.get(product.id) || 0;
+          committedMap.set(product.id, current + Number(item.quantity));
+        }
+      }
+    }
+  }
+  return committedMap;
+};
+

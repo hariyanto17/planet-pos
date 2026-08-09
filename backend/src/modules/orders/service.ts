@@ -6,6 +6,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { createLedgerEntry } from "../inventory/stock.service";
 import { isValidOrderTransition } from "../../utils/statusValidator";
 import { domainEvents, DOMAIN_EVENTS } from "../../utils/eventEmitter";
+import { getCommittedStockMap } from "../products/service";
 
 
 
@@ -82,6 +83,83 @@ export const createOrder = async (
     for (const product of products) {
       if (product.inventoryType !== "FINISHED_GOOD") {
         throw new AppError("BAD_REQUEST", "Only FINISHED_GOOD products can be sold through POS.");
+      }
+    }
+
+    // Sellable stock calculation validation
+    const productsWithRecipes = await tx.product.findMany({
+      where: { id: { in: uniqueProductIds } },
+      include: {
+        recipe: {
+          include: {
+            items: {
+              include: {
+                componentProduct: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const totalRequiredMap = new Map<string, number>();
+    for (const item of input.items) {
+      const product = productsWithRecipes.find((p) => p.id === item.productId);
+      if (!product) continue;
+
+      if (product.inventoryType === "FINISHED_GOOD") {
+        if (product.recipe && product.recipe.items.length > 0) {
+          for (const recipeItem of product.recipe.items) {
+            if (recipeItem.componentProduct && !recipeItem.componentProduct.trackInventory) {
+              continue;
+            }
+            const currentReq = totalRequiredMap.get(recipeItem.componentProductId) || 0;
+            totalRequiredMap.set(
+              recipeItem.componentProductId,
+              currentReq + (item.quantity * Number(recipeItem.quantity))
+            );
+          }
+        } else if (product.trackInventory) {
+          const currentReq = totalRequiredMap.get(product.id) || 0;
+          totalRequiredMap.set(product.id, currentReq + item.quantity);
+        }
+      }
+    }
+
+    if (totalRequiredMap.size > 0) {
+      const activeWarehouseStocks = await tx.warehouseStock.findMany({
+        where: {
+          warehouse: {
+            isActive: true,
+          },
+        },
+        select: {
+          productId: true,
+          quantity: true,
+        },
+      });
+
+      const totalStockMap = new Map<string, number>();
+      for (const ws of activeWarehouseStocks) {
+        const current = totalStockMap.get(ws.productId) || 0;
+        totalStockMap.set(ws.productId, current + Number(ws.quantity));
+      }
+
+      const committedMap = await getCommittedStockMap(tx);
+
+      for (const [prodId, reqQty] of totalRequiredMap.entries()) {
+        const physicalStock = totalStockMap.get(prodId) || 0;
+        const committedStock = committedMap.get(prodId) || 0;
+        const availableStock = physicalStock - committedStock;
+
+        if (availableStock < reqQty) {
+          const prodInfo = await tx.product.findUnique({ where: { id: prodId } });
+          const name = prodInfo ? prodInfo.name : prodId;
+          throw new AppError(
+            "BAD_REQUEST",
+            `Insufficient inventory for ${name}. Required: ${reqQty}, Available: ${availableStock}`
+          );
+        }
       }
     }
 

@@ -51,14 +51,20 @@ const ProductCard: React.FC<ProductCardProps> = React.memo(({
   styles,
 }) => {
   const [imageError, setImageError] = useState(false);
+  const isOutOfStock = product.trackInventory && product.availableStock !== null && product.availableStock !== undefined && product.availableStock <= 0;
 
   return (
     <TouchableOpacity
-      style={[styles.card, quantity > 0 && styles.cardSelected]}
-      onPress={() => onAdd(product)}
+      style={[
+        styles.card, 
+        quantity > 0 && styles.cardSelected,
+        isOutOfStock && { opacity: 0.6 }
+      ]}
+      onPress={() => !isOutOfStock && onAdd(product)}
       accessibilityLabel={`Add ${product.name} to cart`}
       accessibilityRole="button"
       activeOpacity={0.8}
+      disabled={isOutOfStock}
     >
       {/* Product Image */}
       <View style={styles.imageContainer}>
@@ -81,10 +87,23 @@ const ProductCard: React.FC<ProductCardProps> = React.memo(({
         </Text>
         <Text style={styles.cardPrice}>Rp {Number(product.price).toLocaleString()}</Text>
 
+        {product.trackInventory && product.availableStock !== null && product.availableStock !== undefined && (
+          <Text style={[
+            styles.cardStock,
+            isOutOfStock && { color: "#ef4444" }
+          ]}>
+            {isOutOfStock ? "Stok Habis" : `Stok: ${product.availableStock}`}
+          </Text>
+        )}
+
         <View style={styles.cardActions}>
-          <View style={[styles.addBtn, quantity > 0 && styles.addBtnSelected]}>
+          <View style={[
+            styles.addBtn, 
+            quantity > 0 && styles.addBtnSelected,
+            isOutOfStock && { backgroundColor: "#9ca3af" }
+          ]}>
             <Text style={[styles.addBtnText, quantity > 0 && styles.addBtnTextSelected]}>
-              {quantity > 0 ? "Added" : "Add to Cart"}
+              {isOutOfStock ? "Stok Habis" : quantity > 0 ? "Added" : "Add to Cart"}
             </Text>
           </View>
         </View>
@@ -184,6 +203,17 @@ export default function NewOrderScreen({ navigation }: Props) {
   }, [cartItems]);
 
   const handleAdd = useCallback((p: any) => {
+    const qtyInCart = getQuantityInCart(p.id);
+    if (p.trackInventory && p.availableStock !== null && p.availableStock !== undefined) {
+      if (qtyInCart >= p.availableStock) {
+        showToast({
+          type: "warning",
+          title: "Stok Terbatas",
+          message: `Stok tersedia hanya ${p.availableStock}.`,
+        });
+        return;
+      }
+    }
     dispatch(
       addItem({
         productId: p.id,
@@ -193,7 +223,7 @@ export default function NewOrderScreen({ navigation }: Props) {
         imageUrl: p.imageUrl,
       })
     );
-  }, [dispatch]);
+  }, [dispatch, getQuantityInCart, showToast]);
 
   const handleIncrease = useCallback((productId: string, currentQty: number) => {
     dispatch(updateQuantity({ productId, quantity: currentQty + 1 }));
@@ -695,6 +725,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontWeight: "bold",
     color: theme.primary,
     marginVertical: 2,
+  },
+  cardStock: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: theme.textSecondary || "#4b5563",
   },
   cardActions: {
     marginTop: 4,

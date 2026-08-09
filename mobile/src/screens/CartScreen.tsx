@@ -18,6 +18,7 @@ import { CartItem } from "../lib/store/features/cart/types";
 import { useGetTablesQuery } from "../lib/api/tableApi";
 import { useCheckoutMutation } from "../lib/api/checkoutApi";
 import { useLazyGetOrderQuery } from "../lib/api/orderApi";
+import { useGetProductsQuery } from "../lib/api/productApi";
 import { PaymentMethod, OrderType } from "@shared/types";
 import { useToast } from "../hooks/useToast";
 import PrinterService from "../services/PrinterService";
@@ -42,6 +43,7 @@ export default function CartScreen({ navigation }: Props) {
   const cartNotes = useAppSelector(selectCartNotes);
 
   const { data: tables = [] } = useGetTablesQuery();
+  const { data: products = [] } = useGetProductsQuery({ sellable: true });
   const selectedTable = tables.find((t: any) => t.id === tableId);
   const activeTables = useMemo(() => tables.filter((t: any) => t.isActive), [tables]);
 
@@ -221,12 +223,13 @@ export default function CartScreen({ navigation }: Props) {
         index: 0,
         routes: [{ name: "CashierTabs" }],
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Order creation failed:", err);
+      const errMsg = err?.data?.message || "Gagal memproses transaksi. Silakan coba lagi.";
       showToast({
         type: "error",
         title: "Gagal Membuat Pesanan",
-        message: "Gagal memproses transaksi. Silakan coba lagi.",
+        message: errMsg,
       });
     }
   };
@@ -297,6 +300,17 @@ export default function CartScreen({ navigation }: Props) {
                           style={styles.qtyBtn}
                           disabled={isCheckoutLoading}
                           onPress={() => {
+                            const product = products.find((p: any) => p.id === item.productId);
+                            if (product && product.trackInventory && product.availableStock !== null && product.availableStock !== undefined) {
+                              if (item.quantity >= product.availableStock) {
+                                showToast({
+                                  type: "warning",
+                                  title: "Stok Terbatas",
+                                  message: `Stok tersedia hanya ${product.availableStock}.`,
+                                });
+                                return;
+                              }
+                            }
                             dispatch(updateQuantity({ productId: item.productId, note: item.note, quantity: item.quantity + 1 }));
                           }}
                         >

@@ -41,7 +41,8 @@ async function runValidation() {
     process.exit(1);
   }
 
-  const product = await prisma.product.findFirst({ where: { trackInventory: true, deletedAt: null } });
+  const product = await prisma.product.findFirst({ where: { name: "Salted Popcorn", deletedAt: null } })
+    || await prisma.product.findFirst({ where: { trackInventory: true, deletedAt: null } });
   if (!product) {
     console.error("Tracked product required. Run seed-inventory-lite first.");
     process.exit(1);
