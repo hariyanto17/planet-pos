@@ -102,10 +102,9 @@ export const getInventorySummary = async () => {
       availableStock = physicalQty - (committedMap.get(p.id) || 0);
     }
 
-    const status = getInventoryStatus(true, availableStock, Number(p.minimumStock));
-    if (status === "OUT_OF_STOCK") {
+    if (availableStock <= 0) {
       outOfStockProducts++;
-    } else if (status === "LOW_STOCK") {
+    } else if (availableStock <= Number(p.minimumStock)) {
       lowStockProducts++;
     }
   }

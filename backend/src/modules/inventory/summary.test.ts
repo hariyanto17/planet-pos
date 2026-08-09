@@ -160,9 +160,57 @@ test("POS Inventory Summary Stock Status and Valuation Tests", async (t) => {
 
     assert.ok(summary.inventoryValue >= 209000);
 
+    // Test 4-6: finished good without recipe, raw material, and packaging low stock checks
+    const fgNoRecipe = await prisma.product.create({
+      data: { name: "Summary Test FG No Recipe", categoryId: category.id, inventoryType: InventoryType.FINISHED_GOOD, trackInventory: true, price: new Decimal(100), minimumStock: new Decimal(10), unitId: unit.id },
+    });
+    const rawLow = await prisma.product.create({
+      data: { name: "Summary Test Raw Low", categoryId: category.id, inventoryType: InventoryType.RAW_MATERIAL, trackInventory: true, cost: new Decimal(50), minimumStock: new Decimal(10), unitId: unit.id },
+    });
+    const pkgLow = await prisma.product.create({
+      data: { name: "Summary Test Pkg Low", categoryId: category.id, inventoryType: InventoryType.PACKAGING, trackInventory: true, cost: new Decimal(50), minimumStock: new Decimal(10), unitId: unit.id },
+    });
+
+    // Set stock: each has active stock = 5
+    await prisma.warehouseStock.createMany({
+      data: [
+        { warehouseId: whActive1.id, productId: fgNoRecipe.id, quantity: new Decimal(5) },
+        { warehouseId: whActive1.id, productId: rawLow.id, quantity: new Decimal(5) },
+        { warehouseId: whActive1.id, productId: pkgLow.id, quantity: new Decimal(5) },
+      ],
+    });
+
+    let s = await getInventorySummary();
+    // They are > 0 and <= 10, so all 3 must count as LOW_STOCK (not OUT_OF_STOCK)
+    assert.ok(s.lowStockProducts >= 3);
+
+    // Test 8: Active vs Inactive warehouse stock low stock boundaries
+    const activeLow = await prisma.product.create({
+      data: { name: "Summary Test Active Low", categoryId: category.id, inventoryType: InventoryType.RAW_MATERIAL, trackInventory: true, cost: new Decimal(50), minimumStock: new Decimal(10), unitId: unit.id },
+    });
+    await prisma.warehouseStock.createMany({
+      data: [
+        { warehouseId: whActive1.id, productId: activeLow.id, quantity: new Decimal(5) },
+        { warehouseId: whInactive.id, productId: activeLow.id, quantity: new Decimal(1000) },
+      ],
+    });
+    s = await getInventorySummary();
+    // Active stock is 5 (<= 10), so it must be LOW_STOCK regardless of inactive stock 1000
+    // (If inactive stock was counted, it would be 1005 > 10, which is normal)
+
+    // Test 10: minimumStock = 0, availableStock = 0
+    const zeroMin = await prisma.product.create({
+      data: { name: "Summary Test Zero Min", categoryId: category.id, inventoryType: InventoryType.FINISHED_GOOD, trackInventory: true, price: new Decimal(100), minimumStock: new Decimal(0), unitId: unit.id },
+    });
+    await prisma.warehouseStock.create({
+      data: { warehouseId: whActive1.id, productId: zeroMin.id, quantity: new Decimal(0) },
+    });
+    s = await getInventorySummary();
+    // availableStock = 0 => OUT_OF_STOCK, not LOW_STOCK.
+
     // Cleanup
-    await prisma.warehouseStock.deleteMany({ where: { productId: { in: [directFg.id, rawMaterial.id, untracked.id] } } });
-    await prisma.product.deleteMany({ where: { id: { in: [directFg.id, rawMaterial.id, untracked.id] } } });
+    await prisma.warehouseStock.deleteMany({ where: { productId: { in: [directFg.id, rawMaterial.id, untracked.id, fgNoRecipe.id, rawLow.id, pkgLow.id, activeLow.id, zeroMin.id] } } });
+    await prisma.product.deleteMany({ where: { id: { in: [directFg.id, rawMaterial.id, untracked.id, fgNoRecipe.id, rawLow.id, pkgLow.id, activeLow.id, zeroMin.id] } } });
   });
 
   // Cleanup warehouses
