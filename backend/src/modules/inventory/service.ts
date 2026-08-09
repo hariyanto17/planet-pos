@@ -1,6 +1,7 @@
 import { PrismaClient, Prisma, StockMovementType, StockReferenceType } from "@prisma/client";
 import { getInventoryStatus } from "@shared/types";
 import { createLedgerEntry } from "./stock.service";
+import { getCommittedStockMap } from "../products/service";
 import {
   GetProductStockListFilters,
   GetStockMovementsFilters,
@@ -22,9 +23,37 @@ export const getInventorySummary = async () => {
   const products = await prisma.product.findMany({
     where: { deletedAt: null, isActive: true },
     include: {
-      warehouseStocks: true,
+      recipe: {
+        include: {
+          items: {
+            include: {
+              componentProduct: true,
+            },
+          },
+        },
+      },
     },
   });
+
+  const activeWarehouseStocks = await prisma.warehouseStock.findMany({
+    where: {
+      warehouse: {
+        isActive: true,
+      },
+    },
+    select: {
+      productId: true,
+      quantity: true,
+    },
+  });
+
+  const totalStockMap = new Map<string, number>();
+  for (const ws of activeWarehouseStocks) {
+    const current = totalStockMap.get(ws.productId) || 0;
+    totalStockMap.set(ws.productId, current + Number(ws.quantity));
+  }
+
+  const committedMap = await getCommittedStockMap(prisma);
 
   const totalProducts = products.length;
   const trackedProducts = products.filter((p) => p.trackInventory).length;
@@ -34,13 +63,46 @@ export const getInventorySummary = async () => {
   let totalValue = 0;
 
   for (const p of products) {
+    const physicalQty = totalStockMap.get(p.id) || 0;
+
+    // Valuation calculation: FINISHED_GOOD uses price, RAW_MATERIAL/PACKAGING uses cost
+    if (p.inventoryType === "FINISHED_GOOD") {
+      totalValue += physicalQty * Number(p.price || 0);
+    } else {
+      totalValue += physicalQty * Number(p.cost || 0);
+    }
+
     if (!p.trackInventory) continue;
 
-    // Sum quantity across all warehouses for this product
-    const totalQty = p.warehouseStocks.reduce((sum, s) => sum + Number(s.quantity), 0);
-    totalValue += totalQty * Number(p.price);
+    let availableStock = 0;
 
-    const status = getInventoryStatus(true, totalQty, Number(p.minimumStock));
+    if (p.inventoryType === "FINISHED_GOOD") {
+      if (p.recipe && p.recipe.items && p.recipe.items.length > 0) {
+        let minProducible = Infinity;
+        for (const item of p.recipe.items) {
+          if (item.componentProduct && !item.componentProduct.trackInventory) {
+            continue;
+          }
+          const componentPhysical = totalStockMap.get(item.componentProductId) || 0;
+          const componentCommitted = committedMap.get(item.componentProductId) || 0;
+          const componentStock = componentPhysical - componentCommitted;
+
+          const requiredQty = Number(item.quantity);
+          const producible = Math.floor(componentStock / requiredQty);
+          if (producible < minProducible) {
+            minProducible = producible;
+          }
+        }
+        availableStock = minProducible === Infinity ? 0 : Math.max(0, minProducible);
+      } else {
+        availableStock = Math.max(0, physicalQty - (committedMap.get(p.id) || 0));
+      }
+    } else {
+      // RAW_MATERIAL / PACKAGING
+      availableStock = physicalQty - (committedMap.get(p.id) || 0);
+    }
+
+    const status = getInventoryStatus(true, availableStock, Number(p.minimumStock));
     if (status === "OUT_OF_STOCK") {
       outOfStockProducts++;
     } else if (status === "LOW_STOCK") {
