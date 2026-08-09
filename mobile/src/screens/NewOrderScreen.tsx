@@ -141,13 +141,11 @@ export default function NewOrderScreen({ navigation }: Props) {
   const [activeCategory, setActiveCategory] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [search, setSearch] = useState("");
-  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
-  const [orderType, setOrderType] = useState<OrderType>("DINE_IN");
   const [customerName, setCustomerName] = useState("");
 
   // Dimensions & Responsiveness
   const [windowWidth, setWindowWidth] = useState(Dimensions.get("window").width);
-  
+
   useEffect(() => {
     const subscription = Dimensions.addEventListener("change", ({ window }) => {
       setWindowWidth(window.width);
@@ -222,8 +220,8 @@ export default function NewOrderScreen({ navigation }: Props) {
     dispatch(
       setCustomerInfo({
         customerName: customerName.trim() || "Pelanggan Langsung",
-        tableId: orderType === "DINE_IN" ? selectedTableId : null,
-        orderType,
+        tableId: null,
+        orderType: "DINE_IN",
       })
     );
 
@@ -236,8 +234,6 @@ export default function NewOrderScreen({ navigation }: Props) {
   const handleReset = () => {
     dispatch(clearCart());
     setCustomerName("");
-    setSelectedTableId(null);
-    setOrderType("DINE_IN");
   };
 
   // Render Product Grid Card Item
@@ -421,7 +417,7 @@ export default function NewOrderScreen({ navigation }: Props) {
         {isTablet && (
           <View style={styles.cartPane}>
             <Text style={styles.paneTitle}>Pemenuhan & Detail</Text>
-            
+
             {/* Customer Details Form */}
             <View style={styles.formContainer}>
               <TextInput
@@ -431,56 +427,10 @@ export default function NewOrderScreen({ navigation }: Props) {
                 value={customerName}
                 onChangeText={setCustomerName}
               />
-
-              <View style={styles.typeTabs}>
-                <TouchableOpacity
-                  style={[styles.typeTab, orderType === "DINE_IN" && styles.typeTabActive]}
-                  onPress={() => setOrderType("DINE_IN")}
-                >
-                  <Text style={[styles.typeTabText, orderType === "DINE_IN" && styles.typeTabTextActive]}>
-                    Makan di Sini
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.typeTab, orderType === "TAKEAWAY" && styles.typeTabActive]}
-                  onPress={() => setOrderType("TAKEAWAY")}
-                >
-                  <Text style={[styles.typeTabText, orderType === "TAKEAWAY" && styles.typeTabTextActive]}>
-                    Bawa Pulang
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {orderType === "DINE_IN" && (
-                <View style={styles.tablesWrapper}>
-                  <Text style={styles.tablesLabel}>Lokasi Meja</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tableScroll}>
-                    <TouchableOpacity
-                      style={[styles.tablePill, selectedTableId === null && styles.tablePillActive]}
-                      onPress={() => setSelectedTableId(null)}
-                    >
-                      <Text style={[styles.tablePillText, selectedTableId === null && styles.tablePillTextActive]}>
-                        Langsung
-                      </Text>
-                    </TouchableOpacity>
-                    {activeTables.map((t: any) => (
-                      <TouchableOpacity
-                        key={t.id}
-                        style={[styles.tablePill, selectedTableId === t.id && styles.tablePillActive]}
-                        onPress={() => setSelectedTableId(t.id)}
-                      >
-                        <Text style={[styles.tablePillText, selectedTableId === t.id && styles.tablePillTextActive]}>
-                          {t.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
             </View>
 
-            <Text style={styles.paneTitle}>Item Keranjang Terpilih ({totalItems})</Text>
-            
+            <Text style={styles.paneTitle}>Item Keranjang ({totalItems})</Text>
+
             {/* Scrollable list of cart items */}
             <View style={{ flex: 1 }}>{renderCartItems()}</View>
 
@@ -546,7 +496,7 @@ export default function NewOrderScreen({ navigation }: Props) {
             >
               <Text style={styles.modalBtnText}>Buka Shift Kasir</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={styles.modalLogoutBtn}
               onPress={handleLogout}
@@ -858,7 +808,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
     color: theme.textPrimary,
-    textTransform: "uppercase",
     letterSpacing: 0.5,
     marginTop: 8,
   },

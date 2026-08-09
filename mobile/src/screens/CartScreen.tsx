@@ -13,12 +13,12 @@ import {
   selectCartTableId,
   selectCartNotes,
 } from "../lib/store/features/cart/selectors";
-import { updateQuantity, removeItem, updateItemNote, clearCart } from "../lib/store/features/cart/slice";
+import { updateQuantity, removeItem, updateItemNote, clearCart, setCustomerInfo } from "../lib/store/features/cart/slice";
 import { CartItem } from "../lib/store/features/cart/types";
 import { useGetTablesQuery } from "../lib/api/tableApi";
 import { useCheckoutMutation } from "../lib/api/checkoutApi";
 import { useLazyGetOrderQuery } from "../lib/api/orderApi";
-import { PaymentMethod } from "@shared/types";
+import { PaymentMethod, OrderType } from "@shared/types";
 import { useToast } from "../hooks/useToast";
 import PrinterService from "../services/PrinterService";
 
@@ -43,6 +43,27 @@ export default function CartScreen({ navigation }: Props) {
 
   const { data: tables = [] } = useGetTablesQuery();
   const selectedTable = tables.find((t: any) => t.id === tableId);
+  const activeTables = useMemo(() => tables.filter((t: any) => t.isActive), [tables]);
+
+  const handleSetOrderType = (type: OrderType) => {
+    dispatch(
+      setCustomerInfo({
+        customerName,
+        orderType: type,
+        tableId: type === "DINE_IN" ? tableId : null,
+      })
+    );
+  };
+
+  const handleSetTableId = (id: string | null) => {
+    dispatch(
+      setCustomerInfo({
+        customerName,
+        orderType,
+        tableId: id,
+      })
+    );
+  };
 
   // Note Modal States
   const [editingItem, setEditingItem] = useState<CartItem | null>(null);
@@ -228,12 +249,58 @@ export default function CartScreen({ navigation }: Props) {
           {/* Left Column: Items */}
           <View style={styles.leftColumn}>
             {/* Fulfillment Detail Info */}
+             {/* Fulfillment Detail Info */}
             <View style={styles.infoCard}>
               <Text style={styles.infoTitle}>Detail Pemenuhan</Text>
-              <Text style={styles.infoText}>Pelanggan: <Text style={styles.boldText}>{customerName || "Langsung"}</Text></Text>
-              <Text style={styles.infoText}>Pemenuhan: <Text style={styles.boldText}>{orderType === "DINE_IN" ? "Makan di Sini" : "Bawa Pulang"}</Text></Text>
-              {orderType === "DINE_IN" && selectedTable && (
-                <Text style={styles.infoText}>Lokasi Meja: <Text style={styles.boldText}>{selectedTable.name}</Text></Text>
+              
+              <View style={styles.customerRow}>
+                <Text style={styles.infoText}>Pelanggan: <Text style={styles.boldText}>{customerName || "Langsung"}</Text></Text>
+              </View>
+
+              <View style={styles.typeTabs}>
+                <TouchableOpacity
+                  style={[styles.typeTab, orderType === "DINE_IN" && styles.typeTabActive]}
+                  onPress={() => handleSetOrderType("DINE_IN")}
+                >
+                  <Text style={[styles.typeTabText, orderType === "DINE_IN" && styles.typeTabTextActive]}>
+                    Makan di Sini
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.typeTab, orderType === "TAKEAWAY" && styles.typeTabActive]}
+                  onPress={() => handleSetOrderType("TAKEAWAY")}
+                >
+                  <Text style={[styles.typeTabText, orderType === "TAKEAWAY" && styles.typeTabTextActive]}>
+                    Bawa Pulang
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {orderType === "DINE_IN" && (
+                <View style={styles.tablesWrapper}>
+                  <Text style={styles.tablesLabel}>Lokasi Meja</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tableScroll}>
+                    <TouchableOpacity
+                      style={[styles.tablePill, tableId === null && styles.tablePillActive]}
+                      onPress={() => handleSetTableId(null)}
+                    >
+                      <Text style={[styles.tablePillText, tableId === null && styles.tablePillTextActive]}>
+                        Langsung
+                      </Text>
+                    </TouchableOpacity>
+                    {activeTables.map((t: any) => (
+                      <TouchableOpacity
+                        key={t.id}
+                        style={[styles.tablePill, tableId === t.id && styles.tablePillActive]}
+                        onPress={() => handleSetTableId(t.id)}
+                      >
+                        <Text style={[styles.tablePillText, tableId === t.id && styles.tablePillTextActive]}>
+                          {t.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
               )}
             </View>
 
@@ -894,5 +961,68 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   mBtnConfirmText: {
     color: "#ffffff",
     fontWeight: "600",
+  },
+  customerRow: {
+    marginBottom: 8,
+  },
+  typeTabs: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 8,
+  },
+  typeTab: {
+    flex: 1,
+    height: 36,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: theme.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  typeTabActive: {
+    borderColor: theme.primary,
+    backgroundColor: theme.primarySoft,
+  },
+  typeTabText: {
+    color: theme.textSecondary,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  typeTabTextActive: {
+    color: theme.textPrimary,
+  },
+  tablesWrapper: {
+    gap: 6,
+    marginTop: 4,
+  },
+  tablesLabel: {
+    fontSize: 11,
+    color: theme.textMuted,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+  },
+  tableScroll: {
+    gap: 6,
+  },
+  tablePill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 6,
+  },
+  tablePillActive: {
+    backgroundColor: theme.primary,
+    borderColor: theme.primary,
+  },
+  tablePillText: {
+    color: theme.textSecondary,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  tablePillTextActive: {
+    color: "#ffffff",
   },
 });
