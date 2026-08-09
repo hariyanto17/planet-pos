@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { PrismaClient, InventoryType } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
-import { getInventorySummary } from "./service";
+import { getInventorySummary, getProductStockList } from "./service";
 
 const prisma = new PrismaClient();
 
@@ -75,33 +75,34 @@ test("POS Inventory Summary Stock Status and Valuation Tests", async (t) => {
       ],
     });
 
-    // Summary should show:
-    // available fg = 20 (minimum stock = 10, so status is IN_STOCK)
-    // fg is NOT out of stock and NOT low stock
+    // Summary should show that fg (recipe-based finished good) is NOT included in summary metrics
     let summary = await getInventorySummary();
     const prevOutOfStock = summary.outOfStockProducts;
     const prevLowStock = summary.lowStockProducts;
 
-    // Test 1: Producible stock = 20 (minStock = 10) => Not out of stock, not low stock
-    assert.equal(summary.outOfStockProducts, prevOutOfStock);
+    // Verify it doesn't appear in getProductStockList
+    const inventoryList = await getProductStockList({ warehouseId: "all", limit: 100 });
+    const foundFg = inventoryList.data.some((item: any) => item.name === "Summary Test Finished Good");
+    assert.ok(!foundFg, "Recipe-based finished goods must be excluded from inventory product list");
 
-    // Test 3: Change stock to be below minimum stock (e.g. Component A = 18 => producible max = 9) => LOW_STOCK
+    // Test 3: Change stock of component A to 18. This would make fg low stock if included, but since fg is excluded, lowStockProducts must NOT increase.
     await prisma.warehouseStock.updateMany({
       where: { productId: componentA.id, warehouseId: whActive1.id },
       data: { quantity: new Decimal(18) },
     });
 
     summary = await getInventorySummary();
-    assert.equal(summary.lowStockProducts, prevLowStock + 1, "Should count as 1 low stock product");
+    assert.equal(summary.lowStockProducts, prevLowStock, "lowStockProducts should NOT change since FG is excluded");
 
-    // Test 2: Change stock to exhaust Component B (Component B = 0 => producible max = 0) => OUT_OF_STOCK
+    // Test 2: Change stock to exhaust Component B (Component B = 0). Component B itself (raw material) goes out of stock, increasing count by 1.
+    // fg is excluded, so it doesn't add another out of stock.
     await prisma.warehouseStock.updateMany({
       where: { productId: componentB.id, warehouseId: whActive2.id },
       data: { quantity: new Decimal(0) },
     });
 
     summary = await getInventorySummary();
-    assert.equal(summary.outOfStockProducts, prevOutOfStock + 2, "Should count as 2 out of stock products (FG and Raw Component)");
+    assert.equal(summary.outOfStockProducts, prevOutOfStock + 1, "Should only increase by 1 (for the exhausted raw component, FG is excluded)");
 
     // Cleanup
     await prisma.recipeItem.deleteMany({ where: { recipe: { productId: fg.id } } });

@@ -86,6 +86,13 @@ export const createOrder = async (
       }
     }
 
+    // Acquire write lock to prevent race conditions during concurrent checkouts
+    if (uniqueProductIds.length > 0) {
+      await tx.$executeRawUnsafe(
+        `SELECT id FROM "Product" WHERE id IN (${uniqueProductIds.map(id => `'${id}'`).join(',')}) FOR UPDATE`
+      );
+    }
+
     // Sellable stock calculation validation
     const productsWithRecipes = await tx.product.findMany({
       where: { id: { in: uniqueProductIds } },

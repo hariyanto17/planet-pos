@@ -20,7 +20,7 @@ const DEFAULT_SALES_WAREHOUSE_CODE = process.env.DEFAULT_SALES_WAREHOUSE_CODE ||
  * Get inventory statistics summary for dashboard cards
  */
 export const getInventorySummary = async () => {
-  const products = await prisma.product.findMany({
+  const allProducts = await prisma.product.findMany({
     where: { deletedAt: null, isActive: true },
     include: {
       recipe: {
@@ -34,6 +34,8 @@ export const getInventorySummary = async () => {
       },
     },
   });
+
+  const products = allProducts.filter((p) => !(p.inventoryType === "FINISHED_GOOD" && p.recipe));
 
   const activeWarehouseStocks = await prisma.warehouseStock.findMany({
     where: {
@@ -136,15 +138,26 @@ export const getProductStockList = async (filters: GetProductStockListFilters) =
   const limit = Number(filters.limit || 10);
   const skip = (page - 1) * limit;
 
-  // Build where clause
+  // Build where clause to only include physical inventory (RAW_MATERIAL, PACKAGING, and FINISHED_GOOD without recipe)
   const whereClause: Prisma.ProductWhereInput = {
     deletedAt: null,
+    OR: [
+      { inventoryType: { not: "FINISHED_GOOD" } },
+      {
+        inventoryType: "FINISHED_GOOD",
+        recipe: null,
+      },
+    ],
   };
 
   if (filters.search) {
-    whereClause.OR = [
-      { name: { contains: filters.search, mode: "insensitive" } },
-      { sku: { contains: filters.search, mode: "insensitive" } },
+    whereClause.AND = [
+      {
+        OR: [
+          { name: { contains: filters.search, mode: "insensitive" } },
+          { sku: { contains: filters.search, mode: "insensitive" } },
+        ],
+      },
     ];
   }
 
