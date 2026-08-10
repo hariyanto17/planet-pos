@@ -55,10 +55,9 @@ export const getCurrentShift = async (userId: string) => {
     return { status: "CLOSED" };
   }
 
-  // Aggregate completed orders & payments for this shift (Order.status = COMPLETED, Payment.status = PAID)
+  // Aggregate paid orders & payments for this shift (Payment.status = PAID)
   const completedOrders = await prisma.order.count({
     where: {
-      status: "COMPLETED",
       payments: {
         some: {
           cashierShiftId: activeShift.id,
@@ -74,10 +73,8 @@ export const getCurrentShift = async (userId: string) => {
       COALESCE(SUM(CASE WHEN p.method = 'CASH' THEN p.amount ELSE 0 END), 0) as "cashRevenue",
       COALESCE(SUM(CASE WHEN p.method = 'QRIS' THEN p.amount ELSE 0 END), 0) as "qrisRevenue"
     FROM "Payment" p
-    JOIN "Order" o ON p."orderId" = o.id
     WHERE p."cashierShiftId" = ${activeShift.id}
       AND p.status = 'PAID'
-      AND o.status = 'COMPLETED'
   `;
 
   const completedRevenue = Number(paymentsQuery[0]?.completedRevenue || 0);

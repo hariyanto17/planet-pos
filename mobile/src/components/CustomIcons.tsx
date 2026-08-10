@@ -110,9 +110,9 @@ export function HomeIcon({ color }: IconProps) {
         <View
           style={{
             position: "absolute",
-            top: -6,
-            left: -4,
-            width: 20,
+            top: -4,
+            left: 3,
+            width: 15,
             height: 2,
             backgroundColor: color,
             transform: [{ rotate: "45deg" }],
@@ -121,9 +121,9 @@ export function HomeIcon({ color }: IconProps) {
         <View
           style={{
             position: "absolute",
-            top: -6,
-            right: -4,
-            width: 20,
+            top: -4,
+            right: 3,
+            width: 15,
             height: 2,
             backgroundColor: color,
             transform: [{ rotate: "-45deg" }],

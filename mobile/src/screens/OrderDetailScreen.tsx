@@ -284,8 +284,8 @@ export default function OrderDetailScreen({ route, navigation }: Props) {
         </View>
       </ScrollView>
 
-      {/* Confirm Payment Footer CTA for PENDING customer orders */}
-      {mode !== "HISTORY" && paymentStatus === "PENDING" && pendingPayment && (
+      {/* Confirm Payment Footer CTA for PENDING orders */}
+      {paymentStatus === "PENDING" && pendingPayment && (
         <View style={styles.footer}>
           <TouchableOpacity
             style={styles.confirmBtn}

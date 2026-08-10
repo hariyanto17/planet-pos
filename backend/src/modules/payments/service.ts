@@ -51,33 +51,20 @@ export const createPayment = async (
     }
 
     let changeAmount = new Decimal(0);
-    let status: PaymentStatus = PaymentStatus.PENDING; // DEFAULT to PENDING for Customer self orders
+    let estimatedCash: Decimal | null = null;
 
-    // Cashier/Admin direct payments are auto-PAID
-    if (cashierId) {
-      status = PaymentStatus.PAID;
-      if (input.method === "CASH") {
-        if (!input.receivedCash) {
-          throw new AppError("BAD_REQUEST", "receivedCash is required for CASH payment");
+    if (input.method === "CASH") {
+      const cashInput = input.receivedCash || input.estimatedCash;
+      if (cashInput) {
+        const cashVal = new Decimal(cashInput);
+        if (cashVal.lt(paymentAmount)) {
+          throw new AppError("BAD_REQUEST", "Cash amount is less than the payment amount");
         }
-        const received = new Decimal(input.receivedCash);
-        if (received.lt(paymentAmount)) {
-          throw new AppError("BAD_REQUEST", "Received cash is less than the payment amount");
-        }
-        changeAmount = received.sub(paymentAmount);
-      }
-    } else {
-      // Customer Self-Order payment creation
-      if (input.method === "CASH" && input.estimatedCash) {
-        const estimated = new Decimal(input.estimatedCash);
-        if (estimated.lt(paymentAmount)) {
-          throw new AppError("BAD_REQUEST", "Estimated cash is less than the payment amount");
-        }
-        changeAmount = estimated.sub(paymentAmount);
+        estimatedCash = cashVal;
+        changeAmount = cashVal.sub(paymentAmount);
       }
     }
 
-    let cashierShiftId: string | null = null;
     if (cashierId) {
       const activeShift = await tx.cashierShift.findFirst({
         where: { userId: cashierId, status: "OPEN" },
@@ -85,35 +72,23 @@ export const createPayment = async (
       if (!activeShift) {
         throw new AppError("BAD_REQUEST", "Active cashier shift is required for cashier payments");
       }
-      cashierShiftId = activeShift.id;
     }
 
     const payment = await tx.payment.create({
       data: {
         orderId: input.orderId,
         method: input.method,
-        status,
+        status: PaymentStatus.PENDING,
         amount: paymentAmount,
-        estimatedCash: input.estimatedCash ? new Decimal(input.estimatedCash) : null,
-        receivedCash: input.receivedCash ? new Decimal(input.receivedCash) : null,
+        estimatedCash,
+        receivedCash: null,
         changeAmount,
         referenceNumber: input.referenceNumber || null,
-        confirmedAt: status === PaymentStatus.PAID ? new Date() : null,
-        confirmedById: status === PaymentStatus.PAID ? cashierId : null,
-        cashierShiftId,
+        confirmedAt: null,
+        confirmedById: null,
+        cashierShiftId: null,
       },
     });
-
-    if (status === PaymentStatus.PAID) {
-      await confirmPayment(order.id, paymentAmount, cashierId, tx);
-
-      domainEvents.emit(DOMAIN_EVENTS.PAYMENT_PAID, {
-        paymentId: payment.id,
-        orderId: order.id,
-        amount: paymentAmount.toString(),
-        method: input.method,
-      });
-    }
 
     return payment;
   };
@@ -156,13 +131,13 @@ export const confirmPendingPayment = async (
       changeAmount = received.sub(payment.amount);
     }
 
-    let cashierShiftId: string | null = null;
     const activeShift = await tx.cashierShift.findFirst({
       where: { userId: cashierId, status: "OPEN" },
     });
-    if (activeShift) {
-      cashierShiftId = activeShift.id;
+    if (!activeShift) {
+      throw new AppError("BAD_REQUEST", "Active cashier shift is required to confirm payment");
     }
+    const cashierShiftId = activeShift.id;
 
     const updatedPayment = await tx.payment.update({
       where: { id: paymentId },
