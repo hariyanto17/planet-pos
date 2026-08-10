@@ -7,10 +7,9 @@ export const querySalesReport = async (startDate: Date, endDate: Date) => {
       COUNT(DISTINCT o.id) as "orders",
       COALESCE(SUM(p.amount), 0) as "revenue"
     FROM "Order" o
-    LEFT JOIN "Payment" p ON p."orderId" = o.id AND p.status = 'PAID'
+    JOIN "Payment" p ON p."orderId" = o.id AND p.status = 'PAID'
     WHERE o."businessDate" >= ${startDate}
       AND o."businessDate" <= ${endDate}
-      AND o.status = 'COMPLETED'
     GROUP BY TO_CHAR(o."businessDate", 'YYYY-MM-DD')
     ORDER BY "date" ASC
   `;
@@ -22,3 +21,4 @@ export const querySalesReport = async (startDate: Date, endDate: Date) => {
   }));
 };
 export default querySalesReport;
+

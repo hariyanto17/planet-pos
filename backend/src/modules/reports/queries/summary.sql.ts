@@ -1,24 +1,25 @@
 import { prisma } from "../../../utils/prisma";
 
 export const querySummaryReport = async (startDate: Date, endDate: Date) => {
-  // Query 1: Completed Orders Net Revenue (Sum of PAID payments for COMPLETED orders)
+  // Query 1: Net Revenue (Sum of PAID payments for orders)
   const netRevenueQuery: any[] = await prisma.$queryRaw`
     SELECT COALESCE(SUM(p.amount), 0) as "netRevenue"
     FROM "Payment" p
     JOIN "Order" o ON p."orderId" = o.id
     WHERE p.status = 'PAID'
-      AND o.status = 'COMPLETED'
       AND o."businessDate" >= ${startDate}
       AND o."businessDate" <= ${endDate}
   `;
 
-  // Query 2: Gross Revenue (Sum of OrderItem.subtotal for COMPLETED orders)
+  // Query 2: Gross Revenue (Sum of OrderItem.subtotal for orders with PAID payments)
   const grossRevenueQuery: any[] = await prisma.$queryRaw`
     SELECT 
       COALESCE(SUM(oi.subtotal), 0) as "grossRevenue"
     FROM "OrderItem" oi
     JOIN "Order" o ON oi."orderId" = o.id
-    WHERE o.status = 'COMPLETED'
+    WHERE EXISTS (
+      SELECT 1 FROM "Payment" p WHERE p."orderId" = o.id AND p.status = 'PAID'
+    )
       AND o."businessDate" >= ${startDate}
       AND o."businessDate" <= ${endDate}
   `;
@@ -35,7 +36,6 @@ export const querySummaryReport = async (startDate: Date, endDate: Date) => {
     FROM "Order"
     WHERE "businessDate" >= ${startDate}
       AND "businessDate" <= ${endDate}
-      AND status IN ('PREPARING', 'READY', 'COMPLETED', 'CANCELLED')
   `;
 
   const netRevenue = Number(netRevenueQuery[0]?.netRevenue || 0);
@@ -59,3 +59,4 @@ export const querySummaryReport = async (startDate: Date, endDate: Date) => {
     averageOrderValue,
   };
 };
+

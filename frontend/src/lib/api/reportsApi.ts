@@ -85,6 +85,20 @@ export const reportsApi = baseApi.injectEndpoints({
       query: () => "/reports/cashiers",
       providesTags: ["Reports"],
     }),
+    getDailyAnalysis: builder.query<any, { date: string }>({
+      query: (params) => ({
+        url: "/reports/daily-analysis",
+        params,
+      }),
+      providesTags: ["Reports"],
+    }),
+    getMonthlyAnalysis: builder.query<any, { month: number; year: number }>({
+      query: (params) => ({
+        url: "/reports/monthly-analysis",
+        params,
+      }),
+      providesTags: ["Reports"],
+    }),
   }),
 });
 
@@ -99,4 +113,7 @@ export const {
   useGetAccountingSnapshotQuery,
   useGetReportsShiftsQuery,
   useGetReportsCashiersQuery,
+  useGetDailyAnalysisQuery,
+  useGetMonthlyAnalysisQuery,
 } = reportsApi;
+

@@ -180,6 +180,12 @@ export default function ReportsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="secondary" onClick={() => router.push("/reports/daily")}>
+            Analisis Harian
+          </Button>
+          <Button variant="secondary" onClick={() => router.push("/reports/monthly")}>
+            Analisis Bulanan
+          </Button>
           <Button variant="secondary" onClick={() => router.push("/reports/audit")}>
             Log Audit
           </Button>
@@ -187,6 +193,7 @@ export default function ReportsPage() {
             Sinkronisasi Buku Besar
           </Button>
         </div>
+
       </div>
 
       {/* Warning banner */}

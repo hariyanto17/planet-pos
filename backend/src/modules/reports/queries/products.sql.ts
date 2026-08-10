@@ -24,8 +24,12 @@ export const queryProductSalesReport = async (options: ProductReportOptions) => 
   const countQuery: any[] = await prisma.$queryRaw`
     SELECT COUNT(DISTINCT oi."productId") as "totalCount"
     FROM "OrderItem" oi
-    WHERE oi."createdAt" >= ${options.startDate}
-      AND oi."createdAt" <= ${options.endDate}
+    JOIN "Order" o ON oi."orderId" = o.id
+    WHERE o."businessDate" >= ${options.startDate}
+      AND o."businessDate" <= ${options.endDate}
+      AND EXISTS (
+        SELECT 1 FROM "Payment" p WHERE p."orderId" = o.id AND p.status = 'PAID'
+      )
       AND (${categoryName}::text IS NULL OR oi."productCategory" = ${categoryName})
   `;
   const totalItems = Number(countQuery[0]?.totalCount || 0);
@@ -40,8 +44,12 @@ export const queryProductSalesReport = async (options: ProductReportOptions) => 
       SUM(oi.subtotal) as "revenue",
       COUNT(DISTINCT oi."orderId") as "orderCount"
     FROM "OrderItem" oi
-    WHERE oi."createdAt" >= ${options.startDate}
-      AND oi."createdAt" <= ${options.endDate}
+    JOIN "Order" o ON oi."orderId" = o.id
+    WHERE o."businessDate" >= ${options.startDate}
+      AND o."businessDate" <= ${options.endDate}
+      AND EXISTS (
+        SELECT 1 FROM "Payment" p WHERE p."orderId" = o.id AND p.status = 'PAID'
+      )
       AND (${categoryName}::text IS NULL OR oi."productCategory" = ${categoryName})
     GROUP BY oi."productId", oi."productName", oi."productSku", oi."productCategory"
     ORDER BY "quantitySold" DESC, "revenue" DESC
@@ -70,3 +78,4 @@ export const queryProductSalesReport = async (options: ProductReportOptions) => 
     },
   };
 };
+

@@ -394,3 +394,309 @@ export const getCashiersList = async () => {
   });
   return users;
 };
+
+export const getCashierShiftReport = async (userId: string) => {
+  const activeShift = await prisma.cashierShift.findFirst({
+    where: { userId, status: "OPEN" },
+  });
+
+  if (!activeShift) {
+    return { shift: null, transactions: [] };
+  }
+
+  // Get all paid payments confirmed in this shift, plus any pending payments created by this cashier during this shift
+  const payments = await prisma.payment.findMany({
+    where: {
+      OR: [
+        { cashierShiftId: activeShift.id },
+        {
+          order: {
+            cashierId: userId,
+            createdAt: { gte: activeShift.openedAt },
+          },
+          status: "PENDING",
+        },
+      ],
+    },
+    include: {
+      order: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  let cashSales = 0;
+  let qrisSales = 0;
+  let totalTransactions = 0;
+
+  payments.forEach((p) => {
+    if (p.status === "PAID") {
+      totalTransactions += 1;
+      const amt = Number(p.amount);
+      if (p.method === "CASH") {
+        cashSales += amt;
+      } else if (p.method === "QRIS") {
+        qrisSales += amt;
+      }
+    }
+  });
+
+  const totalSales = cashSales + qrisSales;
+  const expectedCash = Number(activeShift.openingCash) + cashSales;
+
+  const transactions = payments.map((p) => ({
+    orderId: p.order.id,
+    orderNumber: p.order.orderNumber,
+    displayNumber: p.order.displayNumber,
+    createdAt: p.createdAt.toISOString(),
+    paymentMethod: p.method,
+    paymentStatus: p.status,
+    orderStatus: p.order.status,
+    total: Number(p.amount),
+    paymentId: p.id,
+  }));
+
+
+  return {
+    shift: {
+      id: activeShift.id,
+      openedAt: activeShift.openedAt.toISOString(),
+      openingCash: Number(activeShift.openingCash),
+      expectedCash,
+      totalSales,
+      cashSales,
+      qrisSales,
+      totalTransactions,
+    },
+    transactions,
+  };
+};
+
+export const getDailyAnalysis = async (dateStr: string) => {
+  const { startDate, endDate } = validateDateRange(dateStr, dateStr);
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Jakarta";
+
+  // 1. Summary (Filtered by o.businessDate instead of p.confirmedAt)
+  const payments = await prisma.payment.findMany({
+    where: {
+      status: "PAID",
+      order: {
+        businessDate: { gte: startDate, lte: endDate },
+      },
+    },
+  });
+
+  let totalSales = 0;
+  let cashSales = 0;
+  let qrisSales = 0;
+  let totalTransactions = payments.length;
+
+  payments.forEach((p) => {
+    const amt = Number(p.amount);
+    totalSales += amt;
+    if (p.method === "CASH") {
+      cashSales += amt;
+    } else if (p.method === "QRIS") {
+      qrisSales += amt;
+    }
+  });
+
+  const averageTransactionValue = totalTransactions > 0 ? Math.round(totalSales / totalTransactions) : 0;
+
+  // 2. Hourly Sales (Grouped by p.confirmedAt timezone hour, but filtered by o.businessDate)
+  const hourlyData: { hour: number; count: number; amount: number }[] = await prisma.$queryRaw`
+    SELECT 
+      EXTRACT(HOUR FROM p."confirmedAt" AT TIME ZONE 'UTC' AT TIME ZONE ${timezone})::int as hour,
+      COUNT(p.id)::int as count,
+      COALESCE(SUM(p.amount), 0)::float as amount
+    FROM "Payment" p
+    JOIN "Order" o ON p."orderId" = o.id
+    WHERE p.status = 'PAID'
+      AND o."businessDate" >= ${startDate}
+      AND o."businessDate" <= ${endDate}
+    GROUP BY hour
+    ORDER BY hour ASC
+  `;
+
+  const hourlySales = hourlyData.map((d) => ({
+    hour: String(d.hour).padStart(2, "0"),
+    transactionCount: d.count,
+    salesAmount: d.amount,
+  }));
+
+  // 3. Product Sales
+  const productSales: any[] = await prisma.$queryRaw`
+    SELECT 
+      oi."productName" as "productName",
+      SUM(oi.quantity)::int as "quantity",
+      SUM(oi.subtotal)::float as "revenue"
+    FROM "OrderItem" oi
+    JOIN "Order" o ON oi."orderId" = o.id
+    WHERE EXISTS (
+      SELECT 1 FROM "Payment" p WHERE p."orderId" = o.id AND p.status = 'PAID'
+    )
+    AND o."businessDate" >= ${startDate}
+    AND o."businessDate" <= ${endDate}
+    GROUP BY oi."productId", oi."productName"
+    ORDER BY "quantity" DESC, "revenue" DESC
+  `;
+
+  const topProducts = productSales.map((p, idx) => ({
+    ranking: idx + 1,
+    product: p.productName,
+    qty: p.quantity,
+    revenue: p.revenue,
+  }));
+
+  const lowProducts = [...productSales]
+    .sort((a, b) => a.quantity - b.quantity)
+    .map((p) => ({
+      product: p.productName,
+      qty: p.quantity,
+      revenue: p.revenue,
+    }));
+
+  // 4. Category Sales
+  const categorySales: any[] = await prisma.$queryRaw`
+    SELECT 
+      COALESCE(oi."productCategory", 'Uncategorized') as "category",
+      SUM(oi.quantity)::int as "quantity",
+      SUM(oi.subtotal)::float as "revenue"
+    FROM "OrderItem" oi
+    JOIN "Order" o ON oi."orderId" = o.id
+    WHERE EXISTS (
+      SELECT 1 FROM "Payment" p WHERE p."orderId" = o.id AND p.status = 'PAID'
+    )
+    AND o."businessDate" >= ${startDate}
+    AND o."businessDate" <= ${endDate}
+    GROUP BY oi."productCategory"
+    ORDER BY "revenue" DESC
+  `;
+
+  return {
+    summary: {
+      totalSales,
+      totalTransactions,
+      averageTransactionValue,
+      cashSales,
+      qrisSales,
+    },
+    hourlySales,
+    topProducts,
+    lowProducts,
+    categorySales,
+  };
+};
+
+export const getMonthlyAnalysis = async (month: number, year: number) => {
+  const startDate = new Date(year, month - 1, 1, 0, 0, 0, 0);
+  const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Jakarta";
+
+  // 1. Summary (Filtered by o.businessDate instead of p.confirmedAt)
+  const payments = await prisma.payment.findMany({
+    where: {
+      status: "PAID",
+      order: {
+        businessDate: { gte: startDate, lte: endDate },
+      },
+    },
+  });
+
+  let totalSales = 0;
+  let cashSales = 0;
+  let qrisSales = 0;
+  let totalTransactions = payments.length;
+
+  payments.forEach((p) => {
+    const amt = Number(p.amount);
+    totalSales += amt;
+    if (p.method === "CASH") {
+      cashSales += amt;
+    } else if (p.method === "QRIS") {
+      qrisSales += amt;
+    }
+  });
+
+  const averageTransactionValue = totalTransactions > 0 ? Math.round(totalSales / totalTransactions) : 0;
+
+  // 2. Daily Sales Trend (Grouped and filtered by o.businessDate)
+  const dailyTrendData: any[] = await prisma.$queryRaw`
+    SELECT 
+      TO_CHAR(o."businessDate" AT TIME ZONE 'UTC' AT TIME ZONE ${timezone}, 'YYYY-MM-DD') as "date",
+      COUNT(p.id)::int as "count",
+      COALESCE(SUM(p.amount), 0)::float as "amount"
+    FROM "Payment" p
+    JOIN "Order" o ON p."orderId" = o.id
+    WHERE p.status = 'PAID'
+      AND o."businessDate" >= ${startDate}
+      AND o."businessDate" <= ${endDate}
+    GROUP BY "date"
+    ORDER BY "date" ASC
+  `;
+
+  const dailySalesTrend = dailyTrendData.map((d) => ({
+    date: d.date,
+    transactionCount: d.count,
+    salesAmount: d.amount,
+  }));
+
+  // 3. Top Products
+  const productSales: any[] = await prisma.$queryRaw`
+    SELECT 
+      oi."productName" as "productName",
+      SUM(oi.quantity)::int as "quantity",
+      SUM(oi.subtotal)::float as "revenue"
+    FROM "OrderItem" oi
+    JOIN "Order" o ON oi."orderId" = o.id
+    WHERE EXISTS (
+      SELECT 1 FROM "Payment" p WHERE p."orderId" = o.id AND p.status = 'PAID'
+    )
+    AND o."businessDate" >= ${startDate}
+    AND o."businessDate" <= ${endDate}
+    GROUP BY oi."productId", oi."productName"
+    ORDER BY "quantity" DESC, "revenue" DESC
+  `;
+
+  const topProducts = productSales.map((p, idx) => ({
+    ranking: idx + 1,
+    product: p.productName,
+    qty: p.quantity,
+    revenue: p.revenue,
+  }));
+
+  // 4. Category Performance
+  const categorySales: any[] = await prisma.$queryRaw`
+    SELECT 
+      COALESCE(oi."productCategory", 'Uncategorized') as "category",
+      SUM(oi.quantity)::int as "quantity",
+      SUM(oi.subtotal)::float as "revenue"
+    FROM "OrderItem" oi
+    JOIN "Order" o ON oi."orderId" = o.id
+    WHERE EXISTS (
+      SELECT 1 FROM "Payment" p WHERE p."orderId" = o.id AND p.status = 'PAID'
+    )
+    AND o."businessDate" >= ${startDate}
+    AND o."businessDate" <= ${endDate}
+    GROUP BY oi."productCategory"
+    ORDER BY "revenue" DESC
+  `;
+
+  return {
+    businessPeriod: {
+      startStr: startDate.toISOString().split("T")[0],
+      endStr: endDate.toISOString().split("T")[0],
+    },
+    summary: {
+      totalSales,
+      totalTransactions,
+      averageTransactionValue,
+      cashSales,
+      qrisSales,
+    },
+    dailySalesTrend,
+    topProducts,
+    categorySales,
+  };
+};

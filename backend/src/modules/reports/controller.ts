@@ -140,3 +140,27 @@ export const getShifts = async (req: Request, res: Response) => {
 
   return responseHandler.ok(res, report);
 };
+
+export const getCashierShiftReport = async (req: Request, res: Response) => {
+  const report = await reportsService.getCashierShiftReport(req.user!.id);
+  return responseHandler.ok(res, report);
+};
+
+export const getDailyAnalysis = async (req: Request, res: Response) => {
+  const dateStr = req.query.date ? String(req.query.date) : new Date().toISOString().split("T")[0];
+  const report = await reportsService.getDailyAnalysis(dateStr);
+  return responseHandler.ok(res, report);
+};
+
+export const getMonthlyAnalysis = async (req: Request, res: Response) => {
+  const month = req.query.month ? Number(req.query.month) : new Date().getMonth() + 1;
+  const year = req.query.year ? Number(req.query.year) : new Date().getFullYear();
+
+  if (isNaN(month) || isNaN(year) || month < 1 || month > 12) {
+    throw new AppError("BAD_REQUEST", "Invalid month or year parameter");
+  }
+
+  const report = await reportsService.getMonthlyAnalysis(month, year);
+  return responseHandler.ok(res, report);
+};
+
