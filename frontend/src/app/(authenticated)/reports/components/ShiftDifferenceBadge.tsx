@@ -8,7 +8,7 @@ interface ShiftDifferenceBadgeProps {
 
 export const ShiftDifferenceBadge: React.FC<ShiftDifferenceBadgeProps> = ({ difference, status }) => {
   if (status === "OPEN" || difference === null) {
-    return <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">-</span>;
+    return <span className="text-text-muted text-xs font-bold uppercase tracking-wider">-</span>;
   }
 
   const diff = difference;

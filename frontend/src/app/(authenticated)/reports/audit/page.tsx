@@ -88,11 +88,11 @@ export default function ReportsAuditPage() {
 
 
       {isAnyError ? (
-        <div className="flex flex-col items-center justify-center p-12 bg-zinc-900 border border-zinc-800 rounded-2xl text-center shadow-lg max-w-md mx-auto mt-6 gap-4">
+        <div className="flex flex-col items-center justify-center p-12 bg-surface border border-border rounded-2xl text-center shadow-lg max-w-md mx-auto mt-6 gap-4">
           <span className="text-xl">⚠️</span>
           <div className="flex flex-col gap-1">
-            <h2 className="text-zinc-200 font-bold">Failed to load audit checks</h2>
-            <p className="text-zinc-500 text-xs">Verify database connectivity and filter properties.</p>
+            <h2 className="text-text-primary font-bold">Failed to load audit checks</h2>
+            <p className="text-text-muted text-xs">Verify database connectivity and filter properties.</p>
           </div>
           <Button variant="primary" onClick={handleRetryAll}>
             Retry Audit

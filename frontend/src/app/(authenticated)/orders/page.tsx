@@ -47,10 +47,10 @@ export default function OrdersPage() {
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto px-4 py-6">
       {/* Header section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/60 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-6">
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-3xl font-black tracking-tight text-zinc-100">{TEXT.orders.title}</h1>
-          <p className="text-zinc-500 text-sm">
+          <h1 className="text-3xl font-black tracking-tight text-text-primary">{TEXT.orders.title}</h1>
+          <p className="text-text-muted text-sm">
             {TEXT.orders.subtitle}
           </p>
         </div>
@@ -60,27 +60,27 @@ export default function OrdersPage() {
       </div>
 
       {/* Filters Card */}
-      <div className="p-5 bg-zinc-900 border border-zinc-800/80 rounded-2xl flex flex-col gap-4 shadow-md">
+      <div className="p-5 bg-surface border border-border/80 rounded-2xl flex flex-col gap-4 shadow-md">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Text Search */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">{TEXT.common.search}</label>
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">{TEXT.common.search}</label>
             <input
               type="text"
               placeholder={TEXT.orders.searchPlaceholder}
               value={filters.search}
               onChange={(e) => updateFilter("search", e.target.value)}
-              className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 placeholder-zinc-650 outline-none focus:border-indigo-500 text-sm"
+              className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder-zinc-650 outline-none focus:border-indigo-500 text-sm"
             />
           </div>
 
           {/* Fulfillment Status */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Fulfillment</label>
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Fulfillment</label>
             <select
               value={filters.status}
               onChange={(e) => updateFilter("status", e.target.value)}
-              className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none focus:border-indigo-500 text-sm animate-fade-in"
+              className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm animate-fade-in"
             >
               <option value="">{TEXT.orders.allStatuses}</option>
               <option value="PREPARING">DISIAPKAN</option>
@@ -91,11 +91,11 @@ export default function OrdersPage() {
 
           {/* Payment Status */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Status Pembayaran</label>
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Status Pembayaran</label>
             <select
               value={filters.paymentStatus}
               onChange={(e) => updateFilter("paymentStatus", e.target.value)}
-              className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none focus:border-indigo-500 text-sm"
+              className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm"
             >
               <option value="">{TEXT.orders.allStatuses}</option>
               <option value="PENDING">PENDING</option>
@@ -106,11 +106,11 @@ export default function OrdersPage() {
 
           {/* Payment Method */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Metode Pembayaran</label>
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Metode Pembayaran</label>
             <select
               value={filters.paymentMethod}
               onChange={(e) => updateFilter("paymentMethod", e.target.value)}
-              className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none focus:border-indigo-500 text-sm"
+              className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm"
             >
               <option value="">SEMUA METODE</option>
               <option value="CASH">CASH</option>
@@ -120,11 +120,11 @@ export default function OrdersPage() {
 
           {/* Source */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Sumber Pesanan</label>
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Sumber Pesanan</label>
             <select
               value={filters.source}
               onChange={(e) => updateFilter("source", e.target.value)}
-              className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none focus:border-indigo-500 text-sm"
+              className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm"
             >
               <option value="">{TEXT.orders.allSources}</option>
               <option value="SELF_ORDER">SELF ORDER</option>
@@ -134,11 +134,11 @@ export default function OrdersPage() {
 
           {/* Business Date */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Tanggal Operasional</label>
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Tanggal Operasional</label>
             <select
               value={filters.businessDate}
               onChange={(e) => updateFilter("businessDate", e.target.value as any)}
-              className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none focus:border-indigo-500 text-sm"
+              className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm"
             >
               <option value="ALL">SEMUA TANGGAL</option>
               <option value="TODAY">HARI INI</option>
@@ -149,11 +149,11 @@ export default function OrdersPage() {
 
           {/* Sorting Field */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Urutkan Berdasarkan</label>
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Urutkan Berdasarkan</label>
             <select
               value={filters.sortBy}
               onChange={(e) => updateFilter("sortBy", e.target.value as any)}
-              className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none focus:border-indigo-500 text-sm"
+              className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm"
             >
               <option value="createdAt">WAKTU DIBUAT</option>
               <option value="displayNumber">KODE TAMPILAN</option>
@@ -164,11 +164,11 @@ export default function OrdersPage() {
 
           {/* Sorting Direction */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Arah Urutan</label>
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Arah Urutan</label>
             <select
               value={filters.sortOrder}
               onChange={(e) => updateFilter("sortOrder", e.target.value as any)}
-              className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none focus:border-indigo-500 text-sm"
+              className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm"
             >
               <option value="desc">TERBARU / TERBESAR PERTAMA</option>
               <option value="asc">TERLAMA / TERKECIL PERTAMA</option>
@@ -185,23 +185,23 @@ export default function OrdersPage() {
 
         {/* Custom Date Inputs if CUSTOM is selected */}
         {filters.businessDate === "CUSTOM" && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-zinc-800/60 pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-border/60 pt-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Tanggal Mulai</label>
+              <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Tanggal Mulai</label>
               <input
                 type="date"
                 value={filters.customDateStart || ""}
                 onChange={(e) => updateFilter("customDateStart", e.target.value)}
-                className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none focus:border-indigo-500 text-sm"
+                className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm"
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Tanggal Selesai</label>
+              <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Tanggal Selesai</label>
               <input
                 type="date"
                 value={filters.customDateEnd || ""}
                 onChange={(e) => updateFilter("customDateEnd", e.target.value)}
-                className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none focus:border-indigo-500 text-sm"
+                className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm"
               />
             </div>
           </div>
@@ -210,18 +210,18 @@ export default function OrdersPage() {
 
       {/* Showing pagination numbers summary */}
       {!isError && (
-        <div className="text-xs text-zinc-500 font-bold uppercase tracking-widest pl-2">
+        <div className="text-xs text-text-muted font-bold uppercase tracking-widest pl-2">
           Menampilkan {startIdx}-{endIdx} dari {pagination.totalItems} transaksi
         </div>
       )}
 
       {/* Error handling retry card */}
       {isError ? (
-        <div className="flex flex-col items-center justify-center p-12 bg-zinc-900 border border-zinc-800 rounded-2xl text-center shadow-lg max-w-md mx-auto mt-6 gap-4">
+        <div className="flex flex-col items-center justify-center p-12 bg-surface border border-border rounded-2xl text-center shadow-lg max-w-md mx-auto mt-6 gap-4">
           <span className="text-xl">⚠️</span>
           <div className="flex flex-col gap-1">
-            <h2 className="text-zinc-200 font-bold">Gagal memuat antrean pesanan</h2>
-            <p className="text-zinc-500 text-xs">Silakan verifikasi koneksi server Anda dan coba lagi.</p>
+            <h2 className="text-text-primary font-bold">Gagal memuat antrean pesanan</h2>
+            <p className="text-text-muted text-xs">Silakan verifikasi koneksi server Anda dan coba lagi.</p>
           </div>
           <Button variant="primary" onClick={refetch}>
             Coba Lagi
@@ -252,28 +252,28 @@ export default function OrdersPage() {
               return (
                 <tr
                   key={order.id}
-                  className="border-b border-zinc-800/50 hover:bg-zinc-900/20 transition"
+                  className="border-b border-border/50 hover:bg-surface/20 transition"
                 >
                   <td className="px-6 py-4 text-sm font-bold text-indigo-400">
                     <Link href={`/orders/${order.id}`} className="hover:underline">
                       {formatOrderNumber(order.displayNumber)}
                     </Link>
                   </td>
-                  <td className="px-6 py-4 text-sm text-zinc-300 font-medium">
+                  <td className="px-6 py-4 text-sm text-text-primary font-medium">
                     {order.customerName}
                   </td>
-                  <td className="px-6 py-4 text-sm text-zinc-400">
+                  <td className="px-6 py-4 text-sm text-text-secondary">
                     {order.table?.name || "Walk-in"}
                   </td>
-                  <td className="px-6 py-4 text-sm text-zinc-400">
-                    <span className="text-xs px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 font-semibold">
+                  <td className="px-6 py-4 text-sm text-text-secondary">
+                    <span className="text-xs px-2 py-0.5 rounded bg-surface-secondary border border-border font-semibold">
                       {order.source === "SELF_ORDER" ? "SELF ORDER" : "CASHIER"}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-zinc-400">
+                  <td className="px-6 py-4 text-sm text-text-secondary">
                     {order.orderType === "DINE_IN" ? "Makan di Tempat" : "Bawa Pulang"}
                   </td>
-                  <td className="px-6 py-4 text-sm font-semibold text-zinc-300">
+                  <td className="px-6 py-4 text-sm font-semibold text-text-primary">
                     {paymentMethod}
                   </td>
                   <td className="px-6 py-4 text-sm">
@@ -282,10 +282,10 @@ export default function OrdersPage() {
                   <td className="px-6 py-4 text-sm">
                     <OrderStatusBadge status={order.status} />
                   </td>
-                  <td className="px-6 py-4 text-sm font-bold text-zinc-200">
+                  <td className="px-6 py-4 text-sm font-bold text-text-primary">
                     {formatCurrency(order.grandTotal)}
                   </td>
-                  <td className="px-6 py-4 text-sm text-zinc-500 font-medium">
+                  <td className="px-6 py-4 text-sm text-text-muted font-medium">
                     {formatRelativeTime(order.createdAt)}
                   </td>
                 </tr>
@@ -294,7 +294,7 @@ export default function OrdersPage() {
           </DataTable>
 
           {orders.length === 0 && !isLoading && (
-            <div className="p-12 border border-zinc-800 bg-zinc-900/40 rounded-xl text-center text-zinc-500 text-sm">
+            <div className="p-12 border border-border bg-surface/40 rounded-xl text-center text-text-muted text-sm">
               {TEXT.orders.noOrders}
             </div>
           )}

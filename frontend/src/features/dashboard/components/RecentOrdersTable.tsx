@@ -17,8 +17,8 @@ export const RecentOrdersTable: React.FC<RecentOrdersTableProps> = ({
 
   if (orders.length === 0 && !loading) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 bg-zinc-900 border border-zinc-800/80 rounded-2xl text-center shadow-md">
-        <span className="text-zinc-500 text-sm font-semibold">No transactions today.</span>
+      <div className="flex flex-col items-center justify-center p-12 bg-surface border border-border/80 rounded-2xl text-center shadow-md">
+        <span className="text-text-muted text-sm font-semibold">No transactions today.</span>
       </div>
     );
   }
@@ -26,7 +26,7 @@ export const RecentOrdersTable: React.FC<RecentOrdersTableProps> = ({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-zinc-200 text-sm font-bold uppercase tracking-wider">Latest Orders</h3>
+        <h3 className="text-text-primary text-sm font-bold uppercase tracking-wider">Latest Orders</h3>
         <Button variant="ghost" onClick={() => router.push("/orders")}>
           View All Orders
         </Button>
@@ -53,17 +53,17 @@ export const RecentOrdersTable: React.FC<RecentOrdersTableProps> = ({
           return (
             <tr
               key={order.id}
-              className="border-b border-zinc-800/50 hover:bg-zinc-900/20 transition"
+              className="border-b border-border/50 hover:bg-surface/20 transition"
             >
-              <td className="px-6 py-4 text-sm font-bold text-zinc-100">
+              <td className="px-6 py-4 text-sm font-bold text-text-primary">
                 {formatOrderNumber(order.displayNumber)}
               </td>
-              <td className="px-6 py-4 text-sm text-zinc-300">{order.customerName}</td>
-              <td className="px-6 py-4 text-sm text-zinc-300">
+              <td className="px-6 py-4 text-sm text-text-primary">{order.customerName}</td>
+              <td className="px-6 py-4 text-sm text-text-primary">
                 {order.table?.name || "Walk-in"}
               </td>
-              <td className="px-6 py-4 text-sm text-zinc-400">
-                <span className="text-xs font-semibold px-2 py-1 rounded bg-zinc-950 border border-zinc-800">
+              <td className="px-6 py-4 text-sm text-text-secondary">
+                <span className="text-xs font-semibold px-2 py-1 rounded bg-surface-secondary border border-border">
                   {order.source === "SELF_ORDER" ? "SELF ORDER" : "CASHIER"}
                 </span>
               </td>
@@ -89,10 +89,10 @@ export const RecentOrdersTable: React.FC<RecentOrdersTableProps> = ({
                   {order.status}
                 </span>
               </td>
-              <td className="px-6 py-4 text-sm font-bold text-zinc-200">
+              <td className="px-6 py-4 text-sm font-bold text-text-primary">
                 {formatCurrency(order.grandTotal)}
               </td>
-              <td className="px-6 py-4 text-sm text-zinc-400">
+              <td className="px-6 py-4 text-sm text-text-secondary">
                 {formatRelativeTime(order.createdAt)}
               </td>
             </tr>

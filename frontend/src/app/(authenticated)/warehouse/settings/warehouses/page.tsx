@@ -188,17 +188,17 @@ export default function WarehousesPage() {
         <div className="flex flex-col gap-4">
           <DataTable headers={["Kode", "Nama Gudang", "Tipe", TEXT.common.status, "Tanggal Dibuat", TEXT.common.actions]} isLoading={isLoading}>
             {warehousesList.map((w: Warehouse) => (
-              <tr key={w.id} className="border-b border-zinc-800/50 hover:bg-zinc-900/20 transition">
+              <tr key={w.id} className="border-b border-border/50 hover:bg-surface/20 transition">
                 <td className="px-6 py-4 text-sm font-extrabold text-indigo-400">{w.code}</td>
-                <td className="px-6 py-4 text-sm font-medium text-zinc-200">{w.name}</td>
-                <td className="px-6 py-4 text-sm text-zinc-300">
+                <td className="px-6 py-4 text-sm font-medium text-text-primary">{w.name}</td>
+                <td className="px-6 py-4 text-sm text-text-primary">
                   {w.warehouseType === "KITCHEN_STORAGE" ? "Dapur" : w.warehouseType === "GENERAL" ? "Umum" : "Penjualan"}
                   {w.isDefaultKitchenStorage ? " • Default Dapur" : ""}
                 </td>
                 <td className="px-6 py-4">
                   <StatusBadge isActive={w.isActive} />
                 </td>
-                <td className="px-6 py-4 text-sm text-zinc-400">
+                <td className="px-6 py-4 text-sm text-text-secondary">
                   {new Date(w.createdAt).toLocaleDateString(undefined, {
                     dateStyle: "medium",
                   })}
@@ -230,8 +230,8 @@ export default function WarehousesPage() {
           </DataTable>
 
           {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-zinc-800 pt-4">
-              <span className="text-sm text-zinc-400">
+            <div className="flex items-center justify-between border-t border-border pt-4">
+              <span className="text-sm text-text-secondary">
                 Halaman {page} dari {pagination.totalPages} ({pagination.total} item)
               </span>
               <div className="flex items-center gap-2">
@@ -258,19 +258,19 @@ export default function WarehousesPage() {
           <Input label="Kode Gudang" placeholder="Misal: CONCESSION, WAREHOUSE-A" error={errorsAdd.code?.message} {...registerAdd("code")} />
           <Input label="Nama Gudang" placeholder="Misal: Gudang Konsesi Utama" error={errorsAdd.name?.message} {...registerAdd("name")} />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <label className="flex flex-col gap-2 text-sm text-zinc-300">
+            <label className="flex flex-col gap-2 text-sm text-text-primary">
               Tipe Gudang
               <select
                 {...registerAdd("warehouseType")}
-                className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none text-sm"
+                className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none text-sm"
               >
                 <option value="SALES">Gudang Penjualan</option>
                 <option value="KITCHEN_STORAGE">Gudang Dapur</option>
                 <option value="GENERAL">Gudang Umum</option>
               </select>
             </label>
-            <label className="flex items-center gap-3 text-sm text-zinc-300">
-              <input type="checkbox" {...registerAdd("isDefaultKitchenStorage")} className="rounded border-zinc-700 bg-zinc-900 text-indigo-500 focus:ring-indigo-500" />
+            <label className="flex items-center gap-3 text-sm text-text-primary">
+              <input type="checkbox" {...registerAdd("isDefaultKitchenStorage")} className="rounded border-border bg-surface text-indigo-500 focus:ring-indigo-500" />
               Tetapkan sebagai Default Gudang Dapur
             </label>
           </div>
@@ -296,19 +296,19 @@ export default function WarehousesPage() {
           <Input label="Kode Gudang" error={errorsEdit.code?.message} {...registerEdit("code")} />
           <Input label="Nama Gudang" error={errorsEdit.name?.message} {...registerEdit("name")} />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <label className="flex flex-col gap-2 text-sm text-zinc-300">
+            <label className="flex flex-col gap-2 text-sm text-text-primary">
               Tipe Gudang
               <select
                 {...registerEdit("warehouseType")}
-                className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none text-sm"
+                className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none text-sm"
               >
                 <option value="SALES">Gudang Penjualan</option>
                 <option value="KITCHEN_STORAGE">Gudang Dapur</option>
                 <option value="GENERAL">Gudang Umum</option>
               </select>
             </label>
-            <label className="flex items-center gap-3 text-sm text-zinc-300">
-              <input type="checkbox" {...registerEdit("isDefaultKitchenStorage")} className="rounded border-zinc-700 bg-zinc-900 text-indigo-500 focus:ring-indigo-500" />
+            <label className="flex items-center gap-3 text-sm text-text-primary">
+              <input type="checkbox" {...registerEdit("isDefaultKitchenStorage")} className="rounded border-border bg-surface text-indigo-500 focus:ring-indigo-500" />
               Tetapkan sebagai Default Gudang Dapur
             </label>
           </div>

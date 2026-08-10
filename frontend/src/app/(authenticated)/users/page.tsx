@@ -244,7 +244,7 @@ export default function UsersPage() {
               setRoleFilter(e.target.value);
               setPage(1);
             }}
-            className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm w-full md:w-44"
+            className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm w-full md:w-44"
           >
             <option value="">Semua Peran</option>
             <option value="ADMIN">ADMIN</option>
@@ -260,7 +260,7 @@ export default function UsersPage() {
               setStatusFilter(e.target.value);
               setPage(1);
             }}
-            className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm w-full md:w-44"
+            className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm w-full md:w-44"
           >
             <option value="">Semua Status</option>
             <option value="true">Aktif</option>
@@ -275,17 +275,17 @@ export default function UsersPage() {
         <div className="flex flex-col gap-4">
           <DataTable headers={["Nama Lengkap", "Username", "Peran", "Gudang Tugas", "Status", "Tanggal Dibuat", TEXT.common.actions]} isLoading={isLoading}>
             {users.map((u: User) => (
-              <tr key={u.id} className="border-b border-zinc-800/50 hover:bg-zinc-900/20 transition">
-                <td className="px-6 py-4 text-sm font-medium text-zinc-200">{u.fullName}</td>
-                <td className="px-6 py-4 text-sm text-zinc-400">{u.username}</td>
-                <td className="px-6 py-4 text-sm text-zinc-400 font-semibold uppercase">{u.role}</td>
-                <td className="px-6 py-4 text-sm text-zinc-400">
+              <tr key={u.id} className="border-b border-border/50 hover:bg-surface/20 transition">
+                <td className="px-6 py-4 text-sm font-medium text-text-primary">{u.fullName}</td>
+                <td className="px-6 py-4 text-sm text-text-secondary">{u.username}</td>
+                <td className="px-6 py-4 text-sm text-text-secondary font-semibold uppercase">{u.role}</td>
+                <td className="px-6 py-4 text-sm text-text-secondary">
                   {u.role === "WAREHOUSE" ? u.warehouse?.name || "-" : u.role === "KITCHEN" ? "Akses: Penyimpanan Dapur (Kitchen)" : "-"}
                 </td>
                 <td className="px-6 py-4">
                   <StatusBadge isActive={u.isActive} />
                 </td>
-                <td className="px-6 py-4 text-sm text-zinc-400">
+                <td className="px-6 py-4 text-sm text-text-secondary">
                   {new Date(u.createdAt).toLocaleDateString(undefined, {
                     dateStyle: "medium",
                   })}
@@ -315,8 +315,8 @@ export default function UsersPage() {
           </DataTable>
 
           {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-zinc-800 pt-4">
-              <span className="text-sm text-zinc-400">
+            <div className="flex items-center justify-between border-t border-border pt-4">
+              <span className="text-sm text-text-secondary">
                 Halaman {page} dari {pagination.totalPages} ({pagination.totalItems} staf)
               </span>
               <div className="flex items-center gap-2">
@@ -360,10 +360,10 @@ export default function UsersPage() {
             {...registerAdd("confirmPassword")}
           />
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Peran Akses</label>
+            <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Peran Akses</label>
             <select
               {...registerAdd("role")}
-              className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
+              className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
             >
               <option value="">Pilih Peran</option>
               <option value="ADMIN">ADMIN</option>
@@ -379,10 +379,10 @@ export default function UsersPage() {
 
           {selectedRoleAdd === "WAREHOUSE" && (
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Penugasan Gudang</label>
+              <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Penugasan Gudang</label>
               <select
                 {...registerAdd("warehouseId")}
-                className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
+                className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
               >
                 <option value="">Pilih Gudang...</option>
                 {warehouses.map((w: any) => (
@@ -398,7 +398,7 @@ export default function UsersPage() {
           )}
 
           {selectedRoleAdd === "KITCHEN" && (
-            <div className="p-3 bg-zinc-950 border border-zinc-850 rounded-lg text-zinc-400 text-xs font-semibold">
+            <div className="p-3 bg-surface-secondary border border-border rounded-lg text-text-secondary text-xs font-semibold">
               ℹ️ Akses: Penyimpanan Dapur (Kitchen Storage)
             </div>
           )}
@@ -430,10 +430,10 @@ export default function UsersPage() {
             {...registerEdit("username")}
           />
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Peran Akses</label>
+            <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Peran Akses</label>
             <select
               {...registerEdit("role")}
-              className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
+              className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
             >
               <option value="ADMIN">ADMIN</option>
               <option value="CASHIER">CASHIER</option>
@@ -448,10 +448,10 @@ export default function UsersPage() {
 
           {selectedRoleEdit === "WAREHOUSE" && (
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Penugasan Gudang</label>
+              <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Penugasan Gudang</label>
               <select
                 {...registerEdit("warehouseId")}
-                className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
+                className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
               >
                 <option value="">Pilih Gudang...</option>
                 {warehouses.map((w: any) => (
@@ -467,7 +467,7 @@ export default function UsersPage() {
           )}
 
           {selectedRoleEdit === "KITCHEN" && (
-            <div className="p-3 bg-zinc-950 border border-zinc-850 rounded-lg text-zinc-400 text-xs font-semibold">
+            <div className="p-3 bg-surface-secondary border border-border rounded-lg text-text-secondary text-xs font-semibold">
               ℹ️ Akses: Penyimpanan Dapur (Kitchen Storage)
             </div>
           )}
@@ -477,9 +477,9 @@ export default function UsersPage() {
               type="checkbox"
               id="isActiveEdit"
               {...registerEdit("isActive")}
-              className="w-4 h-4 accent-indigo-600 rounded bg-zinc-950 border-zinc-800 text-zinc-100"
+              className="w-4 h-4 accent-indigo-600 rounded bg-surface-secondary border-border text-text-primary"
             />
-            <label htmlFor="isActiveEdit" className="text-sm font-medium text-zinc-300">
+            <label htmlFor="isActiveEdit" className="text-sm font-medium text-text-primary">
               Akun Aktif
             </label>
           </div>

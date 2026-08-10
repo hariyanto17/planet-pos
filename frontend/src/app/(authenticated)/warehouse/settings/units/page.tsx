@@ -170,13 +170,13 @@ export default function UnitsPage() {
         <div className="flex flex-col gap-4">
           <DataTable headers={["Simbol", "Nama Satuan", TEXT.common.status, "Tanggal Dibuat", TEXT.common.actions]} isLoading={isLoading}>
             {unitsList.map((u: Unit) => (
-              <tr key={u.id} className="border-b border-zinc-800/50 hover:bg-zinc-900/20 transition">
+              <tr key={u.id} className="border-b border-border/50 hover:bg-surface/20 transition">
                 <td className="px-6 py-4 text-sm font-extrabold text-indigo-400">{u.symbol}</td>
-                <td className="px-6 py-4 text-sm font-medium text-zinc-200">{u.name}</td>
+                <td className="px-6 py-4 text-sm font-medium text-text-primary">{u.name}</td>
                 <td className="px-6 py-4">
                   <StatusBadge isActive={u.isActive} />
                 </td>
-                <td className="px-6 py-4 text-sm text-zinc-400">
+                <td className="px-6 py-4 text-sm text-text-secondary">
                   {new Date(u.createdAt).toLocaleDateString(undefined, {
                     dateStyle: "medium",
                   })}
@@ -208,8 +208,8 @@ export default function UnitsPage() {
           </DataTable>
 
           {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-zinc-800 pt-4">
-              <span className="text-sm text-zinc-400">
+            <div className="flex items-center justify-between border-t border-border pt-4">
+              <span className="text-sm text-text-secondary">
                 Halaman {page} dari {pagination.totalPages} ({pagination.total} item)
               </span>
               <div className="flex items-center gap-2">

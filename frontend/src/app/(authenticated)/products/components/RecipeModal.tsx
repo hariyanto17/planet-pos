@@ -150,13 +150,13 @@ export const RecipeModal: React.FC<Props> = ({
         )}
 
         {isLoadingRecipe ? (
-          <div className="text-center py-6 text-zinc-500 text-sm font-medium">Memuat data resep...</div>
+          <div className="text-center py-6 text-text-muted text-sm font-medium">Memuat data resep...</div>
         ) : (
           <div className="flex flex-col gap-4">
-            <div className="max-h-[300px] overflow-y-auto border border-zinc-800/80 rounded-lg bg-zinc-950/40">
+            <div className="max-h-[300px] overflow-y-auto border border-border/80 rounded-lg bg-surface-secondary/40">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-zinc-800 bg-zinc-900/50 text-[10px] uppercase tracking-wider text-zinc-400 font-bold">
+                  <tr className="border-b border-border bg-surface/50 text-[10px] uppercase tracking-wider text-text-secondary font-bold">
                     <th className="px-4 py-2">Bahan Komponen</th>
                     <th className="px-4 py-2 w-28">Jumlah</th>
                     <th className="px-4 py-2 w-24">Satuan</th>
@@ -169,12 +169,12 @@ export const RecipeModal: React.FC<Props> = ({
                     const unitSymbol = selectedComp?.unit?.symbol || "-";
 
                     return (
-                      <tr key={idx} className="border-b border-zinc-850 hover:bg-zinc-900/10">
+                      <tr key={idx} className="border-b border-border hover:bg-surface/10">
                         <td className="px-3 py-2">
                           <select
                             value={row.componentProductId}
                             onChange={(e) => handleRowChange(idx, "componentProductId", e.target.value)}
-                            className="w-full px-2 py-1.5 bg-zinc-950 border border-zinc-800 rounded text-zinc-300 outline-none focus:border-indigo-500 text-xs font-semibold"
+                            className="w-full px-2 py-1.5 bg-surface-secondary border border-border rounded text-text-primary outline-none focus:border-indigo-500 text-xs font-semibold"
                             required
                           >
                             <option value="">Pilih Bahan...</option>
@@ -196,7 +196,7 @@ export const RecipeModal: React.FC<Props> = ({
                           />
                         </td>
                         <td className="px-3 py-2">
-                          <span className="text-xs text-zinc-400 font-semibold px-2 py-1 bg-zinc-900/80 border border-zinc-800 rounded inline-block w-full text-center">
+                          <span className="text-xs text-text-secondary font-semibold px-2 py-1 bg-surface/80 border border-border rounded inline-block w-full text-center">
                             {unitSymbol}
                           </span>
                         </td>
@@ -214,7 +214,7 @@ export const RecipeModal: React.FC<Props> = ({
                   })}
                   {items.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="text-center py-6 text-zinc-500 text-xs">
+                      <td colSpan={4} className="text-center py-6 text-text-muted text-xs">
                         Belum ada bahan. Klik &quot;Tambah Bahan&quot; di bawah.
                       </td>
                     </tr>
@@ -227,14 +227,14 @@ export const RecipeModal: React.FC<Props> = ({
               type="button"
               variant="secondary"
               onClick={handleAddRow}
-              className="text-xs font-bold border border-dashed border-zinc-800 hover:border-zinc-700 w-full"
+              className="text-xs font-bold border border-dashed border-border hover:border-border w-full"
             >
               + Tambah Bahan Komponen
             </Button>
           </div>
         )}
 
-        <div className="flex justify-end gap-2 border-t border-zinc-800/80 pt-4 mt-2">
+        <div className="flex justify-end gap-2 border-t border-border/80 pt-4 mt-2">
           <Button variant="secondary" onClick={onClose} type="button">
             Batal
           </Button>

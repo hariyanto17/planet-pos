@@ -28,7 +28,7 @@ export function InventoryFilters({
   onMovementTypeChange,
 }: InventoryFiltersProps) {
   return (
-    <div className="p-4 bg-zinc-900 border border-zinc-800/80 rounded-2xl flex flex-col sm:flex-row gap-4 justify-between items-center">
+    <div className="p-4 bg-surface border border-border/80 rounded-2xl flex flex-col sm:flex-row gap-4 justify-between items-center">
       <div className="w-full sm:max-w-xs">
         <SearchInput
           value={search}
@@ -41,7 +41,7 @@ export function InventoryFilters({
         <select
           value={selectedWarehouseId}
           onChange={(e) => onWarehouseChange(e.target.value)}
-          className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-300 outline-none text-xs font-bold uppercase"
+          className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none text-xs font-bold uppercase"
         >
           <option value="">Semua Gudang</option>
           {warehouses.map((w: any) => (
@@ -57,7 +57,7 @@ export function InventoryFilters({
             <select
               value={stockStatus}
               onChange={(e) => onStockStatusChange(e.target.value)}
-              className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-300 outline-none text-xs font-bold uppercase"
+              className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none text-xs font-bold uppercase"
             >
               <option value="">Semua Status</option>
               <option value="IN_STOCK">Tersedia</option>
@@ -71,7 +71,7 @@ export function InventoryFilters({
             <select
               value={movementType}
               onChange={(e) => onMovementTypeChange(e.target.value)}
-              className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-300 outline-none text-xs font-bold uppercase"
+              className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none text-xs font-bold uppercase"
             >
               <option value="">Semua Tipe Mutasi</option>
               <option value="OPENING">Stok Awal</option>

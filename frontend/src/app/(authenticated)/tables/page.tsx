@@ -220,13 +220,13 @@ export default function TablesPage() {
         <div className="flex flex-col gap-4">
           <DataTable headers={["Kode", "Nama", TEXT.common.status, "Tanggal Dibuat", ...(isAdmin ? [TEXT.common.actions] : [])]} isLoading={isLoading}>
             {paginatedTables.map((t: Table) => (
-              <tr key={t.id} className="border-b border-zinc-800/50 hover:bg-zinc-900/20 transition">
-                <td className="px-6 py-4 text-sm font-semibold text-zinc-100">{t.code}</td>
-                <td className="px-6 py-4 text-sm text-zinc-200">{t.name}</td>
+              <tr key={t.id} className="border-b border-border/50 hover:bg-surface/20 transition">
+                <td className="px-6 py-4 text-sm font-semibold text-text-primary">{t.code}</td>
+                <td className="px-6 py-4 text-sm text-text-primary">{t.name}</td>
                 <td className="px-6 py-4">
                   <StatusBadge isActive={t.isActive} />
                 </td>
-                <td className="px-6 py-4 text-sm text-zinc-400">
+                <td className="px-6 py-4 text-sm text-text-secondary">
                   {new Date(t.createdAt).toLocaleDateString(undefined, {
                     dateStyle: "medium",
                   })}
@@ -246,8 +246,8 @@ export default function TablesPage() {
           </DataTable>
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-zinc-800 pt-4">
-              <span className="text-sm text-zinc-400">
+            <div className="flex items-center justify-between border-t border-border pt-4">
+              <span className="text-sm text-text-secondary">
                 Halaman {page} dari {totalPages} ({filteredTables.length} item)
               </span>
               <div className="flex items-center gap-2">

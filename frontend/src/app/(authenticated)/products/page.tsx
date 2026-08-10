@@ -122,14 +122,14 @@ const LiveImagePreview = ({ url }: { url?: string }) => {
 
   return (
     <div className="mt-2 flex flex-col gap-1">
-      <span className="text-xs font-medium text-zinc-400">Live Preview:</span>
-      <div className="w-28 h-28 rounded-lg border border-zinc-850 overflow-hidden bg-zinc-900 flex items-center justify-center">
+      <span className="text-xs font-medium text-text-secondary">Live Preview:</span>
+      <div className="w-28 h-28 rounded-lg border border-border overflow-hidden bg-surface flex items-center justify-center">
         {hasError ? (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900 text-zinc-500 text-center p-2">
+          <div className="w-full h-full flex flex-col items-center justify-center bg-surface text-text-muted text-center p-2">
             <svg className="w-8 h-8 text-zinc-600 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <span className="text-[10px] text-zinc-500 font-medium">Invalid Image</span>
+            <span className="text-[10px] text-text-muted font-medium">Invalid Image</span>
           </div>
         ) : (
           <img
@@ -347,7 +347,7 @@ export default function ProductsPage() {
             setSelectedCategoryFilter(e.target.value);
             setPage(1);
           }}
-          className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm w-full md:w-48"
+          className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm w-full md:w-48"
         >
           <option value="">Semua Kategori</option>
           {categories.map((cat: Category) => (
@@ -363,7 +363,7 @@ export default function ProductsPage() {
             setSelectedInventoryTypeFilter(e.target.value);
             setPage(1);
           }}
-          className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm w-full md:w-48"
+          className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm w-full md:w-48"
         >
           <option value="">Semua Tipe</option>
           <option value="FINISHED_GOOD">Finished Good (Produk Jadi)</option>
@@ -378,19 +378,19 @@ export default function ProductsPage() {
         <div className="flex flex-col gap-4">
           <DataTable headers={["SKU", TEXT.products.nameCol, "Kategori", "Harga Jual", "Harga Beli", TEXT.common.status, TEXT.common.actions]} isLoading={isLoading}>
             {paginatedProducts.map((p: Product) => (
-              <tr key={p.id} className="border-b border-zinc-800/50 hover:bg-zinc-900/20 transition">
-                <td className="px-6 py-4 text-sm font-semibold text-zinc-400">{p.sku || "-"}</td>
+              <tr key={p.id} className="border-b border-border/50 hover:bg-surface/20 transition">
+                <td className="px-6 py-4 text-sm font-semibold text-text-secondary">{p.sku || "-"}</td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     {p.imageUrl ? (
                       <img src={p.imageUrl} alt={p.name} className="w-8 h-8 rounded-lg object-cover bg-zinc-850" />
                     ) : (
-                      <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-semibold text-zinc-500">
+                      <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-border flex items-center justify-center text-xs font-semibold text-text-muted">
                         N/A
                       </div>
                     )}
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium text-zinc-200">{p.name}</span>
+                      <span className="text-sm font-medium text-text-primary">{p.name}</span>
                       {p.trackInventory && p.unit && (
                         <span className="text-[10px] text-indigo-400 font-semibold mt-0.5">
                           Satuan: {p.unit.name} ({p.unit.symbol})
@@ -399,11 +399,11 @@ export default function ProductsPage() {
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 text-sm text-zinc-400">{p.category?.name || "Tanpa Kategori"}</td>
-                <td className="px-6 py-4 text-sm font-medium text-zinc-200">
+                <td className="px-6 py-4 text-sm text-text-secondary">{p.category?.name || "Tanpa Kategori"}</td>
+                <td className="px-6 py-4 text-sm font-medium text-text-primary">
                   {p.price !== null && p.price !== undefined ? `Rp ${Number(p.price).toLocaleString()}` : "-"}
                 </td>
-                <td className="px-6 py-4 text-sm font-medium text-zinc-300">
+                <td className="px-6 py-4 text-sm font-medium text-text-primary">
                   {p.cost !== null && p.cost !== undefined ? `Rp ${Number(p.cost).toLocaleString()}` : "-"}
                 </td>
                 <td className="px-6 py-4">
@@ -423,8 +423,8 @@ export default function ProductsPage() {
           </DataTable>
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-zinc-800 pt-4">
-              <span className="text-sm text-zinc-400">
+            <div className="flex items-center justify-between border-t border-border pt-4">
+              <span className="text-sm text-text-secondary">
                 Halaman {page} dari {totalPages} ({filteredProducts.length} item)
               </span>
               <div className="flex items-center gap-2">
@@ -446,7 +446,7 @@ export default function ProductsPage() {
             <div className="space-y-6">
               {/* Product Information Section */}
               <div>
-                <h4 className="text-sm font-semibold text-zinc-200 border-b border-zinc-800 pb-2 mb-4">
+                <h4 className="text-sm font-semibold text-text-primary border-b border-border pb-2 mb-4">
                   Product Information
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -466,13 +466,13 @@ export default function ProductsPage() {
                     {...registerAdd("sku")}
                   />
                   <div className="flex flex-col gap-1.5">
-                    <label htmlFor="addCategoryId" className="text-sm font-medium text-zinc-300">
+                    <label htmlFor="addCategoryId" className="text-sm font-medium text-text-primary">
                       Category
                     </label>
                     <select
                       id="addCategoryId"
                       {...registerAdd("categoryId")}
-                      className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
+                      className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
                     >
                       <option value="">Select category...</option>
                       {categories.map((cat: Category) => (
@@ -494,14 +494,14 @@ export default function ProductsPage() {
                     />
                   ) : (
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-sm font-medium text-zinc-400">Selling Price</label>
+                      <label className="text-sm font-medium text-text-secondary">Selling Price</label>
                       <input
                         type="text"
                         disabled
                         value="-"
-                        className="px-3 py-2 bg-zinc-800/50 border border-zinc-800 rounded-lg text-zinc-500 text-sm cursor-not-allowed outline-none"
+                        className="px-3 py-2 bg-zinc-800/50 border border-border rounded-lg text-text-muted text-sm cursor-not-allowed outline-none"
                       />
-                      <p className="text-xs text-zinc-400">Produk ini tidak dijual langsung.</p>
+                      <p className="text-xs text-text-secondary">Produk ini tidak dijual langsung.</p>
                     </div>
                   )}
                   <Input
@@ -527,38 +527,38 @@ export default function ProductsPage() {
               </div>
 
               {/* Track Stock & Inventory checkbox */}
-              <div className="flex flex-col gap-1 py-4 border-t border-zinc-800">
+              <div className="flex flex-col gap-1 py-4 border-t border-border">
                 <div className="flex items-center gap-3">
                   <input
                     type="checkbox"
                     id="trackInventoryAdd"
                     {...registerAdd("trackInventory")}
-                    className="w-4 h-4 rounded border-zinc-800 text-indigo-600 focus:ring-indigo-500 bg-zinc-900 cursor-pointer"
+                    className="w-4 h-4 rounded border-border text-indigo-600 focus:ring-indigo-500 bg-surface cursor-pointer"
                   />
-                  <label htmlFor="trackInventoryAdd" className="text-sm font-semibold text-zinc-200 cursor-pointer">
+                  <label htmlFor="trackInventoryAdd" className="text-sm font-semibold text-text-primary cursor-pointer">
                     Track Stock & Inventory
                   </label>
                 </div>
-                <p className="text-xs text-zinc-400 ml-7">
+                <p className="text-xs text-text-secondary ml-7">
                   Enable this if this product has physical stock that must be monitored.
                 </p>
               </div>
             </div>
 
             {trackInventoryAdd && (
-              <div className="animate-in fade-in slide-in-from-top-2 duration-200 rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
-                <h4 className="text-sm font-semibold text-zinc-200 border-b border-zinc-800 pb-2 mb-4">
+              <div className="animate-in fade-in slide-in-from-top-2 duration-200 rounded-2xl border border-border bg-surface-secondary p-4">
+                <h4 className="text-sm font-semibold text-text-primary border-b border-border pb-2 mb-4">
                   Inventory Settings
                 </h4>
                 <div className="grid grid-cols-1 gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <label htmlFor="addInventoryType" className="text-sm font-medium text-zinc-300">
+                    <label htmlFor="addInventoryType" className="text-sm font-medium text-text-primary">
                       Product Type *
                     </label>
                     <select
                       id="addInventoryType"
                       {...registerAdd("inventoryType")}
-                      className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
+                      className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
                     >
                       <option value="">Choose a type...</option>
                       <option value="FINISHED_GOOD">Produk Jadi</option>
@@ -567,30 +567,30 @@ export default function ProductsPage() {
                     </select>
                     {errorsAdd.inventoryType ? <p className="text-xs text-rose-500 mt-0.5">{errorsAdd.inventoryType.message}</p> : null}
                     {inventoryTypeAdd === "FINISHED_GOOD" && (
-                      <p className="text-xs text-zinc-400 mt-1">
+                      <p className="text-xs text-text-secondary mt-1">
                         <strong>Produk Jadi:</strong> Finished products sold directly to customers. Examples: Popcorn, Coca Cola, Nachos
                       </p>
                     )}
                     {inventoryTypeAdd === "RAW_MATERIAL" && (
-                      <p className="text-xs text-zinc-400 mt-1">
+                      <p className="text-xs text-text-secondary mt-1">
                         <strong>Bahan Baku:</strong> Ingredients used for recipes. Examples: Corn, Salt, Butter
                       </p>
                     )}
                     {inventoryTypeAdd === "PACKAGING" && (
-                      <p className="text-xs text-zinc-400 mt-1">
+                      <p className="text-xs text-text-secondary mt-1">
                         <strong>Material Kemasan:</strong> Packaging materials. Examples: Popcorn Bucket, Paper Cup, Plastic Lid
                       </p>
                     )}
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label htmlFor="addUnitId" className="text-sm font-medium text-zinc-300">
+                    <label htmlFor="addUnitId" className="text-sm font-medium text-text-primary">
                       Unit *
                     </label>
                     {activeUnits.length === 0 ? (
-                      <div className="flex items-center justify-between gap-2 p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-400">
+                      <div className="flex items-center justify-between gap-2 p-2 bg-surface border border-border rounded-lg text-sm text-text-secondary">
                         <span>No active units found.</span>
-                        <Link href="/warehouse/settings/units" className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-200 rounded transition duration-200">
+                        <Link href="/warehouse/settings/units" className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-text-primary rounded transition duration-200">
                           Manage Units
                         </Link>
                       </div>
@@ -598,7 +598,7 @@ export default function ProductsPage() {
                       <select
                         id="addUnitId"
                         {...registerAdd("unitId")}
-                        className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
+                        className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
                       >
                         <option value="">Select a unit...</option>
                         {activeUnits.map((u: any) => (
@@ -642,7 +642,7 @@ export default function ProductsPage() {
         <form onSubmit={handleSubmitEdit(handleEdit)} className="flex flex-col gap-6">
           {/* Product Information Section */}
           <div>
-            <h4 className="text-sm font-semibold text-zinc-200 border-b border-zinc-800 pb-2 mb-4">
+            <h4 className="text-sm font-semibold text-text-primary border-b border-border pb-2 mb-4">
               Product Information
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -661,13 +661,13 @@ export default function ProductsPage() {
                 {...registerEdit("sku")}
               />
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="editCategoryId" className="text-sm font-medium text-zinc-300">
+                <label htmlFor="editCategoryId" className="text-sm font-medium text-text-primary">
                   Category
                 </label>
                 <select
                   id="editCategoryId"
                   {...registerEdit("categoryId")}
-                  className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
+                  className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
                 >
                   {categories.map((cat: Category) => (
                     <option key={cat.id} value={cat.id}>
@@ -687,14 +687,14 @@ export default function ProductsPage() {
                 />
               ) : (
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-zinc-400">Selling Price</label>
+                  <label className="text-sm font-medium text-text-secondary">Selling Price</label>
                   <input
                     type="text"
                     disabled
                     value="-"
-                    className="px-3 py-2 bg-zinc-800/50 border border-zinc-800 rounded-lg text-zinc-500 text-sm cursor-not-allowed outline-none"
+                    className="px-3 py-2 bg-zinc-800/50 border border-border rounded-lg text-text-muted text-sm cursor-not-allowed outline-none"
                   />
-                  <p className="text-xs text-zinc-400">Produk ini tidak dijual langsung.</p>
+                  <p className="text-xs text-text-secondary">Produk ini tidak dijual langsung.</p>
                 </div>
               )}
               <Input
@@ -719,19 +719,19 @@ export default function ProductsPage() {
           </div>
 
           {/* Track Stock & Inventory checkbox */}
-          <div className="flex flex-col gap-1 py-4 border-t border-zinc-800">
+          <div className="flex flex-col gap-1 py-4 border-t border-border">
             <div className="flex items-center gap-3">
               <input
                 type="checkbox"
                 id="trackInventoryEdit"
                 {...registerEdit("trackInventory")}
-                className="w-4 h-4 rounded border-zinc-800 text-indigo-600 focus:ring-indigo-500 bg-zinc-900 cursor-pointer"
+                className="w-4 h-4 rounded border-border text-indigo-600 focus:ring-indigo-500 bg-surface cursor-pointer"
               />
-              <label htmlFor="trackInventoryEdit" className="text-sm font-semibold text-zinc-200 cursor-pointer">
+              <label htmlFor="trackInventoryEdit" className="text-sm font-semibold text-text-primary cursor-pointer">
                 Track Stock & Inventory
               </label>
             </div>
-            <p className="text-xs text-zinc-400 ml-7">
+            <p className="text-xs text-text-secondary ml-7">
               Enable this if this product has physical stock that must be monitored.
             </p>
           </div>
@@ -739,18 +739,18 @@ export default function ProductsPage() {
           {/* Inventory Settings Section */}
           {trackInventoryEdit && (
             <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-              <h4 className="text-sm font-semibold text-zinc-200 border-b border-zinc-800 pb-2 mb-4">
+              <h4 className="text-sm font-semibold text-text-primary border-b border-border pb-2 mb-4">
                 Inventory Settings
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="editInventoryType" className="text-sm font-medium text-zinc-300">
+                  <label htmlFor="editInventoryType" className="text-sm font-medium text-text-primary">
                     Product Type *
                   </label>
                   <select
                     id="editInventoryType"
                     {...registerEdit("inventoryType")}
-                    className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
+                    className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
                   >
                     <option value="">Choose a type...</option>
                     <option value="FINISHED_GOOD">Produk Jadi</option>
@@ -760,30 +760,30 @@ export default function ProductsPage() {
                   {errorsEdit.inventoryType ? <p className="text-xs text-rose-500 mt-0.5">{errorsEdit.inventoryType.message}</p> : null}
                   {/* Dynamic descriptions for selected type */}
                   {inventoryTypeEdit === "FINISHED_GOOD" && (
-                    <p className="text-xs text-zinc-400 mt-1">
+                    <p className="text-xs text-text-secondary mt-1">
                       <strong>Produk Jadi:</strong> Finished products sold directly to customers. Examples: Popcorn, Coca Cola, Nachos
                     </p>
                   )}
                   {inventoryTypeEdit === "RAW_MATERIAL" && (
-                    <p className="text-xs text-zinc-400 mt-1">
+                    <p className="text-xs text-text-secondary mt-1">
                       <strong>Bahan Baku:</strong> Ingredients used for recipes. Examples: Corn, Salt, Butter
                     </p>
                   )}
                   {inventoryTypeEdit === "PACKAGING" && (
-                    <p className="text-xs text-zinc-400 mt-1">
+                    <p className="text-xs text-text-secondary mt-1">
                       <strong>Material Kemasan:</strong> Packaging materials. Examples: Popcorn Bucket, Paper Cup, Plastic Lid
                     </p>
                   )}
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="editUnitId" className="text-sm font-medium text-zinc-300">
+                  <label htmlFor="editUnitId" className="text-sm font-medium text-text-primary">
                     Unit *
                   </label>
                   {activeUnits.length === 0 ? (
-                    <div className="flex items-center justify-between gap-2 p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-400">
+                    <div className="flex items-center justify-between gap-2 p-2 bg-surface border border-border rounded-lg text-sm text-text-secondary">
                       <span>No active units found.</span>
-                      <Link href="/warehouse/settings/units" className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-200 rounded transition duration-200">
+                      <Link href="/warehouse/settings/units" className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-text-primary rounded transition duration-200">
                         Manage Units
                       </Link>
                     </div>
@@ -791,7 +791,7 @@ export default function ProductsPage() {
                     <select
                       id="editUnitId"
                       {...registerEdit("unitId")}
-                      className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
+                      className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
                     >
                       <option value="">Select a unit...</option>
                       {activeUnits.map((u: any) => (

@@ -2,10 +2,10 @@ import { Router } from "express";
 import { catchAsync } from "../../utils/catchAsyc";
 import { checkoutHandler } from "./controller";
 import { optionalAuthenticate } from "../../middleware/authMiddleware";
-import { cashierShiftGuard } from "../../middleware/cashierShiftGuard";
+import { selfOrderShiftGuard } from "../../middleware/selfOrderShiftGuard";
 
 const router = Router();
 
-router.post("/", optionalAuthenticate, cashierShiftGuard, catchAsync(checkoutHandler));
+router.post("/", optionalAuthenticate, selfOrderShiftGuard, catchAsync(checkoutHandler));
 
 export default router;

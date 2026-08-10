@@ -25,13 +25,13 @@ export function InventoryMovementTable({
       case "RECEIVE":
         return <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Penerimaan Barang</span>;
       case "SALE":
-        return <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Penjualan</span>;
+        return <span className="text-[10px] font-bold uppercase tracking-wider text-text-secondary">Penjualan</span>;
       case "ADJUSTMENT":
         return <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Penyesuaian Stok</span>;
       case "WASTE":
         return <span className="text-[10px] font-bold uppercase tracking-wider text-rose-400">Barang Rusak</span>;
       default:
-        return <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{type}</span>;
+        return <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">{type}</span>;
     }
   };
 
@@ -51,13 +51,13 @@ export function InventoryMovementTable({
         isLoading={isLoading}
       >
         {movementsList.map((m: any) => (
-          <tr key={m.id} className="border-b border-zinc-800/40 hover:bg-zinc-800/10 animate-fade-in">
-            <td className="px-6 py-4 text-[10px] font-bold text-zinc-500 font-mono">
+          <tr key={m.id} className="border-b border-border/40 hover:bg-zinc-800/10 animate-fade-in">
+            <td className="px-6 py-4 text-[10px] font-bold text-text-muted font-mono">
               {new Date(m.createdAt).toLocaleString()}
             </td>
-            <td className="px-6 py-4 text-xs font-semibold text-zinc-300">{m.warehouseName}</td>
-            <td className="px-6 py-4 text-xs font-bold text-zinc-200">
-              {m.productName} <span className="text-[10px] text-zinc-500 font-mono">({m.sku})</span>
+            <td className="px-6 py-4 text-xs font-semibold text-text-primary">{m.warehouseName}</td>
+            <td className="px-6 py-4 text-xs font-bold text-text-primary">
+              {m.productName} <span className="text-[10px] text-text-muted font-mono">({m.sku})</span>
             </td>
             <td className="px-6 py-4">{renderMovementBadge(m.movementType)}</td>
             <td
@@ -67,11 +67,11 @@ export function InventoryMovementTable({
             >
               {m.quantity > 0 ? `+${parseFloat(m.quantity.toFixed(3))}` : parseFloat(m.quantity.toFixed(3))}
             </td>
-            <td className="px-6 py-4 text-xs font-semibold text-zinc-300 font-mono">
+            <td className="px-6 py-4 text-xs font-semibold text-text-primary font-mono">
               {parseFloat(m.quantityAfter.toFixed(3))}
             </td>
-            <td className="px-6 py-4 text-xs font-medium text-zinc-400">{m.createdBy}</td>
-            <td className="px-6 py-4 text-xs text-zinc-500 truncate max-w-[200px]" title={m.remarks}>
+            <td className="px-6 py-4 text-xs font-medium text-text-secondary">{m.createdBy}</td>
+            <td className="px-6 py-4 text-xs text-text-muted truncate max-w-[200px]" title={m.remarks}>
               {m.remarks}
             </td>
           </tr>
@@ -79,7 +79,7 @@ export function InventoryMovementTable({
       </DataTable>
 
       {movementsList.length === 0 && !isLoading && (
-        <div className="p-8 border border-zinc-800/60 bg-zinc-950/20 text-center rounded-xl text-zinc-500 text-sm">
+        <div className="p-8 border border-border/60 bg-surface-secondary/20 text-center rounded-xl text-text-muted text-sm">
           {TEXT.inventory.emptyMovements}
         </div>
       )}

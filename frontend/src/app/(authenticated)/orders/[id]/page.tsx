@@ -46,11 +46,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
   if (isError || !order) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 bg-zinc-900 border border-zinc-800 rounded-2xl text-center shadow-lg max-w-md mx-auto mt-12 gap-4">
+      <div className="flex flex-col items-center justify-center p-12 bg-surface border border-border rounded-2xl text-center shadow-lg max-w-md mx-auto mt-12 gap-4">
         <span className="text-xl">⚠️</span>
         <div className="flex flex-col gap-1">
-          <h2 className="text-zinc-200 font-bold">Gagal memuat detail pesanan</h2>
-          <p className="text-zinc-500 text-xs">Verifikasi pengidentifikasi atau periksa log server.</p>
+          <h2 className="text-text-primary font-bold">Gagal memuat detail pesanan</h2>
+          <p className="text-text-muted text-xs">Verifikasi pengidentifikasi atau periksa log server.</p>
         </div>
         <div className="flex gap-3">
           <Button variant="secondary" onClick={() => router.push("/orders")}>
@@ -67,17 +67,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto px-4 py-6">
       {/* Header details bar */}
-      <div className="flex items-center justify-between gap-4 border-b border-zinc-800/60 pb-6">
+      <div className="flex items-center justify-between gap-4 border-b border-border/60 pb-6">
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push("/orders")}
-              className="text-zinc-500 hover:text-zinc-300 transition text-sm font-medium"
+              className="text-text-muted hover:text-text-primary transition text-sm font-medium"
             >
               ← {TEXT.orders.backToOrders}
             </button>
           </div>
-          <h1 className="text-3xl font-black tracking-tight text-zinc-100 mt-2">
+          <h1 className="text-3xl font-black tracking-tight text-text-primary mt-2">
             Detail • {formatOrderNumber(order.displayNumber)}
           </h1>
         </div>

@@ -51,10 +51,10 @@ export default function ShiftsPage() {
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto px-4 py-6 animate-fade-in">
       {/* Header section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/60 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-6">
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-3xl font-black tracking-tight text-zinc-100">{TEXT.shifts.title}</h1>
-          <p className="text-zinc-500 text-sm">
+          <h1 className="text-3xl font-black tracking-tight text-text-primary">{TEXT.shifts.title}</h1>
+          <p className="text-text-muted text-sm">
             {TEXT.shifts.subtitle}
           </p>
         </div>
@@ -75,11 +75,11 @@ export default function ShiftsPage() {
       <ShiftStatusCard data={currentShift} isLoading={isShiftLoading} />
 
       {!isOpen && !isShiftLoading ? (
-        <div className="p-8 border border-zinc-800 bg-zinc-900/30 text-center rounded-2xl flex flex-col items-center justify-center gap-4 max-w-md mx-auto mt-6 shadow-md">
+        <div className="p-8 border border-border bg-surface/30 text-center rounded-2xl flex flex-col items-center justify-center gap-4 max-w-md mx-auto mt-6 shadow-md">
           <span className="text-3xl">🔒</span>
           <div className="flex flex-col gap-1">
-            <h3 className="text-zinc-200 font-bold">{TEXT.shifts.noActiveShiftTitle}</h3>
-            <p className="text-zinc-500 text-xs">
+            <h3 className="text-text-primary font-bold">{TEXT.shifts.noActiveShiftTitle}</h3>
+            <p className="text-text-muted text-xs">
               {TEXT.shifts.noActiveShiftDesc}
             </p>
           </div>

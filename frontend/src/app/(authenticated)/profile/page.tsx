@@ -57,35 +57,35 @@ export default function ProfilePage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1.5">
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-100">{TEXT.profile.title}</h1>
-        <p className="text-zinc-400 text-sm">{TEXT.profile.subtitle}</p>
+        <h1 className="text-2xl font-bold tracking-tight text-text-primary">{TEXT.profile.title}</h1>
+        <p className="text-text-secondary text-sm">{TEXT.profile.subtitle}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         {currentUser ? (
-          <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-xl flex flex-col gap-4">
-            <h2 className="text-lg font-bold text-zinc-100 border-b border-zinc-800 pb-2">{TEXT.profile.detailsCardTitle}</h2>
+          <div className="p-6 bg-surface border border-border rounded-xl flex flex-col gap-4">
+            <h2 className="text-lg font-bold text-text-primary border-b border-border pb-2">{TEXT.profile.detailsCardTitle}</h2>
             <div className="flex flex-col gap-1">
-              <span className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">{TEXT.profile.fullName}</span>
-              <span className="text-zinc-100 text-sm font-medium">{currentUser.fullName}</span>
+              <span className="text-text-muted text-xs font-semibold uppercase tracking-wider">{TEXT.profile.fullName}</span>
+              <span className="text-text-primary text-sm font-medium">{currentUser.fullName}</span>
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">{TEXT.profile.username}</span>
-              <span className="text-zinc-100 text-sm font-medium">{currentUser.username}</span>
+              <span className="text-text-muted text-xs font-semibold uppercase tracking-wider">{TEXT.profile.username}</span>
+              <span className="text-text-primary text-sm font-medium">{currentUser.username}</span>
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">{TEXT.profile.role}</span>
-              <span className="text-zinc-100 text-sm font-medium capitalize">{currentUser.role}</span>
+              <span className="text-text-muted text-xs font-semibold uppercase tracking-wider">{TEXT.profile.role}</span>
+              <span className="text-text-primary text-sm font-medium capitalize">{currentUser.role}</span>
             </div>
           </div>
         ) : (
-          <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-xl text-center text-zinc-500">
+          <div className="p-6 bg-surface border border-border rounded-xl text-center text-text-muted">
             {TEXT.profile.noProfile}
           </div>
         )}
 
-        <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-xl">
-          <h2 className="text-lg font-bold text-zinc-100 border-b border-zinc-800 pb-2 mb-4">Ganti Kata Sandi</h2>
+        <div className="p-6 bg-surface border border-border rounded-xl">
+          <h2 className="text-lg font-bold text-text-primary border-b border-border pb-2 mb-4">Ganti Kata Sandi</h2>
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
             <PasswordInput
               label="Kata Sandi Saat Ini"

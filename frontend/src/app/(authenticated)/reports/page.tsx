@@ -184,7 +184,7 @@ export default function ReportsPage() {
         <div className="p-4 bg-red-950/40 border border-red-900/50 rounded-xl flex items-start gap-3">
           <span className="text-sm">⚠️</span>
           <div className="flex flex-col gap-0.5">
-            <h4 className="text-zinc-200 text-xs font-bold uppercase tracking-wider">Peringatan Selisih Akuntansi</h4>
+            <h4 className="text-text-primary text-xs font-bold uppercase tracking-wider">Peringatan Selisih Akuntansi</h4>
             <p className="text-red-300/80 text-xs font-medium">{apiWarning}</p>
           </div>
         </div>
@@ -203,7 +203,7 @@ export default function ReportsPage() {
       />
 
       {/* Tab Select Navigation */}
-      <div className="flex border-b border-zinc-800/80 gap-1 overflow-x-auto pb-px">
+      <div className="flex border-b border-border/80 gap-1 overflow-x-auto pb-px">
         {[
           { id: "OVERVIEW", label: "Ikhtisar Keuangan" },
           { id: "SALES", label: "Analisis Penjualan" },
@@ -218,7 +218,7 @@ export default function ReportsPage() {
             className={`px-5 py-3 text-xs font-black uppercase tracking-widest border-b-2 whitespace-nowrap transition duration-150 ${
               activeTab === tab.id
                 ? "border-indigo-500 text-indigo-400"
-                : "border-transparent text-zinc-500 hover:text-zinc-300"
+                : "border-transparent text-text-muted hover:text-text-primary"
             }`}
           >
             {tab.label}
@@ -228,11 +228,11 @@ export default function ReportsPage() {
 
       {/* Error State retry card */}
       {isAnyError ? (
-        <div className="flex flex-col items-center justify-center p-12 bg-zinc-900 border border-zinc-800 rounded-2xl text-center shadow-lg max-w-md mx-auto mt-6 gap-4 animate-fade-in">
+        <div className="flex flex-col items-center justify-center p-12 bg-surface border border-border rounded-2xl text-center shadow-lg max-w-md mx-auto mt-6 gap-4 animate-fade-in">
           <span className="text-xl">⚠️</span>
           <div className="flex flex-col gap-1">
-            <h2 className="text-zinc-200 font-bold">Gagal menyusun laporan</h2>
-            <p className="text-zinc-500 text-xs">Verifikasi koneksi database Anda dan batas rentang filter tanggal.</p>
+            <h2 className="text-text-primary font-bold">Gagal menyusun laporan</h2>
+            <p className="text-text-muted text-xs">Verifikasi koneksi database Anda dan batas rentang filter tanggal.</p>
           </div>
           <Button variant="primary" onClick={handleRetryAll}>
             Ulangi Sinkronisasi
@@ -265,29 +265,29 @@ export default function ReportsPage() {
               />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Cash parameters summary */}
-                <div className="p-5 bg-zinc-900 border border-zinc-800/80 rounded-2xl flex flex-col gap-4">
-                  <h3 className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Audit Penerimaan Kas</h3>
-                  <div className="flex justify-between items-center border-b border-zinc-800/50 pb-3">
-                    <span className="text-zinc-500 text-xs font-bold uppercase">Estimasi Total Kas</span>
-                    <span className="text-zinc-200 text-sm font-extrabold">
+                <div className="p-5 bg-surface border border-border/80 rounded-2xl flex flex-col gap-4">
+                  <h3 className="text-text-secondary text-xs font-bold uppercase tracking-wider">Audit Penerimaan Kas</h3>
+                  <div className="flex justify-between items-center border-b border-border/50 pb-3">
+                    <span className="text-text-muted text-xs font-bold uppercase">Estimasi Total Kas</span>
+                    <span className="text-text-primary text-sm font-extrabold">
                       {formatCurrency((paymentData?.data?.cash?.paid || 0) + (paymentData?.data?.cash?.pending || 0))}
                     </span>
                   </div>
-                  <div className="text-zinc-500 text-xs leading-relaxed font-medium">
+                  <div className="text-text-muted text-xs leading-relaxed font-medium">
                     Total ini mencocokkan mata uang yang diberikan kepada staf selama pengiriman fisik. Bandingkan isi laci fisik saat shift ditutup.
                   </div>
                 </div>
 
                 {/* QRIS parameters summary */}
-                <div className="p-5 bg-zinc-900 border border-zinc-800/80 rounded-2xl flex flex-col gap-4">
-                  <h3 className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Penyelesaian Bank QRIS</h3>
-                  <div className="flex justify-between items-center border-b border-zinc-800/50 pb-3">
-                    <span className="text-zinc-500 text-xs font-bold uppercase">Penyelesaian Digital Gateway</span>
+                <div className="p-5 bg-surface border border-border/80 rounded-2xl flex flex-col gap-4">
+                  <h3 className="text-text-secondary text-xs font-bold uppercase tracking-wider">Penyelesaian Bank QRIS</h3>
+                  <div className="flex justify-between items-center border-b border-border/50 pb-3">
+                    <span className="text-text-muted text-xs font-bold uppercase">Penyelesaian Digital Gateway</span>
                     <span className="text-indigo-400 text-sm font-extrabold">
                       {formatCurrency(paymentData?.data?.qris?.paid || 0)}
                     </span>
                   </div>
-                  <div className="text-zinc-500 text-xs leading-relaxed font-medium">
+                  <div className="text-text-muted text-xs leading-relaxed font-medium">
                     Penerimaan ini mencerminkan pertanyaan bank yang diselesaikan dari pembayaran QR. Periksa silang daftar transaksi dengan rekening koran portal bank gateway pembayaran.
                   </div>
                 </div>
@@ -297,37 +297,35 @@ export default function ReportsPage() {
 
           {/* Tab 4: Reconciliation Log */}
           {activeTab === "RECONCILIATION" && (
-            <div className="p-6 bg-zinc-900 border border-zinc-800/80 rounded-2xl shadow-md flex flex-col gap-6">
+            <div className="p-6 bg-surface border border-border/80 rounded-2xl shadow-md flex flex-col gap-6">
               <div className="flex flex-col gap-1">
-                <h3 className="text-zinc-200 text-sm font-bold uppercase tracking-wider">Ringkasan Buku Besar Rekonsiliasi</h3>
-                <p className="text-zinc-500 text-xs">Bandingkan pendapatan yang diharapkan dari checkout pesanan dengan penerimaan LUNAS.</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="p-5 bg-zinc-950 border border-zinc-800 rounded-xl flex flex-col gap-1.5">
-                  <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">Ekspektasi Penjualan Pesanan</span>
-                  <span className="text-zinc-200 text-2xl font-black">
+                <h3 className="text-text-primary text-sm font-bold uppercase tracking-wider">Ringkasan Buku Besar Rekonsiliasi</h3>
+                <p className="text-text-muted text-xs">Bandingkan pendapatan yang diharapkan dari checkout pesanan dengan penerimaan LUNAS.</p>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="p-5 bg-surface-secondary border border-border rounded-xl flex flex-col gap-1.5">
+                  <span className="text-text-muted text-xs font-bold uppercase tracking-wider">Ekspektasi Penjualan Pesanan</span>
+                  <span className="text-zinc-250 text-2xl font-black">
                     {formatCurrency(reconciliationData?.data?.expectedRevenue || 0)}
                   </span>
-                  <p className="text-zinc-600 text-xs mt-1">Jumlah subtotal/pajak dari checkout (DISIAPKAN, SIAP, SELESAI)</p>
+                  <p className="text-zinc-650 text-xs mt-1">Jumlah subtotal/pajak dari checkout (DISIAPKAN, SIAP, SELESAI)</p>
                 </div>
 
-                <div className="p-5 bg-zinc-950 border border-zinc-800 rounded-xl flex flex-col gap-1.5">
-                  <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">Pendapatan Lunas Terkumpul</span>
+                <div className="p-5 bg-surface-secondary border border-border rounded-xl flex flex-col gap-1.5">
+                  <span className="text-text-muted text-xs font-bold uppercase tracking-wider">Pendapatan Lunas Terkumpul</span>
                   <span className="text-emerald-400 text-2xl font-black">
                     {formatCurrency(reconciliationData?.data?.collectedRevenue || 0)}
                   </span>
-                  <p className="text-zinc-600 text-xs mt-1">Jumlah pembayaran kas/QR yang ditandai LUNAS</p>
+                  <p className="text-zinc-650 text-xs mt-1">Jumlah pembayaran kas/QR yang ditandai LUNAS</p>
                 </div>
 
-                <div className="p-5 bg-zinc-950 border border-zinc-800 rounded-xl flex flex-col gap-1.5">
-                  <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">Selisih Belum Terkumpul / Perbedaan</span>
+                <div className="p-5 bg-surface-secondary border border-border rounded-xl flex flex-col gap-1.5">
+                  <span className="text-text-muted text-xs font-bold uppercase tracking-wider">Selisih Belum Terkumpul / Perbedaan</span>
                   <span className="text-rose-400 text-2xl font-black">
                     {formatCurrency(reconciliationData?.data?.outstandingAmount || 0)}
                   </span>
-                  <p className="text-zinc-600 text-xs mt-1">Total ekspektasi penjualan dikurangi penerimaan lunas yang diselesaikan</p>
+                  <p className="text-zinc-650 text-xs mt-1">Total ekspektasi penjualan dikurangi penerimaan lunas yang diselesaikan</p>
                 </div>
-              </div>
+              </div>  </div>
             </div>
           )}
 
@@ -367,7 +365,7 @@ export default function ReportsPage() {
 
           {/* Audit Metadata Info */}
           {!isAnyLoading && (
-            <div className="flex flex-wrap items-center justify-between text-[10px] text-zinc-500 font-bold uppercase tracking-widest border-t border-zinc-800/40 pt-4 mt-2 px-1">
+            <div className="flex flex-wrap items-center justify-between text-[10px] text-text-muted font-bold uppercase tracking-widest border-t border-border/40 pt-4 mt-2 px-1">
               <span>Zona Waktu: {summaryData?.meta?.timezone || "UTC"}</span>
               <span>Dibuat Pada: {new Date(summaryData?.meta?.generatedAt || "").toLocaleString()}</span>
               <span>Mata Uang Dasar Laporan: {summaryData?.meta?.currency || "Rp"}</span>

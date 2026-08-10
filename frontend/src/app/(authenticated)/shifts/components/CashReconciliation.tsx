@@ -12,30 +12,30 @@ interface CashReconciliationProps {
 export const CashReconciliation: React.FC<CashReconciliationProps> = ({ data, isLoading }) => {
   if (isLoading) {
     return (
-      <div className="h-44 bg-zinc-900 border border-zinc-800 rounded-2xl animate-pulse" />
+      <div className="h-44 bg-surface border border-border rounded-2xl animate-pulse" />
     );
   }
 
   const items = [
-    { label: TEXT.shifts.startingCashLabel, val: data?.openingCash || 0, color: "text-zinc-300" },
+    { label: TEXT.shifts.startingCashLabel, val: data?.openingCash || 0, color: "text-text-primary" },
     { label: "Kas Penjualan Terkumpul", val: data?.cashSales || 0, color: "text-emerald-400" },
     { label: TEXT.shifts.expectedCashLabel, val: data?.expectedCash || 0, color: "text-indigo-400 font-extrabold" },
-    { label: TEXT.shifts.actualCashLabel, val: data?.actualCash || 0, color: "text-zinc-200" },
+    { label: TEXT.shifts.actualCashLabel, val: data?.actualCash || 0, color: "text-text-primary" },
   ];
 
   const diff = data?.difference || 0;
   const isBalanced = diff === 0;
 
   return (
-    <div className="p-6 bg-zinc-900 border border-zinc-800/80 rounded-2xl shadow-md flex flex-col gap-5">
-      <span className="text-zinc-400 text-xs font-bold uppercase tracking-wider">
+    <div className="p-6 bg-surface border border-border/80 rounded-2xl shadow-md flex flex-col gap-5">
+      <span className="text-text-secondary text-xs font-bold uppercase tracking-wider">
         {TEXT.shifts.reconTitle}
       </span>
 
-      <div className="flex flex-col border border-zinc-800/60 rounded-xl divide-y divide-zinc-800/50 overflow-hidden bg-zinc-950/20">
+      <div className="flex flex-col border border-border/60 rounded-xl divide-y divide-border/50 overflow-hidden bg-surface-secondary/20">
         {items.map((item, idx) => (
           <div key={idx} className="flex justify-between items-center px-4 py-3.5">
-            <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">{item.label}</span>
+            <span className="text-text-muted text-xs font-bold uppercase tracking-wider">{item.label}</span>
             <span className={`text-sm font-extrabold ${item.color}`}>{formatCurrency(item.val)}</span>
           </div>
         ))}

@@ -26,13 +26,13 @@ export default function DashboardPage() {
 
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 bg-zinc-900 border border-zinc-800 rounded-2xl text-center shadow-lg max-w-md mx-auto mt-12 gap-4">
+      <div className="flex flex-col items-center justify-center p-12 bg-surface border border-border rounded-2xl text-center shadow-lg max-w-md mx-auto mt-12 gap-4">
         <div className="w-12 h-12 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center text-xl font-bold">
           ⚠️
         </div>
         <div className="flex flex-col gap-1">
-          <h2 className="text-zinc-200 font-bold text-lg">{TEXT.dashboard.failedLoad}</h2>
-          <p className="text-zinc-500 text-sm">{TEXT.dashboard.failedLoadDesc}</p>
+          <h2 className="text-text-primary font-bold text-lg">{TEXT.dashboard.failedLoad}</h2>
+          <p className="text-text-muted text-sm">{TEXT.dashboard.failedLoadDesc}</p>
         </div>
         <Button variant="primary" onClick={refetch}>
           {TEXT.dashboard.retry}
@@ -44,12 +44,12 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-8 max-w-7xl mx-auto px-4 py-6">
       {/* Welcome Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/60 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-6">
         <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-black tracking-tight text-zinc-100">
+          <h1 className="text-3xl font-black tracking-tight text-text-primary">
             {getGreeting()}, {currentUser?.fullName || "Admin"}
           </h1>
-          <p className="text-zinc-500 text-sm">
+          <p className="text-text-muted text-sm">
             {TEXT.dashboard.overviewSubtitle}
           </p>
         </div>
@@ -75,7 +75,7 @@ export default function DashboardPage() {
           <DashboardStatCard
             title={TEXT.dashboard.ordersToday}
             value={stats.todayOrders}
-            color="text-zinc-100"
+            color="text-text-primary"
             loading={isLoading}
             icon={
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

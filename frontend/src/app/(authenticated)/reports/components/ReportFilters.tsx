@@ -31,7 +31,7 @@ export const ReportFilters: React.FC<ReportFiltersProps> = ({
   ];
 
   return (
-    <div className="p-5 bg-zinc-900 border border-zinc-800/80 rounded-2xl flex flex-col gap-4 shadow-md">
+    <div className="p-5 bg-surface border border-border/80 rounded-2xl flex flex-col gap-4 shadow-md">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-wrap gap-2">
           {presets.map((preset) => (
@@ -41,7 +41,7 @@ export const ReportFilters: React.FC<ReportFiltersProps> = ({
               className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition duration-150 border ${
                 filters.preset === preset.value
                   ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/10"
-                  : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                  : "bg-surface-secondary text-text-secondary border-border hover:text-text-primary"
               }`}
             >
               {preset.label}
@@ -50,44 +50,44 @@ export const ReportFilters: React.FC<ReportFiltersProps> = ({
         </div>
 
         {/* Date boundary values text identifier */}
-        <div className="text-xs text-zinc-500 font-bold uppercase tracking-widest bg-zinc-950/60 px-3.5 py-2 border border-zinc-800/50 rounded-xl">
-          Active: <span className="text-zinc-300 font-extrabold">{filters.startDate}</span> to{" "}
-          <span className="text-zinc-300 font-extrabold">{filters.endDate}</span>
+        <div className="text-xs text-text-muted font-bold uppercase tracking-widest bg-surface-secondary/60 px-3.5 py-2 border border-border/50 rounded-xl">
+          Active: <span className="text-text-primary font-extrabold">{filters.startDate}</span> to{" "}
+          <span className="text-text-primary font-extrabold">{filters.endDate}</span>
         </div>
       </div>
 
       {filters.preset === "CUSTOM" && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-zinc-800/50 pt-4 animate-fade-in">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-border/50 pt-4 animate-fade-in">
           <div className="flex flex-col gap-1.5">
-            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Start Date</label>
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Start Date</label>
             <input
               type="date"
               value={filters.startDate}
               onChange={(e) => onCustomRangeChange(e.target.value, filters.endDate)}
-              className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none focus:border-indigo-500 text-sm"
+              className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm"
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">End Date</label>
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">End Date</label>
             <input
               type="date"
               value={filters.endDate}
               onChange={(e) => onCustomRangeChange(filters.startDate, e.target.value)}
-              className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 outline-none focus:border-indigo-500 text-sm"
+              className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm"
             />
           </div>
         </div>
       )}
 
       {showShiftsFilters && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-zinc-800/50 pt-4 animate-fade-in">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-border/50 pt-4 animate-fade-in">
           {/* Cashier Selector */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Cashier Filter</label>
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Cashier Filter</label>
             <select
               value={filters.cashierId || ""}
               onChange={(e) => onCashierChange?.(e.target.value)}
-              className="px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-300 outline-none focus:border-indigo-500 text-xs font-bold uppercase"
+              className="px-3 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-xs font-bold uppercase"
             >
               <option value="">All Cashiers</option>
               {cashiers.map((c) => (
@@ -100,11 +100,11 @@ export const ReportFilters: React.FC<ReportFiltersProps> = ({
 
           {/* Shift Status Selector */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Shift Status</label>
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Shift Status</label>
             <select
               value={filters.shiftStatus || ""}
               onChange={(e) => onShiftStatusChange?.(e.target.value)}
-              className="px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-300 outline-none focus:border-indigo-500 text-xs font-bold uppercase"
+              className="px-3 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-xs font-bold uppercase"
             >
               <option value="">All Statuses</option>
               <option value="OPEN">Open</option>
@@ -114,11 +114,11 @@ export const ReportFilters: React.FC<ReportFiltersProps> = ({
 
           {/* Difference Status Selector */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Difference Status</label>
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Difference Status</label>
             <select
               value={filters.differenceStatus || ""}
               onChange={(e) => onDiffStatusChange?.(e.target.value)}
-              className="px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-300 outline-none focus:border-indigo-500 text-xs font-bold uppercase"
+              className="px-3 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-xs font-bold uppercase"
             >
               <option value="">All Reconciliation Differences</option>
               <option value="BALANCED">Balanced Shifts Only</option>

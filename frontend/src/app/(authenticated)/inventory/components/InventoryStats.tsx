@@ -29,23 +29,23 @@ export function InventoryStats({ summary, isLoading }: InventoryStatsProps) {
       title: TEXT.inventory.lowStockCard,
       value: isLoading ? "..." : summary?.lowStockProducts || 0,
       desc: "Di bawah batas minimum",
-      color: (summary?.lowStockProducts || 0) > 0 ? "text-amber-400 font-bold" : "text-zinc-400",
+      color: (summary?.lowStockProducts || 0) > 0 ? "text-amber-400 font-bold" : "text-text-secondary",
     },
     {
       title: TEXT.inventory.outOfStockCard,
       value: isLoading ? "..." : summary?.outOfStockProducts || 0,
       desc: "Saldo persediaan habis",
-      color: (summary?.outOfStockProducts || 0) > 0 ? "text-rose-400 font-extrabold" : "text-zinc-400",
+      color: (summary?.outOfStockProducts || 0) > 0 ? "text-rose-400 font-extrabold" : "text-text-secondary",
     },
   ];
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
       {cards.map((c, i) => (
-        <div key={i} className="p-5 bg-zinc-900 border border-zinc-800/80 rounded-2xl flex flex-col gap-1.5 shadow">
-          <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">{c.title}</span>
-          <span className={`text-xl font-black tracking-tight ${c.color || "text-zinc-100"}`}>{c.value}</span>
-          <span className="text-zinc-500 text-[10px]">{c.desc}</span>
+        <div key={i} className="p-5 bg-surface border border-border/80 rounded-2xl flex flex-col gap-1.5 shadow">
+          <span className="text-text-muted text-[10px] font-bold uppercase tracking-wider">{c.title}</span>
+          <span className={`text-xl font-black tracking-tight ${c.color || "text-text-primary"}`}>{c.value}</span>
+          <span className="text-text-muted text-[10px]">{c.desc}</span>
         </div>
       ))}
     </div>

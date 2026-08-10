@@ -65,19 +65,19 @@ export const ProductActionMenu: React.FC<ProductActionMenuProps> = ({
         aria-label="Product actions"
         aria-haspopup="true"
         aria-expanded={isOpen}
-        className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-200 transition duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+        className="p-2 hover:bg-zinc-800 rounded-lg text-text-secondary hover:text-text-primary transition duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
       >
         <MoreVertical className="w-5 h-5" />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-1 w-52 rounded-xl bg-zinc-950 border border-zinc-800/80 shadow-2xl z-50 py-1.5 focus:outline-none animate-in fade-in slide-in-from-top-1 duration-100">
+        <div className="absolute right-0 mt-1 w-52 rounded-xl bg-surface-secondary border border-border/80 shadow-2xl z-50 py-1.5 focus:outline-none animate-in fade-in slide-in-from-top-1 duration-100">
           <button
             type="button"
             onClick={() => handleAction(() => onEdit(product))}
-            className="w-full px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-900/60 hover:text-white flex items-center gap-2.5 transition text-left"
+            className="w-full px-4 py-2.5 text-sm text-text-primary hover:bg-surface/60 hover:text-white flex items-center gap-2.5 transition text-left"
           >
-            <Edit className="w-4 h-4 text-zinc-400" />
+            <Edit className="w-4 h-4 text-text-secondary" />
             <span>Ubah</span>
           </button>
 
@@ -85,12 +85,12 @@ export const ProductActionMenu: React.FC<ProductActionMenuProps> = ({
             <button
               type="button"
               onClick={() => handleAction(() => onRecipe(product.id))}
-              className="w-full px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-900/60 hover:text-white flex items-center gap-2.5 transition text-left"
+              className="w-full px-4 py-2 text-sm text-text-primary hover:bg-surface/60 hover:text-white flex items-center gap-2.5 transition text-left"
             >
-              <ClipboardList className="w-4 h-4 text-zinc-400" />
+              <ClipboardList className="w-4 h-4 text-text-secondary" />
               <div className="flex flex-col items-start leading-tight">
                 <span>Resep</span>
-                <span className="text-[9px] text-zinc-500 font-normal mt-0.5">
+                <span className="text-[9px] text-text-muted font-normal mt-0.5">
                   {product.recipe && product.recipe.items && product.recipe.items.length > 0
                     ? "Sudah Diatur"
                     : "Belum Ada"}
@@ -102,7 +102,7 @@ export const ProductActionMenu: React.FC<ProductActionMenuProps> = ({
           <button
             type="button"
             onClick={() => handleAction(() => onToggleActive(product))}
-            className="w-full px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-900/60 hover:text-white flex items-center gap-2.5 transition text-left"
+            className="w-full px-4 py-2.5 text-sm text-text-primary hover:bg-surface/60 hover:text-white flex items-center gap-2.5 transition text-left"
           >
             {product.isActive ? (
               <>
@@ -117,7 +117,7 @@ export const ProductActionMenu: React.FC<ProductActionMenuProps> = ({
             )}
           </button>
 
-          <div className="border-t border-zinc-800/80 my-1"></div>
+          <div className="border-t border-border/80 my-1"></div>
 
           <button
             type="button"

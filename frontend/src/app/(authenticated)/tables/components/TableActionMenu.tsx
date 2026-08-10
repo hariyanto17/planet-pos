@@ -115,19 +115,19 @@ export const TableActionMenu: React.FC<TableActionMenuProps> = ({
         aria-haspopup="true"
         aria-expanded={isOpen}
         disabled={isDownloading}
-        className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-200 transition duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-50"
+        className="p-2 hover:bg-zinc-800 rounded-lg text-text-secondary hover:text-text-primary transition duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-50"
       >
         <MoreVertical className="w-5 h-5" />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-1 w-52 rounded-xl bg-zinc-950 border border-zinc-800/80 shadow-2xl z-50 py-1.5 focus:outline-none animate-in fade-in slide-in-from-top-1 duration-100">
+        <div className="absolute right-0 mt-1 w-52 rounded-xl bg-surface-secondary border border-border/80 shadow-2xl z-50 py-1.5 focus:outline-none animate-in fade-in slide-in-from-top-1 duration-100">
           <button
             type="button"
             onClick={() => handleAction(() => onEdit(table))}
-            className="w-full px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-900/60 hover:text-white flex items-center gap-2.5 transition text-left"
+            className="w-full px-4 py-2.5 text-sm text-text-primary hover:bg-surface/60 hover:text-white flex items-center gap-2.5 transition text-left"
           >
-            <Edit className="w-4 h-4 text-zinc-400" />
+            <Edit className="w-4 h-4 text-text-secondary" />
             <span>Ubah</span>
           </button>
 
@@ -135,9 +135,9 @@ export const TableActionMenu: React.FC<TableActionMenuProps> = ({
             <button
               type="button"
               onClick={handleDownloadQr}
-              className="w-full px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-900/60 hover:text-white flex items-center gap-2.5 transition text-left"
+              className="w-full px-4 py-2.5 text-sm text-text-primary hover:bg-surface/60 hover:text-white flex items-center gap-2.5 transition text-left"
             >
-              <QrCode className="w-4 h-4 text-zinc-400" />
+              <QrCode className="w-4 h-4 text-text-secondary" />
               <span>Unduh Kode QR</span>
             </button>
           )}
@@ -145,7 +145,7 @@ export const TableActionMenu: React.FC<TableActionMenuProps> = ({
           <button
             type="button"
             onClick={() => handleAction(() => onToggleActive(table))}
-            className="w-full px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-900/60 hover:text-white flex items-center gap-2.5 transition text-left"
+            className="w-full px-4 py-2.5 text-sm text-text-primary hover:bg-surface/60 hover:text-white flex items-center gap-2.5 transition text-left"
           >
             {table.isActive ? (
               <>
@@ -160,7 +160,7 @@ export const TableActionMenu: React.FC<TableActionMenuProps> = ({
             )}
           </button>
 
-          <div className="border-t border-zinc-800/80 my-1"></div>
+          <div className="border-t border-border/80 my-1"></div>
 
           <button
             type="button"

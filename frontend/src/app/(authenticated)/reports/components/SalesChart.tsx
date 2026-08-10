@@ -9,10 +9,10 @@ interface SalesChartProps {
 export const SalesChart: React.FC<SalesChartProps> = ({ data = [], isLoading }) => {
   if (isLoading) {
     return (
-      <div className="h-64 bg-zinc-900 border border-zinc-800 rounded-2xl flex items-center justify-center">
+      <div className="h-64 bg-surface border border-border rounded-2xl flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">
+          <span className="text-text-muted text-xs font-bold uppercase tracking-wider">
             Loading revenue trends...
           </span>
         </div>
@@ -22,7 +22,7 @@ export const SalesChart: React.FC<SalesChartProps> = ({ data = [], isLoading }) 
 
   if (data.length === 0) {
     return (
-      <div className="h-64 bg-zinc-900 border border-zinc-800 rounded-2xl flex items-center justify-center text-zinc-500 text-sm">
+      <div className="h-64 bg-surface border border-border rounded-2xl flex items-center justify-center text-text-muted text-sm">
         No sales transaction data available for the selected period.
       </div>
     );
@@ -51,12 +51,12 @@ export const SalesChart: React.FC<SalesChartProps> = ({ data = [], isLoading }) 
     : "";
 
   return (
-    <div className="p-6 bg-zinc-900 border border-zinc-800/80 rounded-2xl shadow-md flex flex-col gap-4">
+    <div className="p-6 bg-surface border border-border/80 rounded-2xl shadow-md flex flex-col gap-4">
       <div className="flex justify-between items-center">
-        <span className="text-zinc-400 text-sm font-bold uppercase tracking-wider">
+        <span className="text-text-secondary text-sm font-bold uppercase tracking-wider">
           Daily Revenue Trend
         </span>
-        <span className="text-zinc-500 text-xs font-medium">
+        <span className="text-text-muted text-xs font-medium">
           Max: <span className="text-emerald-400 font-extrabold">{formatCurrency(maxRevenue)}</span>
         </span>
       </div>

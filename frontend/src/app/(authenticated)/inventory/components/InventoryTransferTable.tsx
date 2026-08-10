@@ -66,7 +66,7 @@ export function InventoryTransferTable({ onSuccess }: Props) {
       );
     }
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-zinc-500/10 text-zinc-400 border border-zinc-500/20 animate-pulse">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-zinc-500/10 text-text-secondary border border-zinc-500/20 animate-pulse">
         <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
         Draft
       </span>
@@ -77,7 +77,7 @@ export function InventoryTransferTable({ onSuccess }: Props) {
     <div className="flex flex-col gap-4 animate-fade-in">
       {/* Sub-tabs for WAREHOUSE users */}
       {currentUser.role === "WAREHOUSE" && (
-        <div className="flex border-b border-zinc-800/40 gap-1 pb-px">
+        <div className="flex border-b border-border/40 gap-1 pb-px">
           {[
             { id: "MASUK", label: "Transfer Masuk" },
             { id: "KELUAR", label: "Transfer Keluar" },
@@ -88,7 +88,7 @@ export function InventoryTransferTable({ onSuccess }: Props) {
               className={`px-4 py-2 text-xs font-black uppercase tracking-wider border-b-2 whitespace-nowrap transition duration-150 ${
                 warehouseView === v.id
                   ? "border-indigo-500 text-indigo-400"
-                  : "border-transparent text-zinc-500 hover:text-zinc-300"
+                  : "border-transparent text-text-muted hover:text-text-primary"
               }`}
             >
               {v.label}
@@ -120,8 +120,8 @@ export function InventoryTransferTable({ onSuccess }: Props) {
               (currentUser.role === "KITCHEN" && t.destinationWarehouse?.warehouseType === "KITCHEN_STORAGE"));
 
           return (
-            <tr key={t.id} className="border-b border-zinc-800/40 hover:bg-zinc-800/10 animate-fade-in">
-              <td className="px-6 py-4 text-xs font-medium text-zinc-400">
+            <tr key={t.id} className="border-b border-border/40 hover:bg-zinc-800/10 animate-fade-in">
+              <td className="px-6 py-4 text-xs font-medium text-text-secondary">
                 {new Date(t.createdAt).toLocaleDateString("id-ID", {
                   year: "numeric",
                   month: "short",
@@ -130,16 +130,16 @@ export function InventoryTransferTable({ onSuccess }: Props) {
                   minute: "2-digit",
                 })}
               </td>
-              <td className="px-6 py-4 text-xs font-semibold text-zinc-200">
+              <td className="px-6 py-4 text-xs font-semibold text-text-primary">
                 {t.sourceWarehouse?.name}
               </td>
-              <td className="px-6 py-4 text-xs font-semibold text-zinc-200">
+              <td className="px-6 py-4 text-xs font-semibold text-text-primary">
                 {t.destinationWarehouse?.name}
               </td>
-              <td className="px-6 py-4 text-xs font-bold text-zinc-300 font-sans">
+              <td className="px-6 py-4 text-xs font-bold text-text-primary font-sans">
                 {productName}
               </td>
-              <td className="px-6 py-4 text-xs font-extrabold text-zinc-100 font-mono">
+              <td className="px-6 py-4 text-xs font-extrabold text-text-primary font-mono">
                 {quantity}
               </td>
               <td className="px-6 py-4">{renderStatusBadge(t.status)}</td>
@@ -152,7 +152,7 @@ export function InventoryTransferTable({ onSuccess }: Props) {
                     Terima
                   </button>
                 ) : (
-                  <span className="text-zinc-500">-</span>
+                  <span className="text-text-muted">-</span>
                 )}
               </td>
             </tr>
@@ -161,7 +161,7 @@ export function InventoryTransferTable({ onSuccess }: Props) {
       </DataTable>
 
       {filteredTransfers.length === 0 && !isLoading && (
-        <div className="p-8 border border-zinc-800/60 bg-zinc-950/20 text-center rounded-xl text-zinc-500 text-sm">
+        <div className="p-8 border border-border/60 bg-surface-secondary/20 text-center rounded-xl text-text-muted text-sm">
           Tidak ada data transfer stok.
         </div>
       )}

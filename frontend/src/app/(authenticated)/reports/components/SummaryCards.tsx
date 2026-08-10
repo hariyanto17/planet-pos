@@ -26,7 +26,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ data, isLoading, sho
         title: "Total Shifts",
         value: `${shifts.total} Shifts`,
         desc: "All recorded shifts in date range",
-        color: "text-zinc-200",
+        color: "text-text-primary",
       },
       {
         title: "Active Open Shifts",
@@ -44,7 +44,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ data, isLoading, sho
         title: "Balanced vs Unbalanced",
         value: `${shifts.balanced} / ${shifts.unbalanced}`,
         desc: "Shifts with zero vs. non-zero offset",
-        color: "text-zinc-300",
+        color: "text-text-primary",
       },
     ];
 
@@ -86,7 +86,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ data, isLoading, sho
       title: "Gross Revenue",
       value: formatCurrency(stats.grossRevenue),
       desc: "Total sales price before promo deductions",
-      color: "text-zinc-200",
+      color: "text-text-primary",
     },
     {
       title: "Total Discounts",

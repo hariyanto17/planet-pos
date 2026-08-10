@@ -64,10 +64,10 @@ export default function WarehouseCurrentStockPage() {
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto px-4 py-6">
       {/* Header section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/60 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-6">
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-3xl font-black tracking-tight text-zinc-100">{TEXT.warehouse.currentStockTitle}</h1>
-          <p className="text-zinc-500 text-sm">
+          <h1 className="text-3xl font-black tracking-tight text-text-primary">{TEXT.warehouse.currentStockTitle}</h1>
+          <p className="text-text-muted text-sm">
             {TEXT.warehouse.currentStockSubtitle}
           </p>
         </div>
@@ -86,7 +86,7 @@ export default function WarehouseCurrentStockPage() {
           </Button>
           <button
             onClick={handleRefresh}
-            className="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded-lg border border-zinc-800 transition"
+            className="p-2 hover:bg-zinc-800 text-text-secondary hover:text-text-primary rounded-lg border border-border transition"
             title={TEXT.inventory.reloadBtn}
           >
             <svg
@@ -110,7 +110,7 @@ export default function WarehouseCurrentStockPage() {
       <InventoryStats summary={summary} isLoading={isSummaryLoading} />
 
       {/* Navigation Tabs */}
-      <div className="flex border-b border-zinc-800/80 gap-1 overflow-x-auto pb-px">
+      <div className="flex border-b border-border/80 gap-1 overflow-x-auto pb-px">
         {[
           { id: "STOCK", label: TEXT.inventory.tabStock },
           { id: "TRANSFERS", label: "Transfer" },
@@ -121,7 +121,7 @@ export default function WarehouseCurrentStockPage() {
             className={`px-5 py-3 text-xs font-black uppercase tracking-widest border-b-2 whitespace-nowrap transition duration-150 ${
               activeTab === t.id
                 ? "border-indigo-500 text-indigo-400"
-                : "border-transparent text-zinc-500 hover:text-zinc-300"
+                : "border-transparent text-text-muted hover:text-text-primary"
             }`}
           >
             {t.label}

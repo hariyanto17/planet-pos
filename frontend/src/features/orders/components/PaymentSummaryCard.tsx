@@ -11,7 +11,7 @@ export const PaymentSummaryCard: React.FC<PaymentSummaryCardProps> = ({ payments
 
   if (!latestPayment) {
     return (
-      <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-2xl text-center text-zinc-500 text-sm">
+      <div className="p-6 bg-surface border border-border rounded-2xl text-center text-text-muted text-sm">
         No payment record attached to this transaction.
       </div>
     );
@@ -21,9 +21,9 @@ export const PaymentSummaryCard: React.FC<PaymentSummaryCardProps> = ({ payments
   const isCash = paymentMethod === "CASH";
 
   return (
-    <div className="p-6 bg-zinc-900 border border-zinc-800/80 rounded-2xl flex flex-col gap-5 shadow-md">
-      <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-        <h3 className="text-zinc-200 text-sm font-bold uppercase tracking-wider">
+    <div className="p-6 bg-surface border border-border/80 rounded-2xl flex flex-col gap-5 shadow-md">
+      <div className="flex items-center justify-between border-b border-border pb-2">
+        <h3 className="text-text-primary text-sm font-bold uppercase tracking-wider">
           Payment Information
         </h3>
         <PaymentStatusBadge status={latestPayment.status} />
@@ -31,20 +31,20 @@ export const PaymentSummaryCard: React.FC<PaymentSummaryCardProps> = ({ payments
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
         <div className="flex flex-col gap-1">
-          <span className="text-zinc-500 text-xs font-semibold">Payment Method</span>
-          <span className="text-zinc-200 font-bold">{paymentMethod}</span>
+          <span className="text-text-muted text-xs font-semibold">Payment Method</span>
+          <span className="text-text-primary font-bold">{paymentMethod}</span>
         </div>
 
         <div className="flex flex-col gap-1">
-          <span className="text-zinc-500 text-xs font-semibold">Amount to Collect</span>
-          <span className="text-zinc-200 font-bold">{formatCurrency(latestPayment.amount)}</span>
+          <span className="text-text-muted text-xs font-semibold">Amount to Collect</span>
+          <span className="text-text-primary font-bold">{formatCurrency(latestPayment.amount)}</span>
         </div>
 
         {isCash && (
           <>
             <div className="flex flex-col gap-1">
-              <span className="text-zinc-500 text-xs font-semibold">Cash Tendered</span>
-              <span className="text-zinc-200 font-medium">
+              <span className="text-text-muted text-xs font-semibold">Cash Tendered</span>
+              <span className="text-text-primary font-medium">
                 {formatCurrency(
                   latestPayment.status === "PAID"
                     ? latestPayment.receivedCash
@@ -54,7 +54,7 @@ export const PaymentSummaryCard: React.FC<PaymentSummaryCardProps> = ({ payments
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-zinc-500 text-xs font-semibold">Change Returned</span>
+              <span className="text-text-muted text-xs font-semibold">Change Returned</span>
               <span className="text-emerald-400 font-bold">
                 {formatCurrency(latestPayment.changeAmount)}
               </span>
@@ -65,8 +65,8 @@ export const PaymentSummaryCard: React.FC<PaymentSummaryCardProps> = ({ payments
         {latestPayment.status === "PAID" && (
           <>
             <div className="flex flex-col gap-1">
-              <span className="text-zinc-500 text-xs font-semibold">Confirmed By</span>
-              <span className="text-zinc-200 font-medium">
+              <span className="text-text-muted text-xs font-semibold">Confirmed By</span>
+              <span className="text-text-primary font-medium">
                 {latestPayment.confirmedBy?.fullName ||
                   latestPayment.confirmedBy?.username ||
                   "Self Service (System)"}
@@ -74,8 +74,8 @@ export const PaymentSummaryCard: React.FC<PaymentSummaryCardProps> = ({ payments
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-zinc-500 text-xs font-semibold">Confirmed At</span>
-              <span className="text-zinc-200 font-medium">
+              <span className="text-text-muted text-xs font-semibold">Confirmed At</span>
+              <span className="text-text-primary font-medium">
                 {latestPayment.confirmedAt
                   ? new Date(latestPayment.confirmedAt).toLocaleString(undefined, {
                       dateStyle: "medium",

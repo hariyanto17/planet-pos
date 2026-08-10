@@ -46,7 +46,7 @@ export const PaymentBreakdown: React.FC<PaymentBreakdownProps> = ({
       amount: formatCurrency(outstanding),
       count: `${unpaidCount} unpaid orders`,
       desc: "Difference between expected and collected",
-      color: "text-zinc-200",
+      color: "text-text-primary",
     },
   ];
 
@@ -55,9 +55,9 @@ export const PaymentBreakdown: React.FC<PaymentBreakdownProps> = ({
       {collectionList.map((card, idx) => (
         <div
           key={idx}
-          className="p-5 bg-zinc-900 border border-zinc-800/80 rounded-2xl flex flex-col gap-1.5 shadow"
+          className="p-5 bg-surface border border-border/80 rounded-2xl flex flex-col gap-1.5 shadow"
         >
-          <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">
+          <span className="text-text-muted text-xs font-bold uppercase tracking-wider">
             {card.title}
           </span>
           {isLoading ? (
@@ -67,10 +67,10 @@ export const PaymentBreakdown: React.FC<PaymentBreakdownProps> = ({
               <span className={`text-xl font-extrabold ${card.color} tracking-tight`}>
                 {card.amount}
               </span>
-              <span className="text-zinc-400 text-xs font-semibold">{card.count}</span>
+              <span className="text-text-secondary text-xs font-semibold">{card.count}</span>
             </div>
           )}
-          <p className="text-zinc-500 text-xs mt-1 font-medium">{card.desc}</p>
+          <p className="text-text-muted text-xs mt-1 font-medium">{card.desc}</p>
         </div>
       ))}
     </div>

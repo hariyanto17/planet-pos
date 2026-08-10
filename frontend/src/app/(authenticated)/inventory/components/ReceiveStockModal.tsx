@@ -83,11 +83,11 @@ export const ReceiveStockModal: React.FC<Props> = ({
         )}
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Produk</label>
+          <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Produk</label>
           <select
             value={productId}
             onChange={(e) => setProductId(e.target.value)}
-            className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-300 outline-none focus:border-indigo-500 text-sm font-semibold"
+            className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm font-semibold"
             required
           >
             <option value="">Pilih Produk...</option>
@@ -100,11 +100,11 @@ export const ReceiveStockModal: React.FC<Props> = ({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Gudang</label>
+          <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Gudang</label>
           <select
             value={warehouseId}
             onChange={(e) => setWarehouseId(e.target.value)}
-            className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-300 outline-none focus:border-indigo-500 text-sm font-semibold"
+            className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm font-semibold"
             required
           >
             <option value="">Pilih Gudang...</option>
@@ -117,7 +117,7 @@ export const ReceiveStockModal: React.FC<Props> = ({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Jumlah</label>
+          <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Jumlah</label>
           <Input
             type="number"
             step="0.001"
@@ -129,7 +129,7 @@ export const ReceiveStockModal: React.FC<Props> = ({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Keterangan</label>
+          <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Keterangan</label>
           <Input
             type="text"
             value={remarks}
@@ -138,7 +138,7 @@ export const ReceiveStockModal: React.FC<Props> = ({
           />
         </div>
 
-        <div className="flex justify-end gap-2 mt-2 border-t border-zinc-800/80 pt-4">
+        <div className="flex justify-end gap-2 mt-2 border-t border-border/80 pt-4">
           <Button variant="secondary" onClick={onClose} type="button">
             {TEXT.common.cancel}
           </Button>

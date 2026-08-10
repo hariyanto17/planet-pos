@@ -42,17 +42,17 @@ export const CloseShiftModal: React.FC<CloseShiftModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md p-6 flex flex-col gap-4 shadow-xl animate-scale-in">
+      <div className="bg-surface border border-border rounded-2xl w-full max-w-md p-6 flex flex-col gap-4 shadow-xl animate-scale-in">
         <div className="flex flex-col gap-1">
-          <h3 className="text-zinc-100 text-lg font-black tracking-tight">{TEXT.shifts.closeShiftModalTitle}</h3>
-          <p className="text-zinc-500 text-xs font-medium">
+          <h3 className="text-text-primary text-lg font-black tracking-tight">{TEXT.shifts.closeShiftModalTitle}</h3>
+          <p className="text-text-muted text-xs font-medium">
             {TEXT.shifts.closeShiftModalDesc}
           </p>
         </div>
 
         <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">
               {TEXT.shifts.actualCashLabel} (Rp)
             </label>
             <input
@@ -60,12 +60,12 @@ export const CloseShiftModal: React.FC<CloseShiftModalProps> = ({
               value={actualCash}
               onChange={(e) => setActualCash(e.target.value)}
               required
-              className="px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 font-bold text-sm outline-none focus:border-indigo-500"
+              className="px-4 py-2.5 bg-surface-secondary border border-border rounded-xl text-text-primary font-bold text-sm outline-none focus:border-indigo-500"
             />
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider">
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">
               {TEXT.shifts.notesLabel}
             </label>
             <textarea
@@ -73,7 +73,7 @@ export const CloseShiftModal: React.FC<CloseShiftModalProps> = ({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Misal: Kas seimbang atau penjelasan selisih..."
-              className="px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 text-sm outline-none focus:border-indigo-500 resize-none"
+              className="px-4 py-2.5 bg-surface-secondary border border-border rounded-xl text-text-primary text-sm outline-none focus:border-indigo-500 resize-none"
             />
           </div>
 

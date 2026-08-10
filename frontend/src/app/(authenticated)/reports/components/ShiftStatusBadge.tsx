@@ -11,7 +11,7 @@ export const ShiftStatusBadge: React.FC<ShiftStatusBadgeProps> = ({ status }) =>
       className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-md border ${
         isOpen
           ? "border-emerald-500/20 bg-emerald-950/20 text-emerald-400"
-          : "border-zinc-800 bg-zinc-950 text-zinc-500"
+          : "border-border bg-surface-secondary text-text-muted"
       }`}
     >
       {status}

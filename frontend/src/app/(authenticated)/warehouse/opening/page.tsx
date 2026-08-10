@@ -137,16 +137,16 @@ export default function OpeningStockPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* Main form grid */}
-        <div className="lg:col-span-2 flex flex-col gap-4 bg-zinc-900 border border-zinc-800/80 rounded-2xl p-6">
-          <h2 className="text-lg font-bold text-zinc-100 mb-2">Form Rincian Barang</h2>
+        <div className="lg:col-span-2 flex flex-col gap-4 bg-surface border border-border/80 rounded-2xl p-6">
+          <h2 className="text-lg font-bold text-text-primary mb-2">Form Rincian Barang</h2>
 
           {/* Warehouse Selector */}
           <div className="flex flex-col gap-1.5 w-full md:w-1/2 mb-4">
-            <label className="text-sm font-semibold text-zinc-300">Gudang Penerima</label>
+            <label className="text-sm font-semibold text-text-primary">Gudang Penerima</label>
             <select
               value={warehouseId}
               onChange={(e) => setWarehouseId(e.target.value)}
-              className="px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm cursor-pointer"
+              className="px-3 py-2.5 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm cursor-pointer"
             >
               <option value="">Pilih Gudang...</option>
               {warehouses.map((w: any) => (
@@ -159,7 +159,7 @@ export default function OpeningStockPage() {
 
           {/* Row entries */}
           <div className="flex flex-col gap-3">
-            <div className="hidden md:grid grid-cols-12 gap-3 text-xs font-bold text-zinc-500 uppercase px-1">
+            <div className="hidden md:grid grid-cols-12 gap-3 text-xs font-bold text-text-muted uppercase px-1">
               <div className="col-span-5">Pilih Produk</div>
               <div className="col-span-2">Jumlah</div>
               <div className="col-span-4">Catatan</div>
@@ -167,14 +167,14 @@ export default function OpeningStockPage() {
             </div>
 
             {rows.map((row, idx) => (
-              <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center border-b border-zinc-800/40 md:border-0 pb-4 md:pb-0">
+              <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center border-b border-border/40 md:border-0 pb-4 md:pb-0">
                 {/* Product selector */}
                 <div className="col-span-1 md:col-span-5 flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-zinc-500 md:hidden uppercase">Produk</label>
+                  <label className="text-[10px] font-bold text-text-muted md:hidden uppercase">Produk</label>
                   <select
                     value={row.productId}
                     onChange={(e) => handleRowChange(idx, "productId", e.target.value)}
-                    className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 outline-none focus:border-indigo-500 text-sm cursor-pointer"
+                    className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm cursor-pointer"
                   >
                     <option value="">Pilih Produk...</option>
                     {trackableProducts.map((p: any) => (
@@ -187,25 +187,25 @@ export default function OpeningStockPage() {
 
                 {/* Quantity */}
                 <div className="col-span-1 md:col-span-2 flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-zinc-500 md:hidden uppercase">Kuantitas</label>
+                  <label className="text-[10px] font-bold text-text-muted md:hidden uppercase">Kuantitas</label>
                   <input
                     type="number"
                     min="1"
                     value={row.quantity}
                     onChange={(e) => handleRowChange(idx, "quantity", e.target.value)}
-                    className="px-3 py-2 bg-zinc-955 border border-zinc-800 rounded-lg text-zinc-100 outline-none focus:border-indigo-500 text-sm"
+                    className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm"
                   />
                 </div>
 
                 {/* Remarks */}
                 <div className="col-span-1 md:col-span-4 flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-zinc-500 md:hidden uppercase">Catatan</label>
+                  <label className="text-[10px] font-bold text-text-muted md:hidden uppercase">Catatan</label>
                   <input
                     type="text"
                     value={row.remarks}
                     placeholder="Misal: Stok Awal"
                     onChange={(e) => handleRowChange(idx, "remarks", e.target.value)}
-                    className="px-3 py-2 bg-zinc-955 border border-zinc-800 rounded-lg text-zinc-100 outline-none focus:border-indigo-500 text-sm"
+                    className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm"
                   />
                 </div>
 
@@ -232,21 +232,21 @@ export default function OpeningStockPage() {
         </div>
 
         {/* Sidebar Summary */}
-        <div className="flex flex-col gap-4 bg-zinc-900 border border-zinc-800/80 rounded-2xl p-6">
-          <h2 className="text-lg font-bold text-zinc-100">Ringkasan Batch</h2>
+        <div className="flex flex-col gap-4 bg-surface border border-border/80 rounded-2xl p-6">
+          <h2 className="text-lg font-bold text-text-primary">Ringkasan Batch</h2>
 
-          <div className="flex flex-col gap-3 py-2 border-y border-zinc-800/50 my-2 text-sm">
+          <div className="flex flex-col gap-3 py-2 border-y border-border/50 my-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-zinc-400">Gudang Tujuan</span>
-              <span className="font-semibold text-zinc-200">{selectedWarehouseName}</span>
+              <span className="text-text-secondary">Gudang Tujuan</span>
+              <span className="font-semibold text-text-primary">{selectedWarehouseName}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-zinc-400">Total Macam Produk</span>
+              <span className="text-text-secondary">Total Macam Produk</span>
               <span className="font-bold text-indigo-400">{rows.filter(r => r.productId).length} Item</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-zinc-400">Total Kuantitas</span>
-              <span className="font-extrabold text-zinc-100">{totalQuantity}</span>
+              <span className="text-text-secondary">Total Kuantitas</span>
+              <span className="font-extrabold text-text-primary">{totalQuantity}</span>
             </div>
           </div>
 
@@ -262,7 +262,7 @@ export default function OpeningStockPage() {
             <Button
               variant="ghost"
               onClick={() => router.push("/warehouse/current-stock")}
-              className="w-full justify-center text-zinc-400 hover:text-zinc-200"
+              className="w-full justify-center text-text-secondary hover:text-text-primary"
               disabled={isSubmitting}
             >
               Kembali
