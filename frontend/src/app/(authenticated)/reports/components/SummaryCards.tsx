@@ -53,19 +53,19 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ data, isLoading, sho
         {shiftCards.map((card, idx) => (
           <div
             key={idx}
-            className="p-5 bg-zinc-900 border border-zinc-800/80 rounded-2xl flex flex-col gap-2 relative overflow-hidden shadow"
+            className="p-5 bg-surface border border-border rounded-2xl flex flex-col gap-2 relative overflow-hidden shadow-sm"
           >
-            <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">
+            <span className="text-text-muted text-xs font-bold uppercase tracking-wider">
               {card.title}
             </span>
             {isLoading ? (
-              <div className="h-9 w-2/3 bg-zinc-800 animate-pulse rounded-lg mt-1" />
+              <div className="h-9 w-2/3 bg-surface-secondary animate-pulse rounded-lg mt-1" />
             ) : (
               <span className={`text-2xl font-black ${card.color} tracking-tight`}>
                 {card.value}
               </span>
             )}
-            <p className="text-zinc-500 text-xs mt-1 font-medium">{card.desc}</p>
+            <p className="text-text-muted text-xs mt-1 font-medium">{card.desc}</p>
           </div>
         ))}
       </div>
@@ -113,20 +113,21 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ data, isLoading, sho
       {cardList.map((card, idx) => (
         <div
           key={idx}
-          className="p-5 bg-zinc-900 border border-zinc-800/80 rounded-2xl flex flex-col gap-2 relative overflow-hidden shadow"
+          className="p-5 bg-surface border border-border rounded-2xl flex flex-col gap-2 relative overflow-hidden shadow-sm"
         >
-          <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">
+          <span className="text-text-muted text-xs font-bold uppercase tracking-wider">
             {card.title}
           </span>
           {isLoading ? (
-            <div className="h-9 w-2/3 bg-zinc-800 animate-pulse rounded-lg mt-1" />
+            <div className="h-9 w-2/3 bg-surface-secondary animate-pulse rounded-lg mt-1" />
           ) : (
             <span className={`text-2xl font-black ${card.color} tracking-tight`}>
               {card.value}
             </span>
           )}
-          <p className="text-zinc-500 text-xs mt-1 font-medium">{card.desc}</p>
+          <p className="text-text-muted text-xs mt-1 font-medium">{card.desc}</p>
         </div>
+
       ))}
     </div>
   );

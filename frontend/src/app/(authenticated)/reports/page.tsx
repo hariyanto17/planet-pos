@@ -170,31 +170,14 @@ export default function ReportsPage() {
   const apiWarning = summaryData?.meta?.warning || reconciliationData?.meta?.warning;
 
   return (
-    <div className="flex flex-col gap-6 max-w-7xl mx-auto px-4 py-6 animate-fade-in">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/60 pb-6">
-        <div className="flex flex-col gap-1.5">
-          <h1 className="text-3xl font-black tracking-tight text-zinc-100">{TEXT.reports.title}</h1>
-          <p className="text-zinc-500 text-sm">
-            {TEXT.reports.subtitle}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={() => router.push("/reports/daily")}>
-            Analisis Harian
-          </Button>
-          <Button variant="secondary" onClick={() => router.push("/reports/monthly")}>
-            Analisis Bulanan
-          </Button>
-          <Button variant="secondary" onClick={() => router.push("/reports/audit")}>
-            Log Audit
-          </Button>
-          <Button variant="primary" onClick={handleRetryAll} isLoading={isAnyLoading}>
-            Sinkronisasi Buku Besar
-          </Button>
-        </div>
-
+    <div className="flex flex-col gap-6">
+      {/* Overview Actions Row */}
+      <div className="flex justify-end items-center gap-2">
+        <Button variant="primary" onClick={handleRetryAll} isLoading={isAnyLoading}>
+          Sinkronisasi Buku Besar
+        </Button>
       </div>
+
 
       {/* Warning banner */}
       {apiWarning && (

@@ -78,24 +78,14 @@ export default function ReportsAuditPage() {
   const isAnyError = isPaymentError || isOrderError || isSnapshotError;
 
   return (
-    <div className="flex flex-col gap-6 max-w-7xl mx-auto px-4 py-6 animate-fade-in">
-      {/* Header section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/60 pb-6">
-        <div className="flex flex-col gap-1.5">
-          <h1 className="text-3xl font-black tracking-tight text-zinc-100">Accounting Ledger Audit</h1>
-          <p className="text-zinc-500 text-sm">
-            Continuous reconciliation loops detecting missing payments, duplicate checkouts, and stuck kitchen processes.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={() => router.push("/reports")}>
-            Reports Dashboard
-          </Button>
-          <Button variant="primary" onClick={handleRetryAll} isLoading={isAnyLoading}>
-            Re-Audit Ledger
-          </Button>
-        </div>
+    <div className="flex flex-col gap-6">
+      {/* Overview Actions Row */}
+      <div className="flex justify-end items-center gap-2">
+        <Button variant="primary" onClick={handleRetryAll} isLoading={isAnyLoading}>
+          Re-Audit Ledger
+        </Button>
       </div>
+
 
       {isAnyError ? (
         <div className="flex flex-col items-center justify-center p-12 bg-zinc-900 border border-zinc-800 rounded-2xl text-center shadow-lg max-w-md mx-auto mt-6 gap-4">
