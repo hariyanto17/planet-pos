@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { StyleSheet, Text, View, Modal, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, View, Modal, TouchableOpacity, TouchableWithoutFeedback } from "react-native";
 import { useTheme, Theme } from "../theme";
 
 interface DatePickerModalProps {
@@ -78,52 +78,56 @@ export default function DatePickerModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.container}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={handlePrevMonth} style={styles.navBtn}>
-              <Text style={styles.navText}>{"<"}</Text>
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>
-              {months[currentMonth]} {currentYear}
-            </Text>
-            <TouchableOpacity onPress={handleNextMonth} style={styles.navBtn}>
-              <Text style={styles.navText}>{">"}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Weekday headers */}
-          <View style={styles.weekRow}>
-            {["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"].map((dayName) => (
-              <Text key={dayName} style={styles.weekLabel}>
-                {dayName}
-              </Text>
-            ))}
-          </View>
-
-          {/* Calendar grid */}
-          <View style={styles.grid}>
-            {days.map((day, idx) => (
-              <View key={idx} style={styles.gridCell}>
-                {day !== null ? (
-                  <TouchableOpacity
-                    style={styles.dayCell}
-                    onPress={() => handleSelectDay(day)}
-                  >
-                    <Text style={styles.dayText}>{day}</Text>
-                  </TouchableOpacity>
-                ) : null}
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={styles.overlay}>
+          <TouchableWithoutFeedback>
+            <View style={styles.container}>
+              {/* Header */}
+              <View style={styles.header}>
+                <TouchableOpacity onPress={handlePrevMonth} style={styles.navBtn}>
+                  <Text style={styles.navText}>{"<"}</Text>
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>
+                  {months[currentMonth]} {currentYear}
+                </Text>
+                <TouchableOpacity onPress={handleNextMonth} style={styles.navBtn}>
+                  <Text style={styles.navText}>{">"}</Text>
+                </TouchableOpacity>
               </View>
-            ))}
-          </View>
 
-          {/* Cancel button */}
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <Text style={styles.closeBtnText}>Batal</Text>
-          </TouchableOpacity>
+              {/* Weekday headers */}
+              <View style={styles.weekRow}>
+                {["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"].map((dayName) => (
+                  <Text key={dayName} style={styles.weekLabel}>
+                    {dayName}
+                  </Text>
+                ))}
+              </View>
+
+              {/* Calendar grid */}
+              <View style={styles.grid}>
+                {days.map((day, idx) => (
+                  <View key={idx} style={styles.gridCell}>
+                    {day !== null ? (
+                      <TouchableOpacity
+                        style={styles.dayCell}
+                        onPress={() => handleSelectDay(day)}
+                      >
+                        <Text style={styles.dayText}>{day}</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                ))}
+              </View>
+
+              {/* Cancel button */}
+              <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+                <Text style={styles.closeBtnText}>Batal</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableWithoutFeedback>
         </View>
-      </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 }

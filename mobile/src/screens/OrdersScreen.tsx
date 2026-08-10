@@ -10,6 +10,7 @@ import {
   ScrollView,
   Modal,
   useWindowDimensions,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { StackScreenProps } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
@@ -333,163 +334,167 @@ export default function OrdersScreen({ navigation }: Props) {
         transparent={true}
         onRequestClose={() => setFilterModalVisible(false)}
       >
-        <View style={[styles.modalOverlay, screenWidth > 600 && styles.modalOverlayTablet]}>
-          <View style={[styles.modalContent, screenWidth > 600 && styles.modalContentTablet]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Filter Pesanan</Text>
-              <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
-                <CloseIcon color={theme.textPrimary} />
-              </TouchableOpacity>
-            </View>
+        <TouchableWithoutFeedback onPress={() => setFilterModalVisible(false)}>
+          <View style={[styles.modalOverlay, screenWidth > 600 && styles.modalOverlayTablet]}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.modalContent, screenWidth > 600 && styles.modalContentTablet]}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Filter Pesanan</Text>
+                  <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
+                    <CloseIcon color={theme.textPrimary} />
+                  </TouchableOpacity>
+                </View>
 
-            <ScrollView contentContainerStyle={styles.modalScrollBody} showsVerticalScrollIndicator={false}>
-              {/* Date Group */}
-              <View style={styles.filterSection}>
-                <Text style={styles.filterGroupLabel}>Rentang Tanggal</Text>
-                <View style={styles.filterRow}>
-                  {["TODAY", "YESTERDAY"].map((d) => (
-                    <TouchableOpacity
-                      key={d}
-                      style={[
-                        styles.filterPill,
-                        tempDate === d && styles.filterPillActive,
-                      ]}
-                      onPress={() => setTempDate(d)}
-                    >
-                      <Text
+                <ScrollView contentContainerStyle={styles.modalScrollBody} showsVerticalScrollIndicator={false}>
+                  {/* Date Group */}
+                  <View style={styles.filterSection}>
+                    <Text style={styles.filterGroupLabel}>Rentang Tanggal</Text>
+                    <View style={styles.filterRow}>
+                      {["TODAY", "YESTERDAY"].map((d) => (
+                        <TouchableOpacity
+                          key={d}
+                          style={[
+                            styles.filterPill,
+                            tempDate === d && styles.filterPillActive,
+                          ]}
+                          onPress={() => setTempDate(d)}
+                        >
+                          <Text
+                            style={[
+                              styles.filterPillText,
+                              tempDate === d && styles.filterPillTextActive,
+                            ]}
+                          >
+                            {d === "TODAY" ? "Hari Ini" : "Kemarin"}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                      <TouchableOpacity
                         style={[
-                          styles.filterPillText,
-                          tempDate === d && styles.filterPillTextActive,
+                          styles.filterPill,
+                          tempDate !== "TODAY" &&
+                          tempDate !== "YESTERDAY" &&
+                          styles.filterPillActive,
                         ]}
+                        onPress={() => setDatePickerVisible(true)}
                       >
-                        {d === "TODAY" ? "Hari Ini" : "Kemarin"}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                  <TouchableOpacity
-                    style={[
-                      styles.filterPill,
-                      tempDate !== "TODAY" &&
-                      tempDate !== "YESTERDAY" &&
-                      styles.filterPillActive,
-                    ]}
-                    onPress={() => setDatePickerVisible(true)}
-                  >
-                    <Text
-                      style={[
-                        styles.filterPillText,
-                        tempDate !== "TODAY" &&
-                        tempDate !== "YESTERDAY" &&
-                        styles.filterPillTextActive,
-                      ]}
-                    >
-                      {tempDate !== "TODAY" && tempDate !== "YESTERDAY"
-                        ? tempDate
-                        : "Pilih Tanggal"}
-                    </Text>
+                        <Text
+                          style={[
+                            styles.filterPillText,
+                            tempDate !== "TODAY" &&
+                            tempDate !== "YESTERDAY" &&
+                            styles.filterPillTextActive,
+                          ]}
+                        >
+                          {tempDate !== "TODAY" && tempDate !== "YESTERDAY"
+                            ? tempDate
+                            : "Pilih Tanggal"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {/* Status Pesanan */}
+                  <View style={styles.filterSection}>
+                    <Text style={styles.filterGroupLabel}>Status Pesanan</Text>
+                    <View style={styles.filterRow}>
+                      {[
+                        { label: "Semua", value: "" },
+                        { label: "Disiapkan", value: "PREPARING" },
+                        { label: "Siap", value: "READY" },
+                        { label: "Selesai", value: "COMPLETED" },
+                      ].map((s) => (
+                        <TouchableOpacity
+                          key={s.value}
+                          style={[styles.filterPill, tempStatus === s.value && styles.filterPillActive]}
+                          onPress={() => setTempStatus(s.value)}
+                        >
+                          <Text
+                            style={[
+                              styles.filterPillText,
+                              tempStatus === s.value && styles.filterPillTextActive,
+                            ]}
+                          >
+                            {s.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Status Pembayaran */}
+                  <View style={styles.filterSection}>
+                    <Text style={styles.filterGroupLabel}>Status Pembayaran</Text>
+                    <View style={styles.filterRow}>
+                      {[
+                        { label: "Semua", value: "" },
+                        { label: "Tertunda", value: "PENDING" },
+                        { label: "Dibayar", value: "PAID" },
+                      ].map((p) => (
+                        <TouchableOpacity
+                          key={p.value}
+                          style={[
+                            styles.filterPill,
+                            tempPaymentStatus === p.value && styles.filterPillActive,
+                          ]}
+                          onPress={() => setTempPaymentStatus(p.value)}
+                        >
+                          <Text
+                            style={[
+                              styles.filterPillText,
+                              tempPaymentStatus === p.value && styles.filterPillTextActive,
+                            ]}
+                          >
+                            {p.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Metode Pembayaran */}
+                  <View style={styles.filterSection}>
+                    <Text style={styles.filterGroupLabel}>Metode Pembayaran</Text>
+                    <View style={styles.filterRow}>
+                      {[
+                        { label: "Semua", value: "" },
+                        { label: "Tunai", value: "CASH" },
+                        { label: "QRIS", value: "QRIS" },
+                      ].map((m) => (
+                        <TouchableOpacity
+                          key={m.value}
+                          style={[
+                            styles.filterPill,
+                            tempPaymentMethod === m.value && styles.filterPillActive,
+                          ]}
+                          onPress={() => setTempPaymentMethod(m.value)}
+                        >
+                          <Text
+                            style={[
+                              styles.filterPillText,
+                              tempPaymentMethod === m.value && styles.filterPillTextActive,
+                            ]}
+                          >
+                            {m.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                </ScrollView>
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity style={styles.modalResetBtn} onPress={handleResetFilters}>
+                    <Text style={styles.modalResetBtnText}>Reset</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.modalApplyBtn} onPress={applyFilters}>
+                    <Text style={styles.modalApplyBtnText}>Terapkan Filter</Text>
                   </TouchableOpacity>
                 </View>
               </View>
-
-              {/* Status Pesanan */}
-              <View style={styles.filterSection}>
-                <Text style={styles.filterGroupLabel}>Status Pesanan</Text>
-                <View style={styles.filterRow}>
-                  {[
-                    { label: "Semua", value: "" },
-                    { label: "Disiapkan", value: "PREPARING" },
-                    { label: "Siap", value: "READY" },
-                    { label: "Selesai", value: "COMPLETED" },
-                  ].map((s) => (
-                    <TouchableOpacity
-                      key={s.value}
-                      style={[styles.filterPill, tempStatus === s.value && styles.filterPillActive]}
-                      onPress={() => setTempStatus(s.value)}
-                    >
-                      <Text
-                        style={[
-                          styles.filterPillText,
-                          tempStatus === s.value && styles.filterPillTextActive,
-                        ]}
-                      >
-                        {s.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Status Pembayaran */}
-              <View style={styles.filterSection}>
-                <Text style={styles.filterGroupLabel}>Status Pembayaran</Text>
-                <View style={styles.filterRow}>
-                  {[
-                    { label: "Semua", value: "" },
-                    { label: "Tertunda", value: "PENDING" },
-                    { label: "Dibayar", value: "PAID" },
-                  ].map((p) => (
-                    <TouchableOpacity
-                      key={p.value}
-                      style={[
-                        styles.filterPill,
-                        tempPaymentStatus === p.value && styles.filterPillActive,
-                      ]}
-                      onPress={() => setTempPaymentStatus(p.value)}
-                    >
-                      <Text
-                        style={[
-                          styles.filterPillText,
-                          tempPaymentStatus === p.value && styles.filterPillTextActive,
-                        ]}
-                      >
-                        {p.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Metode Pembayaran */}
-              <View style={styles.filterSection}>
-                <Text style={styles.filterGroupLabel}>Metode Pembayaran</Text>
-                <View style={styles.filterRow}>
-                  {[
-                    { label: "Semua", value: "" },
-                    { label: "Tunai", value: "CASH" },
-                    { label: "QRIS", value: "QRIS" },
-                  ].map((m) => (
-                    <TouchableOpacity
-                      key={m.value}
-                      style={[
-                        styles.filterPill,
-                        tempPaymentMethod === m.value && styles.filterPillActive,
-                      ]}
-                      onPress={() => setTempPaymentMethod(m.value)}
-                    >
-                      <Text
-                        style={[
-                          styles.filterPillText,
-                          tempPaymentMethod === m.value && styles.filterPillTextActive,
-                        ]}
-                      >
-                        {m.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            </ScrollView>
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.modalResetBtn} onPress={handleResetFilters}>
-                <Text style={styles.modalResetBtnText}>Reset</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.modalApplyBtn} onPress={applyFilters}>
-                <Text style={styles.modalApplyBtnText}>Terapkan Filter</Text>
-              </TouchableOpacity>
-            </View>
+            </TouchableWithoutFeedback>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </View>
   );

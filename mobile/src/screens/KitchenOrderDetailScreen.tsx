@@ -10,6 +10,7 @@ import {
   Modal,
   StatusBar,
   RefreshControl,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { useRoute, useNavigation, RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -286,69 +287,73 @@ export default function KitchenOrderDetailScreen() {
       )}
 
       {/* Confirmation modal */}
-      <Modal visible={confirmVisible} transparent animationType="fade">
-        <View style={styles.modalBg}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Konfirmasi Pembayaran & Pengiriman</Text>
-            <Text style={styles.modalSubtitle}>Silakan verifikasi uang tunai atau transaksi pembayaran dengan tamu.</Text>
+      <Modal visible={confirmVisible} transparent animationType="fade" onRequestClose={() => setConfirmVisible(false)}>
+        <TouchableWithoutFeedback onPress={() => setConfirmVisible(false)}>
+          <View style={styles.modalBg}>
+            <TouchableWithoutFeedback>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Konfirmasi Pembayaran & Pengiriman</Text>
+                <Text style={styles.modalSubtitle}>Silakan verifikasi uang tunai atau transaksi pembayaran dengan tamu.</Text>
 
-            <View style={styles.modalDetails}>
-              <View style={styles.row}>
-                <Text style={styles.mLabel}>Pelanggan</Text>
-                <Text style={styles.mValue}>{order.customerName}</Text>
+                <View style={styles.modalDetails}>
+                  <View style={styles.row}>
+                    <Text style={styles.mLabel}>Pelanggan</Text>
+                    <Text style={styles.mValue}>{order.customerName}</Text>
+                  </View>
+
+                  {paymentMethod === "CASH" ? (
+                    <>
+                      <View style={styles.row}>
+                        <Text style={styles.mLabel}>Uang Diterima</Text>
+                        <Text style={styles.mValue}>{formatCurrency(pendingPayment?.estimatedCash)}</Text>
+                      </View>
+                      <View style={styles.row}>
+                        <Text style={styles.mLabel}>Uang Kembalian</Text>
+                        <Text style={[styles.mValue, { color: "#10b981", fontWeight: "bold" }]}>
+                          {formatCurrency(pendingPayment?.changeAmount)}
+                        </Text>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <View style={styles.row}>
+                        <Text style={styles.mLabel}>Metode Pembayaran</Text>
+                        <Text style={styles.mValue}>QRIS</Text>
+                      </View>
+                      <View style={styles.row}>
+                        <Text style={styles.mLabel}>Jumlah</Text>
+                        <Text style={styles.mValue}>{formatCurrency(order.grandTotal)}</Text>
+                      </View>
+                    </>
+                  )}
+                </View>
+
+                <Text style={styles.modalPrompt}>Apakah pembayaran telah diverifikasi dan pesanan dikirim?</Text>
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={[styles.mBtn, styles.mBtnCancel]}
+                    onPress={() => setConfirmVisible(false)}
+                    disabled={isConfirmingPayment || isUpdatingStatus}
+                  >
+                    <Text style={styles.mBtnCancelText}>Batal</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.mBtn, styles.mBtnConfirm]}
+                    onPress={handleConfirmDelivery}
+                    disabled={isConfirmingPayment || isUpdatingStatus}
+                  >
+                    {isConfirmingPayment ? (
+                      <ActivityIndicator color="#ffffff" size="small" />
+                    ) : (
+                      <Text style={styles.mBtnConfirmText}>Konfirmasi</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
-
-              {paymentMethod === "CASH" ? (
-                <>
-                  <View style={styles.row}>
-                    <Text style={styles.mLabel}>Uang Diterima</Text>
-                    <Text style={styles.mValue}>{formatCurrency(pendingPayment?.estimatedCash)}</Text>
-                  </View>
-                  <View style={styles.row}>
-                    <Text style={styles.mLabel}>Uang Kembalian</Text>
-                    <Text style={[styles.mValue, { color: "#10b981", fontWeight: "bold" }]}>
-                      {formatCurrency(pendingPayment?.changeAmount)}
-                    </Text>
-                  </View>
-                </>
-              ) : (
-                <>
-                  <View style={styles.row}>
-                    <Text style={styles.mLabel}>Metode Pembayaran</Text>
-                    <Text style={styles.mValue}>QRIS</Text>
-                  </View>
-                  <View style={styles.row}>
-                    <Text style={styles.mLabel}>Jumlah</Text>
-                    <Text style={styles.mValue}>{formatCurrency(order.grandTotal)}</Text>
-                  </View>
-                </>
-              )}
-            </View>
-
-            <Text style={styles.modalPrompt}>Apakah pembayaran telah diverifikasi dan pesanan dikirim?</Text>
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.mBtn, styles.mBtnCancel]}
-                onPress={() => setConfirmVisible(false)}
-                disabled={isConfirmingPayment || isUpdatingStatus}
-              >
-                <Text style={styles.mBtnCancelText}>Batal</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.mBtn, styles.mBtnConfirm]}
-                onPress={handleConfirmDelivery}
-                disabled={isConfirmingPayment || isUpdatingStatus}
-              >
-                {isConfirmingPayment ? (
-                  <ActivityIndicator color="#ffffff" size="small" />
-                ) : (
-                  <Text style={styles.mBtnConfirmText}>Konfirmasi</Text>
-                )}
-              </TouchableOpacity>
-            </View>
+            </TouchableWithoutFeedback>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </SafeAreaView>
   );

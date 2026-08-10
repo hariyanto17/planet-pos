@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, useWindowDimensions } from "react-native";
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, useWindowDimensions, TouchableWithoutFeedback } from "react-native";
 import { StackScreenProps } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { useAppDispatch, useAppSelector } from "../lib/store/hooks";
@@ -498,29 +498,33 @@ export default function CartScreen({ navigation }: Props) {
       </ScrollView>
 
       {/* Note Modal Dialog */}
-      <Modal visible={!!editingItem} transparent animationType="fade">
-        <View style={styles.modalBg}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Catatan Khusus Item</Text>
-            <Text style={styles.modalSubtitle}>{editingItem?.productName}</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="mis. Sedikit es, tanpa bawang, dll."
-              placeholderTextColor="#71717a"
-              value={noteInput}
-              onChangeText={setNoteInput}
-              autoFocus
-            />
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={[styles.mBtn, styles.mBtnCancel]} onPress={() => setEditingItem(null)}>
-                <Text style={styles.mBtnCancelText}>Batal</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.mBtn, styles.mBtnConfirm]} onPress={handleSaveNote}>
-                <Text style={styles.mBtnConfirmText}>Simpan Catatan</Text>
-              </TouchableOpacity>
-            </View>
+      <Modal visible={!!editingItem} transparent animationType="fade" onRequestClose={() => setEditingItem(null)}>
+        <TouchableWithoutFeedback onPress={() => setEditingItem(null)}>
+          <View style={styles.modalBg}>
+            <TouchableWithoutFeedback>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Catatan Khusus Item</Text>
+                <Text style={styles.modalSubtitle}>{editingItem?.productName}</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="mis. Sedikit es, tanpa bawang, dll."
+                  placeholderTextColor="#71717a"
+                  value={noteInput}
+                  onChangeText={setNoteInput}
+                  autoFocus
+                />
+                <View style={styles.modalActions}>
+                  <TouchableOpacity style={[styles.mBtn, styles.mBtnCancel]} onPress={() => setEditingItem(null)}>
+                    <Text style={styles.mBtnCancelText}>Batal</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.mBtn, styles.mBtnConfirm]} onPress={handleSaveNote}>
+                    <Text style={styles.mBtnConfirmText}>Simpan Catatan</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </View>
   );

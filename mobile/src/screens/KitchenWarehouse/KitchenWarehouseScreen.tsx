@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  TouchableWithoutFeedback,
 } from "react-native";
 import {
   useGetInventoryProductsQuery,
@@ -458,155 +459,159 @@ export default function KitchenWarehouseScreen() {
         transparent={true}
         onRequestClose={() => setModalType(null)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {modalType === "RECEIVE" && "Terima Stok"}
-              {modalType === "ADJUST" && "Penyesuaian Stok"}
-              {modalType === "WASTE" && "Pencatatan Waste"}
-              {modalType === "OPENING" && "Stok Awal"}
-              {modalType === "TRANSFER" && "Buat Permintaan Transfer"}
-            </Text>
+        <TouchableWithoutFeedback onPress={() => setModalType(null)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>
+                  {modalType === "RECEIVE" && "Terima Stok"}
+                  {modalType === "ADJUST" && "Penyesuaian Stok"}
+                  {modalType === "WASTE" && "Pencatatan Waste"}
+                  {modalType === "OPENING" && "Stok Awal"}
+                  {modalType === "TRANSFER" && "Buat Permintaan Transfer"}
+                </Text>
 
-            <ScrollView contentContainerStyle={{ gap: 12 }}>
-              {modalType === "TRANSFER" && (
-                <View>
-                  <Text style={styles.label}>Gudang Asal *</Text>
-                  <View style={styles.pickerWrapper}>
-                    {warehouses?.filter(w => w.id !== kitchenWarehouseId && w.isActive).map(w => (
-                      <TouchableOpacity
-                        key={w.id}
-                        style={[styles.pickerItem, sourceWarehouseId === w.id && styles.pickerItemActive]}
-                        onPress={() => setSourceWarehouseId(w.id)}
-                      >
-                        <Text style={styles.pickerItemText}>{w.name}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              )}
+                <ScrollView contentContainerStyle={{ gap: 12 }}>
+                  {modalType === "TRANSFER" && (
+                    <View>
+                      <Text style={styles.label}>Gudang Asal *</Text>
+                      <View style={styles.pickerWrapper}>
+                        {warehouses?.filter(w => w.id !== kitchenWarehouseId && w.isActive).map(w => (
+                          <TouchableOpacity
+                            key={w.id}
+                            style={[styles.pickerItem, sourceWarehouseId === w.id && styles.pickerItemActive]}
+                            onPress={() => setSourceWarehouseId(w.id)}
+                          >
+                            <Text style={styles.pickerItemText}>{w.name}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  )}
 
-              {modalType !== "OPENING" ? (
-                <>
-                  <Text style={styles.label}>Pilih Produk *</Text>
-                  <View style={styles.pickerWrapper}>
-                    {allProducts?.map((p: any) => (
-                      <TouchableOpacity
-                        key={p.id}
-                        style={[styles.pickerItem, selectedProductId === p.id && styles.pickerItemActive]}
-                        onPress={() => setSelectedProductId(p.id)}
-                      >
-                        <Text style={styles.pickerItemText}>{p.name}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-
-                  <Text style={styles.label}>Jumlah *</Text>
-                  <TextInput
-                    style={styles.modalInput}
-                    placeholder="Masukkan jumlah..."
-                    placeholderTextColor="#71717a"
-                    keyboardType="numeric"
-                    value={quantity}
-                    onChangeText={setQuantity}
-                  />
-
-                  <Text style={styles.label}>Catatan / Keterangan</Text>
-                  <TextInput
-                    style={styles.modalInput}
-                    placeholder="Masukkan catatan..."
-                    placeholderTextColor="#71717a"
-                    value={remarks}
-                    onChangeText={setRemarks}
-                  />
-                </>
-              ) : (
-                <View>
-                  <Text style={styles.label}>Daftar Stok Awal</Text>
-                  {openingItems.map((item, idx) => (
-                    <View key={idx} style={styles.openingItemRow}>
+                  {modalType !== "OPENING" ? (
+                    <>
+                      <Text style={styles.label}>Pilih Produk *</Text>
                       <View style={styles.pickerWrapper}>
                         {allProducts?.map((p: any) => (
                           <TouchableOpacity
                             key={p.id}
-                            style={[styles.pickerItem, item.productId === p.id && styles.pickerItemActive]}
-                            onPress={() => {
-                              const next = [...openingItems];
-                              next[idx].productId = p.id;
-                              setOpeningItems(next);
-                            }}
+                            style={[styles.pickerItem, selectedProductId === p.id && styles.pickerItemActive]}
+                            onPress={() => setSelectedProductId(p.id)}
                           >
                             <Text style={styles.pickerItemText}>{p.name}</Text>
                           </TouchableOpacity>
                         ))}
                       </View>
+
+                      <Text style={styles.label}>Jumlah *</Text>
                       <TextInput
                         style={styles.modalInput}
-                        placeholder="Jumlah"
-                        placeholderTextColor="#71717a"
                         keyboardType="numeric"
-                        value={item.quantity}
-                        onChangeText={(txt) => {
-                          const next = [...openingItems];
-                          next[idx].quantity = txt;
-                          setOpeningItems(next);
-                        }}
+                        placeholder="0"
+                        placeholderTextColor="#71717a"
+                        value={quantity}
+                        onChangeText={setQuantity}
                       />
+
+                      <Text style={styles.label}>Catatan / Keterangan</Text>
                       <TextInput
                         style={styles.modalInput}
-                        placeholder="Catatan"
+                        placeholder="Keterangan transaksi"
                         placeholderTextColor="#71717a"
-                        value={item.remarks}
-                        onChangeText={(txt) => {
-                          const next = [...openingItems];
-                          next[idx].remarks = txt;
-                          setOpeningItems(next);
-                        }}
+                        value={remarks}
+                        onChangeText={setRemarks}
                       />
+                    </>
+                  ) : (
+                    <View style={{ gap: 12 }}>
+                      {openingItems.map((item, idx) => (
+                        <View key={idx} style={{ borderWidth: 1, borderColor: theme.border, padding: 12, borderRadius: 8, gap: 8 }}>
+                          <Text style={styles.label}>Pilih Produk *</Text>
+                          <View style={styles.pickerWrapper}>
+                            {allProducts?.map((p: any) => (
+                              <TouchableOpacity
+                                key={p.id}
+                                style={[styles.pickerItem, item.productId === p.id && styles.pickerItemActive]}
+                                onPress={() => {
+                                  const next = [...openingItems];
+                                  next[idx].productId = p.id;
+                                  setOpeningItems(next);
+                                }}
+                              >
+                                <Text style={styles.pickerItemText}>{p.name}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                          <TextInput
+                            style={styles.modalInput}
+                            keyboardType="numeric"
+                            placeholder="Jumlah Stok Awal"
+                            placeholderTextColor="#71717a"
+                            value={item.quantity}
+                            onChangeText={(txt) => {
+                              const next = [...openingItems];
+                              next[idx].quantity = txt;
+                              setOpeningItems(next);
+                            }}
+                          />
+                          <TextInput
+                            style={styles.modalInput}
+                            placeholder="Catatan"
+                            placeholderTextColor="#71717a"
+                            value={item.remarks}
+                            onChangeText={(txt) => {
+                              const next = [...openingItems];
+                              next[idx].remarks = txt;
+                              setOpeningItems(next);
+                            }}
+                          />
+                          <TouchableOpacity
+                            style={{ alignSelf: "flex-end", marginTop: 4 }}
+                            onPress={() => {
+                              setOpeningItems(openingItems.filter((_, i) => i !== idx));
+                            }}
+                          >
+                            <Text style={{ color: theme.error }}>Hapus</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ))}
                       <TouchableOpacity
-                        style={{ alignSelf: "flex-end", marginTop: 4 }}
-                        onPress={() => {
-                          setOpeningItems(openingItems.filter((_, i) => i !== idx));
-                        }}
+                        style={styles.secondaryBtn}
+                        onPress={() => setOpeningItems([...openingItems, { productId: "", quantity: "", remarks: "" }])}
                       >
-                        <Text style={{ color: theme.error }}>Hapus</Text>
+                        <Text style={styles.secondaryBtnText}>+ Tambah Baris</Text>
                       </TouchableOpacity>
                     </View>
-                  ))}
+                  )}
+                </ScrollView>
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalType(null)}>
+                    <Text style={styles.cancelBtnText}>Batal</Text>
+                  </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.secondaryBtn}
-                    onPress={() => setOpeningItems([...openingItems, { productId: "", quantity: "", remarks: "" }])}
+                    style={styles.confirmBtn}
+                    onPress={() => {
+                      if (modalType === "OPENING") handleOpeningSubmit();
+                      else if (modalType === "TRANSFER") handleTransferSubmit();
+                      else handleOperationSubmit();
+                    }}
+                    disabled={
+                      isMutatingReceive ||
+                      isMutatingAdjust ||
+                      isMutatingWaste ||
+                      isMutatingOpening ||
+                      isMutatingTransfer
+                    }
                   >
-                    <Text style={styles.secondaryBtnText}>+ Tambah Baris</Text>
+                    <Text style={styles.confirmBtnText}>Simpan</Text>
                   </TouchableOpacity>
                 </View>
-              )}
-            </ScrollView>
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalType(null)}>
-                <Text style={styles.cancelBtnText}>Batal</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.confirmBtn}
-                onPress={() => {
-                  if (modalType === "OPENING") handleOpeningSubmit();
-                  else if (modalType === "TRANSFER") handleTransferSubmit();
-                  else handleOperationSubmit();
-                }}
-                disabled={
-                  isMutatingReceive ||
-                  isMutatingAdjust ||
-                  isMutatingWaste ||
-                  isMutatingOpening ||
-                  isMutatingTransfer
-                }
-              >
-                <Text style={styles.confirmBtnText}>Simpan</Text>
-              </TouchableOpacity>
-            </View>
+              </View>
+            </TouchableWithoutFeedback>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </SafeAreaView>
   );
