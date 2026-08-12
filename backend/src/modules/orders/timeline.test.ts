@@ -1,11 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 import { PrismaClient, OrderStatus, PaymentMethod, PaymentStatus } from "@prisma/client";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client-runtime-utils";
 import { createOrder, updateOrderStatus, confirmPayment } from "./service";
 import { getKitchenQueue } from "./queue.service";
 
-const prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 test("Order Timeline and Status Transitions Regression Tests", async (t) => {
   // Setup: Find cashier user, active shift, and product from seed

@@ -1,10 +1,19 @@
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
+import dotenv from "dotenv";
+dotenv.config();
 import { seedUsers } from "./seeds/users.seed";
 import { seedUnits } from "./seeds/units.seed";
 import { seedInventory } from "./seeds/inventory.seed";
 import { seedProductUnitConversions } from "./seeds/productUnitConversions.seed";
 
-const prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
+const newPrismaClient = () => {
+  const connectionString = `${process.env.DATABASE_URL}`;
+  const adapter = new PrismaPg({ connectionString });
+  return new PrismaClient({ adapter });
+};
+
+const prisma = newPrismaClient();
 
 async function main() {
   console.log("Starting seed...");

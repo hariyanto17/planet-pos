@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 import { PrismaClient, InventoryType, BaseUnit } from "@prisma/client";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client-runtime-utils";
 import {
   createStockRequest,
   claimStockRequest,
@@ -12,7 +14,10 @@ import {
   getStockRequests,
 } from "./requests.service";
 
-const prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
+
 
 test("Stock Request & Fulfillment Integration Tests", async (t) => {
   // Setup data

@@ -2,7 +2,7 @@ import { prisma } from "../../utils/prisma";
 import { AppError } from "../../utils/errorHandler";
 import { CreatePaymentInput } from "./interface";
 import { PaymentStatus, OrderStatus, Prisma, Payment } from "@prisma/client";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client-runtime-utils";
 import { confirmPayment } from "../orders/service";
 import { domainEvents, DOMAIN_EVENTS } from "../../utils/eventEmitter";
 

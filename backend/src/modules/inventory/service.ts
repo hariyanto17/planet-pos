@@ -1,3 +1,5 @@
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 import { PrismaClient, Prisma, StockMovementType, StockReferenceType } from "@prisma/client";
 import { getInventoryStatus } from "@shared/types";
 import { createLedgerEntry } from "./stock.service";
@@ -12,9 +14,9 @@ import {
 } from "./types";
 import { AppError } from "../../utils/errorHandler";
 
-const prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
-
-// Resolve default sales warehouse code from environment, fallback to "CONCESSION"
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 const DEFAULT_SALES_WAREHOUSE_CODE = process.env.DEFAULT_SALES_WAREHOUSE_CODE || "CONCESSION";
 
 /**

@@ -1,5 +1,5 @@
 import { Prisma, WarehouseType } from "@prisma/client";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client-runtime-utils";
 import { CreateLedgerEntryParams } from "./types";
 import { AppError } from "../../utils/errorHandler";
 

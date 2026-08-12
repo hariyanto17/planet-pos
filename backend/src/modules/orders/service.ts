@@ -2,7 +2,7 @@ import { prisma } from "../../utils/prisma";
 import { AppError } from "../../utils/errorHandler";
 import { CreateOrderInput } from "./interface";
 import { OrderStatus, Prisma, Tax, Promotion, StockMovementType, StockReferenceType } from "@prisma/client";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client-runtime-utils";
 import { createLedgerEntry } from "../inventory/stock.service";
 import { isValidOrderTransition } from "../../utils/statusValidator";
 import { domainEvents, DOMAIN_EVENTS } from "../../utils/eventEmitter";

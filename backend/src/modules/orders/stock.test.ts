@@ -1,11 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 import { PrismaClient, OrderStatus, PaymentMethod, PaymentStatus, InventoryType } from "@prisma/client";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client-runtime-utils";
 import { createOrder } from "./service";
 import { getAllProducts } from "../products/service";
 
-const prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 test("POS Cashier Sellable Stock Calculations and Checkout Validation Tests", async (t) => {
   // Setup test environment

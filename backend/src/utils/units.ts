@@ -1,5 +1,5 @@
 import { BaseUnit, PrismaClient } from "@prisma/client";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client-runtime-utils";
 import { AppError } from "../utils/errorHandler";
 import { prisma } from "./prisma";
 

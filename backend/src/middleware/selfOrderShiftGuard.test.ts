@@ -1,11 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 import { PrismaClient } from "@prisma/client";
 import { selfOrderShiftGuard } from "./selfOrderShiftGuard";
 import { AppError } from "../utils/errorHandler";
 import { Request, Response } from "express";
 
-const prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 test("selfOrderShiftGuard Tests", async (t) => {
   // Find or create a user to associate with shifts

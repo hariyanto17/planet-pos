@@ -1,5 +1,5 @@
 import { PrismaClient, InventoryType, WarehouseType, StockMovementType, StockReferenceType } from "@prisma/client";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client-runtime-utils";
 
 export async function seedInventory(prisma: PrismaClient) {
   console.log("Seeding Inventory (Categories, Products, Recipes, Warehouses, and Stocks)...");

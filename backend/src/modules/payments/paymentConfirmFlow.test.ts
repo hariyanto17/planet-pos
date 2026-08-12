@@ -1,11 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 import { PrismaClient, PaymentStatus, OrderStatus } from "@prisma/client";
 import { checkout } from "../checkout/service";
 import { confirmPendingPayment } from "./service";
 import { getCurrentShift } from "../shifts/service";
 
-const prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 test("POS Cashier Checkout and Payment Confirmation Shift Flow Tests", async (t) => {
   // Setup data

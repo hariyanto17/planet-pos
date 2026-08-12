@@ -55,7 +55,7 @@ export async function seedProductUnitConversions(prisma: PrismaClient) {
       await prisma.productUnitConversion.update({
         where: { id: existing.id },
         data: {
-          baseQuantity: new (require("@prisma/client/runtime/library").Decimal)(conv.baseQuantity),
+          baseQuantity: new (require("@prisma/client-runtime-utils").Decimal)(conv.baseQuantity),
           isDefault: conv.isDefault ?? false,
         },
       });
@@ -64,7 +64,7 @@ export async function seedProductUnitConversions(prisma: PrismaClient) {
         data: {
           productId: product.id,
           unitId: unit.id,
-          baseQuantity: new (require("@prisma/client/runtime/library").Decimal)(conv.baseQuantity),
+          baseQuantity: new (require("@prisma/client-runtime-utils").Decimal)(conv.baseQuantity),
           isDefault: conv.isDefault ?? false,
         },
       });
