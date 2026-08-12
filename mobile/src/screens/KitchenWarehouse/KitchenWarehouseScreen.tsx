@@ -26,15 +26,26 @@ import {
   useRecordOpeningStockMutation,
   useTransferStockMutation,
   useCompleteStockTransferMutation,
+  useGetStockRequestsQuery,
+  useCreateStockRequestMutation,
+  useClaimStockRequestMutation,
+  useShipStockRequestMutation,
+  useReceiveStockRequestMutation,
+  useAcceptStockRequestMutation,
+  useCancelStockRequestMutation,
 } from "../../lib/api/inventoryApi";
 import { useGetProductsQuery } from "../../lib/api/productApi";
 import { useToast } from "../../hooks/useToast";
 import { useConfirmation } from "../../hooks/useConfirmation";
 import { useTheme, Theme } from "../../theme";
+import { useAppSelector } from "../../lib/store/hooks";
+import { selectCurrentUser } from "../../lib/store/features/auth/selectors";
+import { getAvailableUnits, getDefaultUnit, formatConversionPreview } from "../../lib/utils/unitConversions";
 
-type TabType = "Stok" | "Riwayat" | "Transfer" | "Aktivitas";
+type TabType = "Stok" | "Riwayat" | "Transfer" | "Aktivitas" | "Permintaan";
 
 export default function KitchenWarehouseScreen() {
+  const currentUser = useAppSelector(selectCurrentUser);
   const [activeTab, setActiveTab] = useState<TabType>("Stok");
   const { showToast } = useToast();
   const { showConfirmation } = useConfirmation();
@@ -87,6 +98,15 @@ export default function KitchenWarehouseScreen() {
     (t) => t.destinationWarehouseId === kitchenWarehouseId
   ) || [];
 
+  // Tab 5: Requests Query
+  const [activeRequestScope, setActiveRequestScope] = useState<"my-requests" | "available" | "my-fulfillments" | "incoming" | "completed">("my-requests");
+  const {
+    data: requestsData,
+    isLoading: isLoadingRequests,
+    isFetching: isFetchingRequests,
+    refetch: refetchRequests,
+  } = useGetStockRequestsQuery({ scope: activeRequestScope });
+
   // Mutations
   const [receiveStock, { isLoading: isMutatingReceive }] = useReceiveStockMutation();
   const [adjustStock, { isLoading: isMutatingAdjust }] = useAdjustStockMutation();
@@ -94,16 +114,40 @@ export default function KitchenWarehouseScreen() {
   const [recordOpeningStock, { isLoading: isMutatingOpening }] = useRecordOpeningStockMutation();
   const [transferStock, { isLoading: isMutatingTransfer }] = useTransferStockMutation();
   const [completeStockTransfer, { isLoading: isCompletingTransfer }] = useCompleteStockTransferMutation();
+  const [createStockRequest, { isLoading: isMutatingCreateRequest }] = useCreateStockRequestMutation();
+  const [claimStockRequest, { isLoading: isMutatingClaim }] = useClaimStockRequestMutation();
+  const [shipStockRequest, { isLoading: isMutatingShip }] = useShipStockRequestMutation();
+  const [receiveStockRequest, { isLoading: isMutatingReceiveReq }] = useReceiveStockRequestMutation();
+  const [acceptStockRequest, { isLoading: isMutatingAccept }] = useAcceptStockRequestMutation();
+  const [cancelStockRequest, { isLoading: isMutatingCancel }] = useCancelStockRequestMutation();
 
   // Modals state
-  const [modalType, setModalType] = useState<"RECEIVE" | "ADJUST" | "WASTE" | "OPENING" | "TRANSFER" | null>(null);
+  const [modalType, setModalType] = useState<"RECEIVE" | "ADJUST" | "WASTE" | "OPENING" | "TRANSFER" | "REQUEST" | null>(null);
   const [selectedProductId, setSelectedProductId] = useState("");
   const [quantity, setQuantity] = useState("");
+  const [selectedUnit, setSelectedUnit] = useState("");
   const [remarks, setRemarks] = useState("");
   const [sourceWarehouseId, setSourceWarehouseId] = useState("");
-  const [openingItems, setOpeningItems] = useState<Array<{ productId: string; quantity: string; remarks: string }>>([
-    { productId: "", quantity: "", remarks: "" },
+  const [openingItems, setOpeningItems] = useState<Array<{ productId: string; quantity: string; unit: string; remarks: string }>>([
+    { productId: "", quantity: "", unit: "", remarks: "" },
   ]);
+
+  const getCompatibleUnits = (baseUnit?: string) => {
+    if (baseUnit === "G") return ["g", "kg"];
+    if (baseUnit === "ML") return ["ml", "L"];
+    return ["pcs"];
+  };
+
+  const handleProductSelect = (id: string) => {
+    setSelectedProductId(id);
+    const prod = allProducts?.find((p: any) => p.id === id);
+    if (prod) {
+      const units = getAvailableUnits(prod).map((u) => u.symbol);
+      setSelectedUnit(units[0] || "");
+    } else {
+      setSelectedUnit("");
+    }
+  };
 
   const handleCompleteTransfer = async (transferId: string) => {
     const confirmed = await showConfirmation({
@@ -152,11 +196,11 @@ export default function KitchenWarehouseScreen() {
 
     try {
       if (modalType === "RECEIVE") {
-        await receiveStock({ productId: selectedProductId, warehouseId: kitchenWarehouseId, quantity: qtyNum, remarks }).unwrap();
+        await receiveStock({ productId: selectedProductId, warehouseId: kitchenWarehouseId, quantity: qtyNum, unit: selectedUnit || undefined, remarks }).unwrap();
       } else if (modalType === "ADJUST") {
-        await adjustStock({ productId: selectedProductId, warehouseId: kitchenWarehouseId, quantity: qtyNum, remarks }).unwrap();
+        await adjustStock({ productId: selectedProductId, warehouseId: kitchenWarehouseId, quantity: qtyNum, unit: selectedUnit || undefined, remarks }).unwrap();
       } else if (modalType === "WASTE") {
-        await removeWaste({ productId: selectedProductId, warehouseId: kitchenWarehouseId, quantity: qtyNum, remarks }).unwrap();
+        await removeWaste({ productId: selectedProductId, warehouseId: kitchenWarehouseId, quantity: qtyNum, unit: selectedUnit || undefined, remarks }).unwrap();
       }
       showToast({ type: "success", title: "Berhasil", message: "Operasi stok berhasil disimpan." });
       setModalType(null);
@@ -181,6 +225,7 @@ export default function KitchenWarehouseScreen() {
       return {
         productId: item.productId,
         quantity: isNaN(qVal) ? 0 : qVal,
+        unit: item.unit || undefined,
         remarks: item.remarks || undefined,
       };
     });
@@ -189,7 +234,7 @@ export default function KitchenWarehouseScreen() {
       await recordOpeningStock({ warehouseId: kitchenWarehouseId, items: itemsPayload }).unwrap();
       showToast({ type: "success", title: "Berhasil", message: "Stok awal berhasil disimpan." });
       setModalType(null);
-      setOpeningItems([{ productId: "", quantity: "", remarks: "" }]);
+      setOpeningItems([{ productId: "", quantity: "", unit: "", remarks: "" }]);
       refetchStock();
       refetchMovements();
     } catch (err: any) {
@@ -213,7 +258,7 @@ export default function KitchenWarehouseScreen() {
       await transferStock({
         sourceWarehouseId,
         destinationWarehouseId: kitchenWarehouseId,
-        items: [{ productId: selectedProductId, quantity: qtyNum }],
+        items: [{ productId: selectedProductId, quantity: qtyNum, unit: selectedUnit || undefined }],
         remarks,
       }).unwrap();
       showToast({ type: "success", title: "Berhasil", message: "Permintaan transfer berhasil dibuat." });
@@ -225,9 +270,160 @@ export default function KitchenWarehouseScreen() {
     }
   };
 
+  const handleRequestSubmit = async () => {
+    if (!kitchenWarehouseId) {
+      showToast({ type: "error", title: "Error", message: "Gudang peminta tidak terdeteksi." });
+      return;
+    }
+    if (!selectedProductId || !quantity) {
+      showToast({ type: "warning", title: "Peringatan", message: "Harap isi semua kolom wajib." });
+      return;
+    }
+
+    const qtyNum = parseFloat(quantity);
+    if (isNaN(qtyNum) || qtyNum <= 0) {
+      showToast({ type: "warning", title: "Peringatan", message: "Jumlah harus berupa angka positif." });
+      return;
+    }
+
+    try {
+      await createStockRequest({
+        requestingWarehouseId: kitchenWarehouseId,
+        items: [
+          {
+            productId: selectedProductId,
+            quantity: qtyNum,
+            unit: selectedUnit || undefined,
+          },
+        ],
+        notes: remarks || undefined,
+      }).unwrap();
+
+      showToast({
+        type: "success",
+        title: "Berhasil",
+        message: "Permintaan stok berhasil diajukan.",
+      });
+      setModalType(null);
+      resetFormFields();
+      refetchRequests();
+    } catch (err: any) {
+      showToast({
+        type: "error",
+        title: "Gagal",
+        message: err?.data?.message || "Gagal mengajukan permintaan.",
+      });
+    }
+  };
+
+  const handleClaimRequest = async (requestId: string) => {
+    if (!kitchenWarehouseId) return;
+    const confirmed = await showConfirmation({
+      title: "Claim Permintaan",
+      message: "Apakah Anda yakin ingin memproses permintaan stok ini dari gudang Anda?",
+      confirmText: "Claim",
+      cancelText: "Batal",
+      variant: "info",
+    });
+
+    if (confirmed) {
+      try {
+        await claimStockRequest({ id: requestId, sourceWarehouseId: kitchenWarehouseId }).unwrap();
+        showToast({ type: "success", title: "Berhasil", message: "Permintaan berhasil diklaim." });
+        refetchRequests();
+        refetchStock();
+      } catch (err: any) {
+        showToast({ type: "error", title: "Gagal", message: err?.data?.message || "Gagal mengklaim." });
+      }
+    }
+  };
+
+  const handleShipRequest = async (requestId: string) => {
+    const confirmed = await showConfirmation({
+      title: "Kirim Barang",
+      message: "Konfirmasi pengiriman fisik barang? Stok gudang asal akan langsung berkurang.",
+      confirmText: "Kirim",
+      cancelText: "Batal",
+      variant: "info",
+    });
+
+    if (confirmed) {
+      try {
+        await shipStockRequest(requestId).unwrap();
+        showToast({ type: "success", title: "Berhasil", message: "Barang berhasil dikirim." });
+        refetchRequests();
+        refetchStock();
+      } catch (err: any) {
+        showToast({ type: "error", title: "Gagal", message: err?.data?.message || "Gagal mengirim." });
+      }
+    }
+  };
+
+  const handleReceiveRequest = async (requestId: string) => {
+    const confirmed = await showConfirmation({
+      title: "Terima Barang",
+      message: "Konfirmasi barang telah sampai di lokasi secara fisik?",
+      confirmText: "Terima",
+      cancelText: "Batal",
+      variant: "info",
+    });
+
+    if (confirmed) {
+      try {
+        await receiveStockRequest(requestId).unwrap();
+        showToast({ type: "success", title: "Berhasil", message: "Fisik barang diterima." });
+        refetchRequests();
+      } catch (err: any) {
+        showToast({ type: "error", title: "Gagal", message: err?.data?.message || "Gagal menerima." });
+      }
+    }
+  };
+
+  const handleAcceptRequest = async (requestId: string) => {
+    const confirmed = await showConfirmation({
+      title: "Accept Stok",
+      message: "Verifikasi dan tambahkan barang ke stok sistem?",
+      confirmText: "Accept",
+      cancelText: "Batal",
+      variant: "info",
+    });
+
+    if (confirmed) {
+      try {
+        await acceptStockRequest(requestId).unwrap();
+        showToast({ type: "success", title: "Berhasil", message: "Barang ditambahkan ke stok." });
+        refetchRequests();
+        refetchStock();
+      } catch (err: any) {
+        showToast({ type: "error", title: "Gagal", message: err?.data?.message || "Gagal memproses." });
+      }
+    }
+  };
+
+  const handleCancelRequest = async (requestId: string) => {
+    const confirmed = await showConfirmation({
+      title: "Batalkan Permintaan",
+      message: "Apakah Anda yakin ingin membatalkan permintaan ini?",
+      confirmText: "Batalkan",
+      cancelText: "Kembali",
+      variant: "danger",
+    });
+
+    if (confirmed) {
+      try {
+        await cancelStockRequest(requestId).unwrap();
+        showToast({ type: "success", title: "Berhasil", message: "Permintaan dibatalkan." });
+        refetchRequests();
+      } catch (err: any) {
+        showToast({ type: "error", title: "Gagal", message: err?.data?.message || "Gagal membatalkan." });
+      }
+    }
+  };
+
   const resetFormFields = () => {
     setSelectedProductId("");
     setQuantity("");
+    setSelectedUnit("");
     setRemarks("");
     setSourceWarehouseId("");
   };
@@ -497,22 +693,57 @@ export default function KitchenWarehouseScreen() {
                           <TouchableOpacity
                             key={p.id}
                             style={[styles.pickerItem, selectedProductId === p.id && styles.pickerItemActive]}
-                            onPress={() => setSelectedProductId(p.id)}
+                            onPress={() => handleProductSelect(p.id)}
                           >
                             <Text style={styles.pickerItemText}>{p.name}</Text>
                           </TouchableOpacity>
                         ))}
                       </View>
 
-                      <Text style={styles.label}>Jumlah *</Text>
-                      <TextInput
-                        style={styles.modalInput}
-                        keyboardType="numeric"
-                        placeholder="0"
-                        placeholderTextColor="#71717a"
-                        value={quantity}
-                        onChangeText={setQuantity}
-                      />
+                      <Text style={styles.label}>Jumlah & Satuan *</Text>
+                      <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
+                        <TextInput
+                          style={[styles.modalInput, { flex: 1, marginBottom: 0 }]}
+                          keyboardType="numeric"
+                          placeholder="0"
+                          placeholderTextColor="#71717a"
+                          value={quantity}
+                          onChangeText={setQuantity}
+                        />
+                        {selectedProductId && (
+                          <View style={{ flexDirection: "row", gap: 4 }}>
+                            {getAvailableUnits(allProducts?.find((p: any) => p.id === selectedProductId)).map((u) => (
+                              <TouchableOpacity
+                                key={u.symbol}
+                                style={[
+                                  styles.pickerItem,
+                                  { justifyContent: "center", alignItems: "center", height: 40, minWidth: 40 },
+                                  selectedUnit === u.symbol && styles.pickerItemActive,
+                                ]}
+                                onPress={() => setSelectedUnit(u.symbol)}
+                              >
+                                <Text style={styles.pickerItemText}>{u.symbol}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        )}
+                      </View>
+
+                      {(() => {
+                        const selectedProduct = allProducts?.find((p: any) => p.id === selectedProductId);
+                        const qtyNum = parseFloat(quantity);
+                        if (selectedProduct && !isNaN(qtyNum) && qtyNum > 0 && selectedUnit) {
+                          const preview = formatConversionPreview(selectedProduct, qtyNum, selectedUnit);
+                          if (preview) {
+                            return (
+                              <Text style={{ fontSize: 11, color: "#10b981", fontWeight: "bold", marginTop: -6, marginBottom: 8 }}>
+                                {preview}
+                              </Text>
+                            );
+                          }
+                        }
+                        return null;
+                      })()}
 
                       <Text style={styles.label}>Catatan / Keterangan</Text>
                       <TextInput
@@ -536,6 +767,7 @@ export default function KitchenWarehouseScreen() {
                                 onPress={() => {
                                   const next = [...openingItems];
                                   next[idx].productId = p.id;
+                                  next[idx].unit = getDefaultUnit(p) || "";
                                   setOpeningItems(next);
                                 }}
                               >
@@ -543,18 +775,52 @@ export default function KitchenWarehouseScreen() {
                               </TouchableOpacity>
                             ))}
                           </View>
-                          <TextInput
-                            style={styles.modalInput}
-                            keyboardType="numeric"
-                            placeholder="Jumlah Stok Awal"
-                            placeholderTextColor="#71717a"
-                            value={item.quantity}
-                            onChangeText={(txt) => {
-                              const next = [...openingItems];
-                              next[idx].quantity = txt;
-                              setOpeningItems(next);
-                            }}
-                          />
+                          <View style={{ flexDirection: "row", gap: 8 }}>
+                            <TextInput
+                              style={[styles.modalInput, { flex: 1 }]}
+                              keyboardType="numeric"
+                              placeholder="Jumlah Stok Awal"
+                              placeholderTextColor="#71717a"
+                              value={item.quantity}
+                              onChangeText={(txt) => {
+                                const next = [...openingItems];
+                                next[idx].quantity = txt;
+                                setOpeningItems(next);
+                              }}
+                            />
+                            <View style={{ flexDirection: "row", gap: 4, flexWrap: "wrap" }}>
+                              {getAvailableUnits(allProducts?.find((p: any) => p.id === item.productId)).map((u) => (
+                                <TouchableOpacity
+                                  key={u.symbol}
+                                  style={[
+                                    styles.pickerItem,
+                                    { justifyContent: "center", alignItems: "center", height: 40, minWidth: 40 },
+                                    item.unit === u.symbol && styles.pickerItemActive,
+                                  ]}
+                                  onPress={() => {
+                                    const next = [...openingItems];
+                                    next[idx].unit = u.symbol;
+                                    setOpeningItems(next);
+                                  }}
+                                >
+                                  <Text style={styles.pickerItemText}>{u.symbol}</Text>
+                                </TouchableOpacity>
+                              ))}
+                            </View>
+                          </View>
+                          {(() => {
+                            const selectedProduct = allProducts?.find((p: any) => p.id === item.productId);
+                            const qtyNum = parseFloat(item.quantity);
+                            const preview = formatConversionPreview(selectedProduct, !isNaN(qtyNum) ? qtyNum : NaN, item.unit);
+                            if (preview) {
+                              return (
+                                <Text style={{ fontSize: 11, color: "#10b981", fontWeight: "bold", marginTop: -6, marginBottom: 8 }}>
+                                  {preview}
+                                </Text>
+                              );
+                            }
+                            return null;
+                          })()}
                           <TextInput
                             style={styles.modalInput}
                             placeholder="Catatan"

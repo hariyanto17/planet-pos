@@ -5,6 +5,7 @@ import { Input } from "@/components/Input";
 import { useTransferStockMutation } from "@/lib/api/inventoryApi";
 import { useAppSelector } from "@/lib/store/hooks";
 import { selectCurrentUser } from "@/lib/store/features/auth/selectors";
+import { getAvailableUnits, getDefaultUnit, formatConversionPreview } from "@/lib/utils/unitConversions";
 
 interface Props {
   isOpen: boolean;
@@ -20,10 +21,20 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
   const [destinationWarehouseId, setDestinationWarehouseId] = useState("");
   const [productId, setProductId] = useState("");
   const [quantity, setQuantity] = useState("");
+  const [unit, setUnit] = useState("");
   const [remarks, setRemarks] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
   const [transferStock, { isLoading }] = useTransferStockMutation();
+
+  const selectedProduct = products.find((p) => p.id === productId);
+  const availableUnits = getAvailableUnits(selectedProduct);
+
+  const handleProductChange = (val: string) => {
+    setProductId(val);
+    const prod = products.find((p) => p.id === val);
+    setUnit(getDefaultUnit(prod));
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -67,7 +78,7 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
       await transferStock({
         sourceWarehouseId,
         destinationWarehouseId,
-        items: [{ productId, quantity: qtyNum }],
+        items: [{ productId, quantity: qtyNum, unit: unit || undefined }],
         remarks: remarks || undefined,
       }).unwrap();
       onSuccess();
@@ -75,6 +86,7 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
       setDestinationWarehouseId("");
       setProductId("");
       setQuantity("");
+      setUnit("");
       setRemarks("");
       onClose();
     } catch (err: any) {
@@ -140,7 +152,7 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
           <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Produk</label>
           <select
             value={productId}
-            onChange={(e) => setProductId(e.target.value)}
+            onChange={(e) => handleProductChange(e.target.value)}
             className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm font-semibold"
             required
           >
@@ -153,17 +165,48 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
           </select>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Jumlah</label>
-          <Input
-            type="number"
-            step="0.001"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            placeholder="Misal: 20 atau 0.5"
-            required
-          />
+        <div className="flex gap-2">
+          <div className="flex-1 flex flex-col gap-1.5">
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Jumlah</label>
+            <Input
+              type="number"
+              step="0.001"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              placeholder="Misal: 20 atau 0.5"
+              required
+            />
+          </div>
+          {productId && availableUnits.length > 0 && (
+            <div className="w-28 flex flex-col gap-1.5">
+              <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Satuan</label>
+              <select
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm font-semibold h-[42px]"
+                required
+              >
+                {availableUnits.map((u) => (
+                  <option key={u.symbol} value={u.symbol}>
+                    {u.symbol}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
+
+        {(() => {
+          const preview = formatConversionPreview(selectedProduct, quantity ? parseFloat(quantity) : NaN, unit);
+          if (preview) {
+            return (
+              <div className="text-xs text-emerald-500 font-semibold">
+                Setara dengan: {preview}
+              </div>
+            );
+          }
+          return null;
+        })()}
 
         <div className="flex flex-col gap-1.5">
           <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Keterangan</label>

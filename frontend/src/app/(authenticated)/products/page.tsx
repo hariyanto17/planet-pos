@@ -25,6 +25,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { TEXT } from "@/lib/i18n/id";
 import { RecipeModal } from "./components/RecipeModal";
 import { ProductActionMenu } from "./components/ProductActionMenu";
+import { ProductConversions } from "./components/ProductConversions";
 
 const productSchema = zod
   .object({
@@ -42,6 +43,7 @@ const productSchema = zod
       .or(zod.nan())
       .optional(),
     unitId: zod.string().optional(),
+    baseUnit: zod.string().optional(),
   })
   .superRefine((data, ctx) => {
     const type = data.inventoryType || "FINISHED_GOOD";
@@ -67,6 +69,13 @@ const productSchema = zod
           code: zod.ZodIssueCode.custom,
           path: ["unitId"],
           message: "Unit is required when tracking stock & inventory",
+        });
+      }
+      if (!data.baseUnit) {
+        ctx.addIssue({
+          code: zod.ZodIssueCode.custom,
+          path: ["baseUnit"],
+          message: "Base Unit is required when tracking stock & inventory",
         });
       }
     }
@@ -160,6 +169,7 @@ export default function ProductsPage() {
   const [selectedRecipeProductId, setSelectedRecipeProductId] = useState<string | null>(null);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [productConversions, setProductConversions] = useState<Array<{ unit: string; baseQuantity: string; isDefault?: boolean }>>([]);
 
   const pageSize = 8;
 
@@ -177,6 +187,7 @@ export default function ProductsPage() {
       minimumStock: 0,
       inventoryType: "",
       unitId: "",
+      baseUnit: "",
     },
   });
 
@@ -194,6 +205,7 @@ export default function ProductsPage() {
       minimumStock: 0,
       inventoryType: "",
       unitId: "",
+      baseUnit: "",
     },
   });
 
@@ -251,6 +263,7 @@ export default function ProductsPage() {
         trackInventory: data.trackInventory || false,
         inventoryType: data.trackInventory ? (data.inventoryType as any) : undefined,
         unitId: data.trackInventory ? data.unitId : undefined,
+        baseUnit: data.trackInventory ? (data.baseUnit as any) : undefined,
         minimumStock: data.trackInventory ? data.minimumStock : 0,
       }).unwrap();
       setIsAddModalOpen(false);
@@ -276,7 +289,9 @@ export default function ProductsPage() {
           trackInventory: data.trackInventory || false,
           inventoryType: data.trackInventory ? (data.inventoryType as any) : undefined,
           unitId: data.trackInventory ? data.unitId : undefined,
+          baseUnit: data.trackInventory ? (data.baseUnit as any) : undefined,
           minimumStock: data.trackInventory ? data.minimumStock : 0,
+          unitConversions: productConversions,
         },
       }).unwrap();
       setEditingProduct(null);
@@ -306,6 +321,7 @@ export default function ProductsPage() {
 
   const openEditModal = (product: Product) => {
     setEditingProduct(product);
+    setProductConversions((product.unitConversions as any) || []);
     resetEdit({
       name: product.name,
       sku: product.sku || "",
@@ -317,6 +333,7 @@ export default function ProductsPage() {
       inventoryType: product.inventoryType || "",
       minimumStock: Number(product.minimumStock || 0),
       unitId: product.unitId || "",
+      baseUnit: (product as any).baseUnit || "",
     });
   };
 
@@ -611,6 +628,23 @@ export default function ProductsPage() {
                     {errorsAdd.unitId ? <p className="text-xs text-rose-500 mt-0.5">{errorsAdd.unitId.message}</p> : null}
                   </div>
 
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="addBaseUnit" className="text-xs font-bold text-text-secondary uppercase tracking-wider">
+                      Base Unit
+                    </label>
+                    <select
+                      id="addBaseUnit"
+                      {...registerAdd("baseUnit")}
+                      className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
+                    >
+                      <option value="">Select a base unit...</option>
+                      <option value="G">GRAM (G)</option>
+                      <option value="ML">LITER/ML (ML)</option>
+                      <option value="PCS">PCS (PCS)</option>
+                    </select>
+                    {errorsAdd.baseUnit ? <p className="text-xs text-rose-500 mt-0.5">{errorsAdd.baseUnit.message}</p> : null}
+                  </div>
+
                   <div>
                     <Input
                       id="addMinimumStock"
@@ -804,17 +838,44 @@ export default function ProductsPage() {
                   {errorsEdit.unitId ? <p className="text-xs text-rose-500 mt-0.5">{errorsEdit.unitId.message}</p> : null}
                 </div>
 
-                <div className="md:col-span-2">
-                  <Input
-                    id="editMinimumStock"
-                    label="Low Stock Alert"
-                    type="number"
-                    placeholder="e.g. 10"
-                    helperText="Set to 0 to disable low stock alerts."
-                    error={errorsEdit.minimumStock?.message}
-                    {...registerEdit("minimumStock", { valueAsNumber: true })}
-                  />
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="editBaseUnit" className="text-xs font-bold text-text-secondary uppercase tracking-wider">
+                    Base Unit
+                  </label>
+                  <select
+                    id="editBaseUnit"
+                    {...registerEdit("baseUnit")}
+                    className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
+                  >
+                    <option value="">Select a base unit...</option>
+                    <option value="G">GRAM (G)</option>
+                    <option value="ML">LITER/ML (ML)</option>
+                    <option value="PCS">PCS (PCS)</option>
+                  </select>
+                  {errorsEdit.baseUnit ? <p className="text-xs text-rose-500 mt-0.5">{errorsEdit.baseUnit.message}</p> : null}
                 </div>
+
+                  <div className="md:col-span-2">
+                    <Input
+                      id="editMinimumStock"
+                      label="Low Stock Alert"
+                      type="number"
+                      placeholder="e.g. 10"
+                      helperText="Set to 0 to disable low stock alerts."
+                      error={errorsEdit.minimumStock?.message}
+                      {...registerEdit("minimumStock", { valueAsNumber: true })}
+                    />
+                  </div>
+
+                  {trackInventoryEdit && editingProduct && (
+                    <div className="md:col-span-2 border-t border-border pt-4">
+                      <ProductConversions
+                        product={editingProduct as Product}
+                        onSave={setProductConversions}
+                        isLoading={isUpdating}
+                      />
+                    </div>
+                  )}
               </div>
             </div>
           )}

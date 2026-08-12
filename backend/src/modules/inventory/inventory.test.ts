@@ -4,7 +4,7 @@ import { PrismaClient, InventoryType } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { getProductStockList } from "./service";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
 
 test("POS Inventory All Warehouses and Specific Filters Tests", async (t) => {
   const category = await prisma.category.findFirst() || await prisma.category.create({

@@ -5,7 +5,7 @@ import { checkout } from "../checkout/service";
 import { confirmPendingPayment } from "./service";
 import { getCurrentShift } from "../shifts/service";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
 
 test("POS Cashier Checkout and Payment Confirmation Shift Flow Tests", async (t) => {
   // Setup data

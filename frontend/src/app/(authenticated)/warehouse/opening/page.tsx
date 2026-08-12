@@ -7,10 +7,12 @@ import { useGetProductsQuery } from "@/lib/api/productApi";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/Button";
 import { useToast } from "@/components/ToastProvider";
+import { getAvailableUnits, getDefaultUnit, formatConversionPreview } from "@/lib/utils/unitConversions";
 
 interface RowItem {
   productId: string;
   quantity: number;
+  unit: string;
   remarks: string;
 }
 
@@ -26,7 +28,7 @@ export default function OpeningStockPage() {
   // State
   const [warehouseId, setWarehouseId] = useState("");
   const [rows, setRows] = useState<RowItem[]>([
-    { productId: "", quantity: 1, remarks: "Initial Stock" },
+    { productId: "", quantity: 1, unit: "", remarks: "Initial Stock" },
   ]);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -47,7 +49,7 @@ export default function OpeningStockPage() {
 
   // Actions
   const handleAddRow = () => {
-    setRows([...rows, { productId: "", quantity: 1, remarks: "Initial Stock" }]);
+    setRows([...rows, { productId: "", quantity: 1, unit: "", remarks: "Initial Stock" }]);
   };
 
   const handleRemoveRow = (index: number) => {
@@ -61,6 +63,13 @@ export default function OpeningStockPage() {
     const newRows = [...rows];
     if (field === "quantity") {
       newRows[index].quantity = Math.max(1, Number(value) || 0);
+    } else if (field === "productId") {
+      const product = products.find((p: any) => p.id === value);
+      newRows[index] = {
+        ...newRows[index],
+        productId: value,
+        unit: getDefaultUnit(product),
+      };
     } else {
       newRows[index] = { ...newRows[index], [field]: value };
     }
@@ -109,6 +118,7 @@ export default function OpeningStockPage() {
         items: rows.map(r => ({
           productId: r.productId,
           quantity: r.quantity,
+          unit: r.unit || undefined,
           remarks: r.remarks || "Stok Awal",
         })),
       }).unwrap();
@@ -157,72 +167,106 @@ export default function OpeningStockPage() {
             </select>
           </div>
 
-          {/* Row entries */}
-          <div className="flex flex-col gap-3">
-            <div className="hidden md:grid grid-cols-12 gap-3 text-xs font-bold text-text-muted uppercase px-1">
-              <div className="col-span-5">Pilih Produk</div>
-              <div className="col-span-2">Jumlah</div>
-              <div className="col-span-4">Catatan</div>
-              <div className="col-span-1 text-center">Aksi</div>
-            </div>
-
-            {rows.map((row, idx) => (
-              <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center border-b border-border/40 md:border-0 pb-4 md:pb-0">
-                {/* Product selector */}
-                <div className="col-span-1 md:col-span-5 flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-text-muted md:hidden uppercase">Produk</label>
-                  <select
-                    value={row.productId}
-                    onChange={(e) => handleRowChange(idx, "productId", e.target.value)}
-                    className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm cursor-pointer"
-                  >
-                    <option value="">Pilih Produk...</option>
-                    {trackableProducts.map((p: any) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} (SKU: {p.sku || "-"})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Quantity */}
-                <div className="col-span-1 md:col-span-2 flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-text-muted md:hidden uppercase">Kuantitas</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={row.quantity}
-                    onChange={(e) => handleRowChange(idx, "quantity", e.target.value)}
-                    className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm"
-                  />
-                </div>
-
-                {/* Remarks */}
-                <div className="col-span-1 md:col-span-4 flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-text-muted md:hidden uppercase">Catatan</label>
-                  <input
-                    type="text"
-                    value={row.remarks}
-                    placeholder="Misal: Stok Awal"
-                    onChange={(e) => handleRowChange(idx, "remarks", e.target.value)}
-                    className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm"
-                  />
-                </div>
-
-                {/* Actions */}
-                <div className="col-span-1 md:col-span-1 flex items-center justify-center pt-3 md:pt-0">
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveRow(idx)}
-                    disabled={rows.length === 1}
-                    className="w-8 h-8 rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    🗑️
-                  </button>
-                </div>
+            {/* Row entries */}
+            <div className="flex flex-col gap-3">
+              <div className="hidden md:grid grid-cols-12 gap-3 text-xs font-bold text-text-muted uppercase px-1">
+                <div className="col-span-4">Pilih Produk</div>
+                <div className="col-span-2">Jumlah</div>
+                <div className="col-span-2">Satuan</div>
+                <div className="col-span-3">Catatan</div>
+                <div className="col-span-1 text-center">Aksi</div>
               </div>
-            ))}
-          </div>
+
+              {rows.map((row, idx) => {
+                const product = products.find((p: any) => p.id === row.productId);
+                const availableUnits = getAvailableUnits(product);
+                const preview = formatConversionPreview(product, row.quantity, row.unit);
+
+                return (
+                  <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center border-b border-border/40 md:border-0 pb-4 md:pb-0">
+                    {/* Product selector */}
+                    <div className="col-span-1 md:col-span-4 flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-text-muted md:hidden uppercase">Produk</label>
+                      <select
+                        value={row.productId}
+                        onChange={(e) => handleRowChange(idx, "productId", e.target.value)}
+                        className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm cursor-pointer"
+                      >
+                        <option value="">Pilih Produk...</option>
+                        {trackableProducts.map((p: any) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} (SKU: {p.sku || "-"})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Quantity */}
+                    <div className="col-span-1 md:col-span-2 flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-text-muted md:hidden uppercase">Kuantitas</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={row.quantity}
+                        onChange={(e) => handleRowChange(idx, "quantity", e.target.value)}
+                        className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm"
+                      />
+                    </div>
+
+                    {/* Unit */}
+                    <div className="col-span-1 md:col-span-2 flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-text-muted md:hidden uppercase">Satuan</label>
+                      <select
+                        value={row.unit}
+                        onChange={(e) => handleRowChange(idx, "unit", e.target.value)}
+                        className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm cursor-pointer"
+                        disabled={!row.productId}
+                      >
+                        <option value="">Pilih Satuan...</option>
+                        {availableUnits.map((u) => (
+                          <option key={u.symbol} value={u.symbol}>
+                            {u.symbol}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Remarks */}
+                    <div className="col-span-1 md:col-span-3 flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-text-muted md:hidden uppercase">Catatan</label>
+                      <input
+                        type="text"
+                        value={row.remarks}
+                        placeholder="Misal: Stok Awal"
+                        onChange={(e) => handleRowChange(idx, "remarks", e.target.value)}
+                        className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm"
+                      />
+                    </div>
+
+                    {/* Actions */}
+                    <div className="col-span-1 md:col-span-1 flex items-center justify-center pt-3 md:pt-0">
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveRow(idx)}
+                        disabled={rows.length === 1}
+                        className="w-8 h-8 rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+
+                    {/* Conversion preview */}
+                    {preview && (
+                      <div className="col-span-1 md:col-span-12">
+                        <div className="text-xs text-emerald-500 font-semibold">
+                          Setara dengan: {preview}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
 
           <div className="flex items-center justify-start mt-2">
             <Button variant="ghost" onClick={handleAddRow} type="button">

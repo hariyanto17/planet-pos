@@ -18,6 +18,11 @@ export const createProductSchema = Joi.object({
     then: Joi.required(),
     otherwise: Joi.optional().allow(null, ""),
   }),
+  baseUnit: Joi.string().valid("G", "ML", "PCS").when("trackInventory", {
+    is: true,
+    then: Joi.required(),
+    otherwise: Joi.optional().allow(null, ""),
+  }),
   minimumStock: Joi.number().min(0).default(0).optional(),
 });
 
@@ -40,7 +45,15 @@ export const updateProductSchema = Joi.object({
     then: Joi.required(),
     otherwise: Joi.optional().allow(null, ""),
   }),
+  baseUnit: Joi.string().valid("G", "ML", "PCS").optional().allow(null, ""),
   minimumStock: Joi.number().min(0).optional(),
+  unitConversions: Joi.array().items(
+    Joi.object({
+      unit: Joi.string().required(),
+      baseQuantity: Joi.number().positive().required(),
+      isDefault: Joi.boolean().optional(),
+    })
+  ).optional(),
 });
 
 export const upsertRecipeSchema = Joi.object({

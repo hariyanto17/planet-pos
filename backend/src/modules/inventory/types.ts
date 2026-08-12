@@ -34,6 +34,7 @@ export interface ReceiveStockParams {
   productId: string;
   warehouseId: string;
   quantity: number; // positive only
+  unit?: string;
   remarks?: string;
 }
 
@@ -41,6 +42,7 @@ export interface AdjustStockParams {
   productId: string;
   warehouseId: string;
   quantity: number; // signed adjustment value: e.g. +10, -5
+  unit?: string;
   remarks?: string;
 }
 
@@ -48,5 +50,6 @@ export interface RemoveAsWasteParams {
   productId: string;
   warehouseId: string;
   quantity: number; // positive only (deduction is handled as negative quantity internally)
+  unit?: string;
   remarks?: string;
 }

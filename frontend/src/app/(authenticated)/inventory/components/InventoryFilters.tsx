@@ -8,7 +8,7 @@ interface InventoryFiltersProps {
   selectedWarehouseId: string;
   onWarehouseChange: (value: string) => void;
   warehouses: any[];
-  activeTab: "STOCK" | "MOVEMENTS" | "TRANSFERS";
+  activeTab: "STOCK" | "MOVEMENTS" | "TRANSFERS" | "REQUESTS";
   stockStatus?: string;
   onStockStatusChange?: (value: string) => void;
   movementType?: string;
@@ -52,35 +52,33 @@ export function InventoryFilters({
         </select>
 
         {/* Conditional Filters depending on tab */}
-        {activeTab === "STOCK" ? (
-          onStockStatusChange && (
-            <select
-              value={stockStatus}
-              onChange={(e) => onStockStatusChange(e.target.value)}
-              className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none text-xs font-bold uppercase"
-            >
-              <option value="">Semua Status</option>
-              <option value="IN_STOCK">Tersedia</option>
-              <option value="LOW_STOCK">Stok Menipis</option>
-              <option value="OUT_OF_STOCK">Stok Habis</option>
-              <option value="NEGATIVE_STOCK">Stok Negatif</option>
-            </select>
-          )
-        ) : (
-          onMovementTypeChange && (
-            <select
-              value={movementType}
-              onChange={(e) => onMovementTypeChange(e.target.value)}
-              className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none text-xs font-bold uppercase"
-            >
-              <option value="">Semua Tipe Mutasi</option>
-              <option value="OPENING">Stok Awal</option>
-              <option value="RECEIVE">Penerimaan Barang</option>
-              <option value="SALE">Penjualan</option>
-              <option value="ADJUSTMENT">Penyesuaian Stok</option>
-              <option value="WASTE">Barang Rusak</option>
-            </select>
-          )
+        {activeTab === "STOCK" && onStockStatusChange && (
+          <select
+            value={stockStatus}
+            onChange={(e) => onStockStatusChange(e.target.value)}
+            className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none text-xs font-bold uppercase"
+          >
+            <option value="">Semua Status</option>
+            <option value="IN_STOCK">Tersedia</option>
+            <option value="LOW_STOCK">Stok Menipis</option>
+            <option value="OUT_OF_STOCK">Stok Habis</option>
+            <option value="NEGATIVE_STOCK">Stok Negatif</option>
+          </select>
+        )}
+
+        {activeTab === "MOVEMENTS" && onMovementTypeChange && (
+          <select
+            value={movementType}
+            onChange={(e) => onMovementTypeChange(e.target.value)}
+            className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none text-xs font-bold uppercase"
+          >
+            <option value="">Semua Tipe Mutasi</option>
+            <option value="OPENING">Stok Awal</option>
+            <option value="RECEIVE">Penerimaan Barang</option>
+            <option value="SALE">Penjualan</option>
+            <option value="ADJUSTMENT">Penyesuaian Stok</option>
+            <option value="WASTE">Barang Rusak</option>
+          </select>
         )}
       </div>
     </div>

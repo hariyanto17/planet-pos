@@ -5,7 +5,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { createOrder } from "./service";
 import { getAllProducts } from "../products/service";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
 
 test("POS Cashier Sellable Stock Calculations and Checkout Validation Tests", async (t) => {
   // Setup test environment

@@ -2,6 +2,7 @@ import { PrismaClient, Prisma, StockMovementType, StockReferenceType } from "@pr
 import { getInventoryStatus } from "@shared/types";
 import { createLedgerEntry } from "./stock.service";
 import { getCommittedStockMap } from "../products/service";
+import { convertToBaseUnit } from "../../utils/units";
 import {
   GetProductStockListFilters,
   GetStockMovementsFilters,
@@ -11,7 +12,7 @@ import {
 } from "./types";
 import { AppError } from "../../utils/errorHandler";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
 
 // Resolve default sales warehouse code from environment, fallback to "CONCESSION"
 const DEFAULT_SALES_WAREHOUSE_CODE = process.env.DEFAULT_SALES_WAREHOUSE_CODE || "CONCESSION";
@@ -208,6 +209,7 @@ export const getProductStockList = async (filters: GetProductStockListFilters) =
           trackInventory: p.trackInventory,
           inventoryType: p.inventoryType,
           unit: p.unit ? p.unit.symbol : "PCS",
+          baseUnit: p.baseUnit,
           warehouseName: wh.name,
           warehouseId: wh.id,
           quantity,
@@ -255,6 +257,7 @@ export const getProductStockList = async (filters: GetProductStockListFilters) =
         trackInventory: p.trackInventory,
         inventoryType: p.inventoryType,
         unit: p.unit ? p.unit.symbol : "PCS",
+        baseUnit: p.baseUnit,
         warehouseName: targetWarehouse.name,
         warehouseId: filters.warehouseId,
         quantity,
@@ -289,51 +292,99 @@ export const getProductStockList = async (filters: GetProductStockListFilters) =
  * Record stock replenishment (RECEIVE)
  */
 export const createStockReceipt = async (userId: string, params: ReceiveStockParams) => {
-  return await prisma.$transaction(async (tx) => {
+  const product = await prisma.product.findUnique({ where: { id: params.productId } });
+  if (!product) throw new AppError("NOT_FOUND", "Product not found");
+  
+  const unit = params.unit || (product.baseUnit === "G" ? "g" : product.baseUnit === "ML" ? "ml" : "pcs");
+
+  let normalizedQuantity: any = null;
+  const newBalance = await prisma.$transaction(async (tx) => {
+    normalizedQuantity = await convertToBaseUnit(params.productId, params.quantity, unit, (product.baseUnit || "PCS") as any, tx);
     return await createLedgerEntry(tx, {
       productId: params.productId,
       warehouseId: params.warehouseId,
       movementType: StockMovementType.RECEIVE,
-      quantity: params.quantity,
+      quantity: normalizedQuantity.toNumber(),
       referenceType: StockReferenceType.RECEIVE,
       remarks: params.remarks,
       createdById: userId,
     });
   });
+
+  return {
+    newBalance: Number(newBalance),
+    quantity: params.quantity,
+    unit: params.unit || (product.baseUnit === "G" ? "g" : product.baseUnit === "ML" ? "ml" : "pcs"),
+    normalizedQuantity: normalizedQuantity?.toNumber() ?? 0,
+    normalizedUnit: product.baseUnit || "PCS"
+  };
 };
 
 /**
  * Record stock correction (ADJUSTMENT)
  */
 export const adjustStock = async (userId: string, params: AdjustStockParams) => {
-  return await prisma.$transaction(async (tx) => {
+  const product = await prisma.product.findUnique({ where: { id: params.productId } });
+  if (!product) throw new AppError("NOT_FOUND", "Product not found");
+
+  const unit = params.unit || (product.baseUnit === "G" ? "g" : product.baseUnit === "ML" ? "ml" : "pcs");
+
+  let normalizedQuantity: any = null;
+  const newBalance = await prisma.$transaction(async (tx) => {
+    const quantity = await convertToBaseUnit(params.productId, Math.abs(params.quantity), unit, (product.baseUnit || "PCS") as any, tx);
+    const signedQty = params.quantity < 0 ? quantity.negated() : quantity;
+    normalizedQuantity = signedQty;
     return await createLedgerEntry(tx, {
       productId: params.productId,
       warehouseId: params.warehouseId,
       movementType: StockMovementType.ADJUSTMENT,
-      quantity: params.quantity,
+      quantity: signedQty.toNumber(),
       referenceType: StockReferenceType.ADJUSTMENT,
       remarks: params.remarks,
       createdById: userId,
     });
   });
+
+  return {
+    newBalance: Number(newBalance),
+    quantity: params.quantity,
+    unit: params.unit || (product.baseUnit === "G" ? "g" : product.baseUnit === "ML" ? "ml" : "pcs"),
+    normalizedQuantity: normalizedQuantity?.toNumber() ?? 0,
+    normalizedUnit: product.baseUnit || "PCS"
+  };
 };
 
 /**
  * Record inventory wastage (WASTE)
  */
 export const removeAsWaste = async (userId: string, params: RemoveAsWasteParams) => {
-  return await prisma.$transaction(async (tx) => {
+  const product = await prisma.product.findUnique({ where: { id: params.productId } });
+  if (!product) throw new AppError("NOT_FOUND", "Product not found");
+  
+  const unit = params.unit || (product.baseUnit === "G" ? "g" : product.baseUnit === "ML" ? "ml" : "pcs");
+
+  let normalizedQuantity: any = null;
+  const newBalance = await prisma.$transaction(async (tx) => {
+    const quantity = await convertToBaseUnit(params.productId, params.quantity, unit, (product.baseUnit || "PCS") as any, tx);
+    normalizedQuantity = quantity.negated();
     return await createLedgerEntry(tx, {
       productId: params.productId,
       warehouseId: params.warehouseId,
       movementType: StockMovementType.WASTE,
-      quantity: -params.quantity, // deduction is negative
+      quantity: normalizedQuantity.toNumber(), // deduction is negative
       referenceType: StockReferenceType.WASTE,
       remarks: params.remarks,
       createdById: userId,
     });
   });
+
+  return {
+    newBalance: Number(newBalance),
+    quantity: params.quantity,
+    unit: params.unit || (product.baseUnit === "G" ? "g" : product.baseUnit === "ML" ? "ml" : "pcs"),
+    normalizedQuantity: normalizedQuantity?.toNumber() ?? 0,
+    normalizedUnit: product.baseUnit || "PCS"
+  };
 };
 
 /**
@@ -430,6 +481,7 @@ export const getActiveUnits = async () => {
 export interface OpeningStockItem {
   productId: string;
   quantity: number;
+  unit?: string;
   remarks?: string;
 }
 
@@ -491,17 +543,28 @@ export const recordOpeningStock = async (userId: string, payload: RecordOpeningS
       }
 
       // Create ledger entry using gatekeeper createLedgerEntry
+      const inputUnit = item.unit || (product.baseUnit === "G" ? "g" : product.baseUnit === "ML" ? "ml" : "pcs");
+      const normalizedQuantity = await convertToBaseUnit(product.id, quantity, inputUnit, (product.baseUnit || "PCS") as any, tx);
+
       const newBalance = await createLedgerEntry(tx, {
         productId,
         warehouseId,
         movementType: StockMovementType.OPENING,
-        quantity,
+        quantity: normalizedQuantity.toNumber(),
         referenceType: StockReferenceType.OPENING,
         remarks: remarks || "Stok Awal",
         createdById: userId,
       });
 
-      results.push({ productId, name: product.name, newBalance });
+      results.push({
+        productId,
+        name: product.name,
+        newBalance: Number(newBalance),
+        quantity,
+        unit: inputUnit,
+        normalizedQuantity: normalizedQuantity.toNumber(),
+        normalizedUnit: product.baseUnit || "PCS"
+      });
     }
 
     return results;
@@ -511,6 +574,7 @@ export const recordOpeningStock = async (userId: string, payload: RecordOpeningS
 export interface CreateStockTransferItem {
   productId: string;
   quantity: number;
+  unit?: string;
 }
 
 export interface CreateStockTransferPayload {
@@ -581,7 +645,15 @@ export const createStockTransfer = async (userId: string, payload: CreateStockTr
       destinationResponsibleUserId: destinationResponsibleUserId || null,
       remarks: remarks || null,
       items: {
-        create: items.map((it) => ({ productId: it.productId, quantity: it.quantity })),
+        create: await Promise.all(items.map(async (it) => {
+          const comp = productMap.get(it.productId)!;
+          const inputUnit = it.unit || (comp.baseUnit === "G" ? "g" : comp.baseUnit === "ML" ? "ml" : "pcs");
+          const normalizedQty = await convertToBaseUnit(comp.id, it.quantity, inputUnit, (comp.baseUnit || "PCS") as any, prisma);
+          return {
+            productId: it.productId,
+            quantity: normalizedQty.toNumber()
+          };
+        })),
       },
     },
     include: { items: true },

@@ -4,6 +4,7 @@ export const receiveStockSchema = Joi.object({
   productId: Joi.string().required(),
   warehouseId: Joi.string().required(),
   quantity: Joi.number().precision(3).positive().required(),
+  unit: Joi.string().allow("", null).optional(),
   remarks: Joi.string().allow("", null).optional(),
 });
 
@@ -11,6 +12,7 @@ export const adjustStockSchema = Joi.object({
   productId: Joi.string().required(),
   warehouseId: Joi.string().required(),
   quantity: Joi.number().precision(3).invalid(0).required(), // Can be positive or negative, but not zero
+  unit: Joi.string().allow("", null).optional(),
   remarks: Joi.string().allow("", null).optional(),
 });
 
@@ -18,6 +20,7 @@ export const removeAsWasteSchema = Joi.object({
   productId: Joi.string().required(),
   warehouseId: Joi.string().required(),
   quantity: Joi.number().precision(3).positive().required(),
+  unit: Joi.string().allow("", null).optional(),
   remarks: Joi.string().allow("", null).optional(),
 });
 
@@ -43,6 +46,7 @@ export const movementListQuerySchema = Joi.object({
 export const openingStockItemSchema = Joi.object({
   productId: Joi.string().required(),
   quantity: Joi.number().precision(3).positive().required(),
+  unit: Joi.string().allow("", null).optional(),
   remarks: Joi.string().allow("", null).optional(),
 });
 
@@ -54,6 +58,7 @@ export const recordOpeningStockSchema = Joi.object({
 export const stockTransferItemSchema = Joi.object({
   productId: Joi.string().required(),
   quantity: Joi.number().precision(3).positive().required(),
+  unit: Joi.string().allow("", null).optional(),
 });
 
 export const createStockTransferSchema = Joi.object({

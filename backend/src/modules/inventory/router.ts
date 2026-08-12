@@ -14,6 +14,7 @@ import {
   completeStockTransferHandler,
   getStockTransfersHandler,
 } from "./controller";
+import * as requestsController from "./requests.controller";
 
 const router = Router();
 
@@ -35,5 +36,14 @@ router.post("/waste", requireRoles(["ADMIN", "WAREHOUSE", "KITCHEN"]), removeWas
 router.get("/transfer", requireRoles(["ADMIN", "WAREHOUSE", "KITCHEN"]), getStockTransfersHandler);
 router.post("/transfer", requireRoles(["ADMIN", "WAREHOUSE", "KITCHEN"]), createStockTransferHandler);
 router.post("/transfer/:id/complete", requireRoles(["ADMIN", "WAREHOUSE", "KITCHEN"]), completeStockTransferHandler);
+
+// Stock Request endpoints
+router.get("/requests", requireRoles(["ADMIN", "WAREHOUSE", "KITCHEN"]), requestsController.getStockRequests);
+router.post("/requests", requireRoles(["ADMIN", "WAREHOUSE", "KITCHEN"]), requestsController.createStockRequest);
+router.post("/requests/:id/claim", requireRoles(["ADMIN", "WAREHOUSE"]), requestsController.claimStockRequest);
+router.post("/requests/:id/ship", requireRoles(["ADMIN", "WAREHOUSE"]), requestsController.shipStockRequest);
+router.post("/requests/:id/receive", requireRoles(["ADMIN", "WAREHOUSE", "KITCHEN"]), requestsController.receiveStockRequest);
+router.post("/requests/:id/accept", requireRoles(["ADMIN", "WAREHOUSE", "KITCHEN"]), requestsController.acceptStockRequest);
+router.post("/requests/:id/cancel", requireRoles(["ADMIN", "WAREHOUSE", "KITCHEN"]), requestsController.cancelStockRequest);
 
 export default router;

@@ -6,6 +6,7 @@ import {
   useGetProductRecipeQuery,
   useUpdateProductRecipeMutation,
 } from "@/lib/api/productApi";
+import { getAvailableUnits, getDefaultUnit } from "@/lib/utils/unitConversions";
 
 interface Props {
   isOpen: boolean;
@@ -68,12 +69,14 @@ export const RecipeModal: React.FC<Props> = ({
     setItems((prev) => {
       const updated = [...prev];
       if (field === "componentProductId") {
-        // Automatically set the unitId to match the component's unitId
+        // Automatically set the unitId to match the component's base unit
         const comp = ingredientOptions.find((p) => p.id === value);
+        const availableUnits = getAvailableUnits(comp);
+        const defaultUnit = getDefaultUnit(comp);
         updated[index] = {
           ...updated[index],
           componentProductId: value,
-          unitId: comp?.unitId || "",
+          unitId: defaultUnit || comp?.unitId || "",
         };
       } else {
         updated[index] = {
@@ -166,7 +169,8 @@ export const RecipeModal: React.FC<Props> = ({
                 <tbody>
                   {items.map((row, idx) => {
                     const selectedComp = ingredientOptions.find((p) => p.id === row.componentProductId);
-                    const unitSymbol = selectedComp?.unit?.symbol || "-";
+                    const baseUnit = getAvailableUnits(selectedComp).find((u) => u.isDefault);
+                    const unitSymbol = baseUnit?.symbol || selectedComp?.unit?.symbol || "-";
 
                     return (
                       <tr key={idx} className="border-b border-border hover:bg-surface/10">

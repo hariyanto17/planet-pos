@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { seedUnits } from "./seed/units.seed";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
 
 async function main() {
   await seedUnits(prisma);

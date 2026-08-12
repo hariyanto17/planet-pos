@@ -39,6 +39,7 @@ export async function seedInventory(prisma: PrismaClient) {
     sku: string;
     categoryId: string;
     unitId: string;
+    baseUnit: "G" | "ML" | "PCS";
     inventoryType: InventoryType;
     trackInventory: boolean;
     price: number;
@@ -52,6 +53,7 @@ export async function seedInventory(prisma: PrismaClient) {
         sku: params.sku,
         categoryId: params.categoryId,
         unitId: params.unitId,
+        baseUnit: params.baseUnit,
         inventoryType: params.inventoryType,
         trackInventory: params.trackInventory,
         price: new Decimal(params.price),
@@ -88,13 +90,12 @@ export async function seedInventory(prisma: PrismaClient) {
     return product;
   };
 
-  // 4. Seed Raw Materials
-  // Category: Bahan Minuman
   const sirupGula = await createProductWithStock({
     name: "Sirup Gula",
     sku: "RM-SR-GULA",
     categoryId: catBahanMinuman.id,
     unitId: unitMl.id,
+    baseUnit: "ML",
     inventoryType: InventoryType.RAW_MATERIAL,
     trackInventory: true,
     price: 0,
@@ -108,6 +109,7 @@ export async function seedInventory(prisma: PrismaClient) {
     sku: "RM-BB-TEH",
     categoryId: catBahanMinuman.id,
     unitId: unitGram.id,
+    baseUnit: "G",
     inventoryType: InventoryType.RAW_MATERIAL,
     trackInventory: true,
     price: 0,
@@ -121,6 +123,7 @@ export async function seedInventory(prisma: PrismaClient) {
     sku: "RM-BB-KOPI",
     categoryId: catBahanMinuman.id,
     unitId: unitGram.id,
+    baseUnit: "G",
     inventoryType: InventoryType.RAW_MATERIAL,
     trackInventory: true,
     price: 0,
@@ -135,6 +138,7 @@ export async function seedInventory(prisma: PrismaClient) {
     sku: "RM-KT-FROZEN",
     categoryId: catBahanMakanan.id,
     unitId: unitGram.id,
+    baseUnit: "G",
     inventoryType: InventoryType.RAW_MATERIAL,
     trackInventory: true,
     price: 0,
@@ -148,6 +152,7 @@ export async function seedInventory(prisma: PrismaClient) {
     sku: "RM-MY-GORENG",
     categoryId: catBahanMakanan.id,
     unitId: unitMl.id,
+    baseUnit: "ML",
     inventoryType: InventoryType.RAW_MATERIAL,
     trackInventory: true,
     price: 0,
@@ -162,6 +167,7 @@ export async function seedInventory(prisma: PrismaClient) {
     sku: "PC-CUP-16OZ",
     categoryId: catPackaging.id,
     unitId: unitPcs.id,
+    baseUnit: "PCS",
     inventoryType: InventoryType.PACKAGING,
     trackInventory: true,
     price: 0,
@@ -175,6 +181,7 @@ export async function seedInventory(prisma: PrismaClient) {
     sku: "PC-TUTUP-16OZ",
     categoryId: catPackaging.id,
     unitId: unitPcs.id,
+    baseUnit: "PCS",
     inventoryType: InventoryType.PACKAGING,
     trackInventory: true,
     price: 0,
@@ -190,6 +197,7 @@ export async function seedInventory(prisma: PrismaClient) {
     sku: "FG-TEH-MANIS",
     categoryId: catMinuman.id,
     unitId: unitPcs.id,
+    baseUnit: "PCS",
     inventoryType: InventoryType.FINISHED_GOOD,
     trackInventory: true,
     price: 15000,
@@ -217,6 +225,7 @@ export async function seedInventory(prisma: PrismaClient) {
     sku: "FG-KOPI-SUSU",
     categoryId: catMinuman.id,
     unitId: unitPcs.id,
+    baseUnit: "PCS",
     inventoryType: InventoryType.FINISHED_GOOD,
     trackInventory: true,
     price: 20000,
@@ -244,6 +253,7 @@ export async function seedInventory(prisma: PrismaClient) {
     sku: "FG-AM-600ML",
     categoryId: catMinuman.id,
     unitId: unitBottle.id,
+    baseUnit: "ML",
     inventoryType: InventoryType.FINISHED_GOOD,
     trackInventory: true,
     price: 5000,
@@ -257,6 +267,7 @@ export async function seedInventory(prisma: PrismaClient) {
     sku: "FG-AM-1500ML",
     categoryId: catMinuman.id,
     unitId: unitBottle.id,
+    baseUnit: "ML",
     inventoryType: InventoryType.FINISHED_GOOD,
     trackInventory: true,
     price: 10000,
@@ -270,6 +281,7 @@ export async function seedInventory(prisma: PrismaClient) {
     sku: "FG-TEH-BOTOL",
     categoryId: catMinuman.id,
     unitId: unitBottle.id,
+    baseUnit: "ML",
     inventoryType: InventoryType.FINISHED_GOOD,
     trackInventory: true,
     price: 8000,

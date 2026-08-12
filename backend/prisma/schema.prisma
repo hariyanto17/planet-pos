@@ -1,6 +1,5 @@
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -71,6 +70,8 @@ model User {
   stockTransfersSourceResponsible StockTransfer[] @relation("StockTransferSourceResponsible")
   stockTransfersDestinationResponsible StockTransfer[] @relation("StockTransferDestinationResponsible")
   stockTransfersCompleted StockTransfer[] @relation("StockTransferCompletedBy")
+  stockRequestsRequested StockRequest[]  @relation("StockRequestRequester")
+  stockRequestsSource    StockRequest[]  @relation("StockRequestSourceUser")
 
   @@index([role])
   @@index([isActive])
@@ -109,12 +110,15 @@ model Product {
   minimumStock   Decimal         @default(0) @db.Decimal(14, 3)
   unitId         String?
   unit           Unit?           @relation(fields: [unitId], references: [id])
+  baseUnit       BaseUnit?
 
   warehouseStocks WarehouseStock[]
   stockLedgers    StockLedger[]
   stockTransferItems StockTransferItem[]
   recipe         Recipe?
   recipeItemsAsComponent RecipeItem[] @relation("RecipeComponentProduct")
+  stockRequestItems StockRequestItem[]
+  unitConversions ProductUnitConversion[]
 
   @@index([categoryId])
   @@index([isActive])
@@ -374,6 +378,25 @@ model Unit {
   updatedAt DateTime  @updatedAt
   products  Product[]
   recipeItems RecipeItem[]
+  stockRequestItems StockRequestItem[]
+  productUnitConversions ProductUnitConversion[]
+}
+
+model ProductUnitConversion {
+  id            String   @id @default(uuid())
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  unitId        String
+  unit          Unit     @relation(fields: [unitId], references: [id])
+  baseQuantity  Decimal  @db.Decimal(14, 3)
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([productId, unitId])
+  @@index([productId])
+  @@index([unitId])
+  @@index([isDefault])
 }
 
 model Warehouse {
@@ -389,6 +412,8 @@ model Warehouse {
   stockLedgers           StockLedger[]
   stockTransfersSource   StockTransfer[]   @relation("StockTransferSourceWarehouse")
   stockTransfersDestination StockTransfer[] @relation("StockTransferDestinationWarehouse")
+  stockRequestsDestination StockRequest[]  @relation("StockRequestDestination")
+  stockRequestsSource      StockRequest[]  @relation("StockRequestSource")
   users                  User[]
 }
 
@@ -460,6 +485,8 @@ model StockTransfer {
   status                    StockTransferStatus  @default(DRAFT)
   remarks                   String?
   items                     StockTransferItem[]
+  stockRequestId            String?              @unique
+  stockRequest              StockRequest?        @relation(fields: [stockRequestId], references: [id])
   createdAt                 DateTime             @default(now())
   updatedAt                 DateTime             @updatedAt
 }
@@ -498,4 +525,61 @@ model RecipeItem {
 
   @@index([recipeId])
   @@index([componentProductId])
+}
+
+enum BaseUnit {
+  G
+  ML
+  PCS
+}
+
+enum StockRequestStatus {
+  PENDING
+  FULFILLING
+  SHIPPED
+  RECEIVED
+  ACCEPTED
+  CANCELLED
+}
+
+model StockRequest {
+  id                    String             @id @default(uuid())
+  requestNumber         String             @unique
+  requesterId           String
+  requestingWarehouseId String
+  sourceWarehouseId     String?
+  sourceUserId          String?
+  status                StockRequestStatus @default(PENDING)
+  notes                 String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  claimedAt             DateTime?
+  shippedAt             DateTime?
+  receivedAt            DateTime?
+  acceptedAt            DateTime?
+
+  requester             User               @relation("StockRequestRequester", fields: [requesterId], references: [id])
+  sourceUser            User?              @relation("StockRequestSourceUser", fields: [sourceUserId], references: [id])
+
+  requestingWarehouse   Warehouse          @relation("StockRequestDestination", fields: [requestingWarehouseId], references: [id])
+  sourceWarehouse       Warehouse?         @relation("StockRequestSource", fields: [sourceWarehouseId], references: [id])
+
+  items                 StockRequestItem[]
+  stockTransfer         StockTransfer?
+}
+
+model StockRequestItem {
+  id             String       @id @default(uuid())
+  stockRequestId String
+  productId      String
+  quantity       Decimal      @db.Decimal(14, 3)
+  unitId         String
+  stockRequest   StockRequest @relation(fields: [stockRequestId], references: [id], onDelete: Cascade)
+  product        Product      @relation(fields: [productId], references: [id])
+  unit           Unit         @relation(fields: [unitId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([stockRequestId])
 }

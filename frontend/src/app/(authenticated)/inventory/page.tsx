@@ -19,9 +19,11 @@ import ReceiveStockModal from "./components/ReceiveStockModal";
 import AdjustStockModal from "./components/AdjustStockModal";
 import WasteStockModal from "./components/WasteStockModal";
 import TransferStockModal from "./components/TransferStockModal";
+import { CreateStockRequestModal } from "./components/CreateStockRequestModal";
+import { InventoryRequestTable } from "./components/InventoryRequestTable";
 import { TEXT } from "@/lib/i18n/id";
 
-type Tab = "STOCK" | "MOVEMENTS" | "TRANSFERS";
+type Tab = "STOCK" | "MOVEMENTS" | "TRANSFERS" | "REQUESTS";
 
 export default function InventoryPage() {
   const currentUser = useAppSelector(selectCurrentUser);
@@ -40,6 +42,7 @@ export default function InventoryPage() {
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
   const [isWasteOpen, setIsWasteOpen] = useState(false);
   const [isTransferOpen, setIsTransferOpen] = useState(false);
+  const [isRequestOpen, setIsRequestOpen] = useState(false);
 
   // Queries
   const { data: summary, isLoading: isSummaryLoading, refetch: refetchSummary } = useGetInventorySummaryQuery();
@@ -83,6 +86,7 @@ export default function InventoryPage() {
   if (!currentUser) return null;
 
   const isWritePermitted = currentUser.role === "ADMIN";
+  const isRequestPermitted = currentUser.role === "ADMIN" || currentUser.role === "WAREHOUSE" || currentUser.role === "KITCHEN";
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto px-4 py-6">
@@ -96,6 +100,11 @@ export default function InventoryPage() {
         </div>
       </div>
       <div className="flex items-center gap-2">
+        {isRequestPermitted && (
+          <Button variant="secondary" onClick={() => setIsRequestOpen(true)}>
+            Request Stok
+          </Button>
+        )}
         {isWritePermitted && (
           <>
             <Button variant="secondary" onClick={() => setIsWasteOpen(true)}>
@@ -141,6 +150,7 @@ export default function InventoryPage() {
           { id: "STOCK", label: TEXT.inventory.tabStock },
           { id: "MOVEMENTS", label: TEXT.inventory.tabMovements },
           { id: "TRANSFERS", label: "Transfer" },
+          { id: "REQUESTS", label: "Request" },
         ].map((t) => (
           <button
             key={t.id}
@@ -200,8 +210,10 @@ export default function InventoryPage() {
           totalPages={movementsPagination.totalPages}
           onPageChange={(p) => setMovementPage(p)}
         />
-      ) : (
+      ) : activeTab === "TRANSFERS" ? (
         <InventoryTransferTable onSuccess={handleRefresh} />
+      ) : (
+        <InventoryRequestTable warehouses={warehouses} onSuccess={handleRefresh} />
       )}
 
       {/* Operations Dialogs */}
@@ -239,6 +251,16 @@ export default function InventoryPage() {
         <TransferStockModal
           isOpen={isTransferOpen}
           onClose={() => setIsTransferOpen(false)}
+          products={productsList}
+          warehouses={warehouses}
+          onSuccess={handleRefresh}
+        />
+      )}
+
+      {isRequestOpen && (
+        <CreateStockRequestModal
+          isOpen={isRequestOpen}
+          onClose={() => setIsRequestOpen(false)}
           products={productsList}
           warehouses={warehouses}
           onSuccess={handleRefresh}

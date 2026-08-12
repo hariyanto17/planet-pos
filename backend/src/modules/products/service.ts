@@ -1,6 +1,7 @@
 import { prisma } from "../../utils/prisma";
 import { CreateProductInput, UpdateProductInput } from "./interface";
 import { AppError } from "../../utils/errorHandler";
+import { validateUnitCompatibility, convertToBaseUnit } from "../../utils/units";
 
 export const getSellableProductWhereClause = () => {
   return {
@@ -23,6 +24,9 @@ export const getAllProducts = async (sellableOnly: boolean = false) => {
     include: { 
       category: true, 
       unit: true,
+      unitConversions: {
+        include: { unit: true },
+      },
       recipe: {
         include: {
           items: {
@@ -114,15 +118,33 @@ export const getAllProducts = async (sellableOnly: boolean = false) => {
       ...product,
       availableStock,
       recipe: mappedRecipe,
+      unitConversions: product.unitConversions?.map((conversion: any) => ({
+        id: conversion.id,
+        unit: conversion.unit?.symbol,
+        unitName: conversion.unit?.name,
+        baseQuantity: conversion.baseQuantity.toString(),
+      })) || [],
     };
   });
 };
 
 export const getProductById = async (id: string) => {
-  return prisma.product.findFirst({
+  const product = await prisma.product.findFirst({
     where: { id, deletedAt: null },
-    include: { category: true, unit: true },
+    include: { category: true, unit: true, unitConversions: { include: { unit: true } } },
   });
+
+  if (!product) return null;
+
+  return {
+    ...product,
+    unitConversions: product.unitConversions?.map((conversion: any) => ({
+      id: conversion.id,
+      unit: conversion.unit?.symbol,
+      unitName: conversion.unit?.name,
+      baseQuantity: conversion.baseQuantity.toString(),
+    })) || [],
+  };
 };
 
 export const createProduct = async (input: CreateProductInput) => {
@@ -180,17 +202,51 @@ export const updateProduct = async (id: string, input: UpdateProductInput) => {
     updateData.minimumStock = input.minimumStock.toString();
   }
   if (input.sku !== undefined && (input.sku === null || input.sku.trim() === "")) {
-    updateData.sku = `SKU-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    input.sku = `SKU-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
   }
   if (input.trackInventory === false) {
     updateData.inventoryType = "FINISHED_GOOD";
     updateData.unitId = null;
     updateData.minimumStock = null;
+    updateData.baseUnit = null;
   }
-  return prisma.product.update({
+
+  const updatedProduct = await prisma.product.update({
     where: { id },
     data: updateData,
   });
+
+  if (input.unitConversions && Array.isArray(input.unitConversions)) {
+    await prisma.productUnitConversion.deleteMany({
+      where: { productId: id },
+    });
+
+    if (input.unitConversions.length > 0) {
+      const conversionData: any[] = [];
+      for (const conversion of input.unitConversions) {
+        const unit = await prisma.unit.findFirst({
+          where: { symbol: conversion.unit.toUpperCase() },
+        });
+
+        if (!unit) {
+          throw new AppError("BAD_REQUEST", `Unit '${conversion.unit}' not found.`);
+        }
+
+        conversionData.push({
+          productId: id,
+          unitId: unit.id,
+          baseQuantity: conversion.baseQuantity.toString(),
+          isDefault: conversion.isDefault || false,
+        });
+      }
+
+      await prisma.productUnitConversion.createMany({
+        data: conversionData,
+      });
+    }
+  }
+
+  return updatedProduct;
 };
 
 export const deleteProduct = async (id: string) => {
@@ -253,8 +309,17 @@ export const upsertRecipeForProduct = async (productId: string, items: Array<{ c
     if (comp.inventoryType !== "RAW_MATERIAL" && comp.inventoryType !== "PACKAGING") {
       throw new AppError("BAD_REQUEST", "Produk komponen harus bertipe RAW_MATERIAL atau PACKAGING.");
     }
-    if (comp.unitId !== it.unitId) {
-      throw new AppError("BAD_REQUEST", `Satuan untuk komponen '${comp.name}' harus sesuai dengan satuan stoknya.`);
+    const inputUnit = await prisma.unit.findUnique({
+      where: { id: it.unitId }
+    });
+    if (!inputUnit) {
+      throw new AppError("BAD_REQUEST", `Satuan input tidak ditemukan.`);
+    }
+    if (!comp.baseUnit) {
+      throw new AppError("BAD_REQUEST", `Produk komponen '${comp.name}' tidak memiliki base unit yang di-set.`);
+    }
+    if (!validateUnitCompatibility(inputUnit.symbol, comp.baseUnit)) {
+      throw new AppError("BAD_REQUEST", `Satuan '${inputUnit.name}' tidak kompatibel dengan base unit komponen '${comp.name}'.`);
     }
   }
 
@@ -270,13 +335,25 @@ export const upsertRecipeForProduct = async (productId: string, items: Array<{ c
 
     // 2. Buat item resep baru
     if (items.length > 0) {
-      await tx.recipeItem.createMany({
-        data: items.map((it) => ({
+      const resolvedItems = [];
+      for (const it of items) {
+        const comp = await tx.product.findUnique({ where: { id: it.componentProductId } });
+        const inputUnit = await tx.unit.findUnique({ where: { id: it.unitId } });
+        const normalizedQty = await convertToBaseUnit(comp!.id, it.quantity, inputUnit!.symbol, comp!.baseUnit as any, tx);
+        
+        const baseUnitSymbol = comp!.baseUnit === "G" ? "GRAM" : comp!.baseUnit === "ML" ? "ML" : "PCS";
+        const baseUnitRecord = await tx.unit.findUnique({ where: { symbol: baseUnitSymbol } });
+        
+        resolvedItems.push({
           recipeId: recipe!.id,
           componentProductId: it.componentProductId,
-          quantity: it.quantity.toString(),
-          unitId: it.unitId
-        }))
+          quantity: normalizedQty.toString(),
+          unitId: baseUnitRecord!.id
+        });
+      }
+
+      await tx.recipeItem.createMany({
+        data: resolvedItems
       });
     }
 

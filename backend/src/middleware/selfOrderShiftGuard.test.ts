@@ -5,7 +5,7 @@ import { selfOrderShiftGuard } from "./selfOrderShiftGuard";
 import { AppError } from "../utils/errorHandler";
 import { Request, Response } from "express";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
 
 test("selfOrderShiftGuard Tests", async (t) => {
   // Find or create a user to associate with shifts

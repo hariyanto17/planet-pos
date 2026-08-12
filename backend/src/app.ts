@@ -29,22 +29,11 @@ const app = express();
 const allowedOrigins = [
   "https://fe-concession.168billiard.online",
   "http://127.0.0.1:5051",
+  "http://localhost/:5050",
 ];
 
 app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      const normalizedOrigin = origin.replace(/\/$/, "");
-      if (allowedOrigins.includes(normalizedOrigin)) {
-        return callback(null, true);
-      }
-      return callback(null, false);
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
+  cors()
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

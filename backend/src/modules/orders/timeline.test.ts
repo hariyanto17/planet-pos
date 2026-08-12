@@ -5,7 +5,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { createOrder, updateOrderStatus, confirmPayment } from "./service";
 import { getKitchenQueue } from "./queue.service";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
 
 test("Order Timeline and Status Transitions Regression Tests", async (t) => {
   // Setup: Find cashier user, active shift, and product from seed

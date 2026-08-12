@@ -115,8 +115,8 @@ export const receiveStock = catchAsync(async (req: Request, res: Response) => {
     }
   }
 
-  const newBalance = await inventoryService.createStockReceipt(userId, value);
-  return responseHandler.ok(res, { newBalance }, "Stock received successfully");
+  const result = await inventoryService.createStockReceipt(userId, value);
+  return responseHandler.ok(res, result, "Stock received successfully");
 });
 
 export const adjustStock = catchAsync(async (req: Request, res: Response) => {
@@ -144,8 +144,8 @@ export const adjustStock = catchAsync(async (req: Request, res: Response) => {
     }
   }
 
-  const newBalance = await inventoryService.adjustStock(userId, value);
-  return responseHandler.ok(res, { newBalance }, "Stock adjusted successfully");
+  const result = await inventoryService.adjustStock(userId, value);
+  return responseHandler.ok(res, result, "Stock adjusted successfully");
 });
 
 export const removeWaste = catchAsync(async (req: Request, res: Response) => {
@@ -173,8 +173,8 @@ export const removeWaste = catchAsync(async (req: Request, res: Response) => {
     }
   }
 
-  const newBalance = await inventoryService.removeAsWaste(userId, value);
-  return responseHandler.ok(res, { newBalance }, "Waste recorded successfully");
+  const result = await inventoryService.removeAsWaste(userId, value);
+  return responseHandler.ok(res, result, "Waste recorded successfully");
 });
 
 export const getWarehouses = catchAsync(async (req: Request, res: Response) => {

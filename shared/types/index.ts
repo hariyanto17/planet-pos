@@ -44,6 +44,7 @@ export interface CreateProductInput {
   inventoryType?: "FINISHED_GOOD" | "RAW_MATERIAL" | "PACKAGING";
   minimumStock?: number;
   unitId?: string;
+  baseUnit?: "G" | "ML" | "PCS" | null;
 }
 
 export interface UpdateProductInput {
@@ -58,6 +59,12 @@ export interface UpdateProductInput {
   inventoryType?: "FINISHED_GOOD" | "RAW_MATERIAL" | "PACKAGING";
   minimumStock?: number;
   unitId?: string;
+  baseUnit?: "G" | "ML" | "PCS" | null;
+  unitConversions?: Array<{
+    unit: string;
+    baseQuantity: number;
+    isDefault?: boolean;
+  }>;
 }
 
 // Table Types
