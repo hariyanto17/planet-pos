@@ -6,9 +6,9 @@ test("createStockTransferSchema rejects identical source and destination warehou
   const { error } = createStockTransferSchema.validate({
     sourceWarehouseId: "warehouse-1",
     destinationWarehouseId: "warehouse-1",
-    items: [{ productId: "product-1", quantity: 2 }],
+    items: [{ materialVariantId: "material-variant-1", quantity: 2 }],
   });
 
   assert.ok(error, "Expected validation to fail for identical warehouses");
-  assert.match(error?.message || "", /invalid/i);
+  assert.match(error?.message || "", /invalid|same/i);
 });

@@ -32,7 +32,7 @@ export function validateUnitCompatibility(inputUnit: string, baseUnit: BaseUnit)
 }
 
 export async function convertToBaseUnit(
-  productId: string,
+  materialVariantId: string,
   quantity: number | Decimal,
   inputUnit: string,
   baseUnit: BaseUnit,
@@ -42,29 +42,15 @@ export async function convertToBaseUnit(
   const normalized = inputUnit.toLowerCase();
   const activeTx = tx ?? prisma;
 
-  const product = await activeTx.product.findUnique({ where: { id: productId } });
-  if (!product) {
-    throw new AppError("NOT_FOUND", "Product not found");
-  }
-
-  const conversion = await activeTx.productUnitConversion.findFirst({
-    where: {
-      productId,
-      unit: {
-        symbol: { equals: inputUnit, mode: "insensitive" },
-      },
-    },
-    include: { unit: true },
-  });
-
-  if (conversion) {
-    return qty.mul(conversion.baseQuantity);
+  const materialVariant = await activeTx.materialVariant.findUnique({ where: { id: materialVariantId } });
+  if (!materialVariant) {
+    throw new AppError("NOT_FOUND", "Material variant not found");
   }
 
   if (!validateUnitCompatibility(inputUnit, baseUnit)) {
     throw new AppError(
       "BAD_REQUEST",
-      `Satuan input '${inputUnit}' tidak kompatibel dengan base unit produk '${baseUnit}' dan tidak ada mapping ProductUnitConversion yang tersedia.`
+      `Satuan input '${inputUnit}' tidak kompatibel dengan base unit material variant '${baseUnit}'.`
     );
   }
 

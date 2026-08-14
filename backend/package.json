@@ -10,7 +10,7 @@
     "seed": "ts-node -r tsconfig-paths/register prisma/seed.ts",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
-    "test": "node --import ts-node/register --test src/modules/inventory/validation.test.ts"
+    "test": "node --require ts-node/register --test src/modules/inventory/validation.test.ts src/modules/materials/service.test.ts src/modules/materials/recipe-compatibility.test.ts"
   },
   "prisma": {
     "seed": "ts-node -r tsconfig-paths/register prisma/seed.ts"

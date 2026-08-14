@@ -4,8 +4,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import { seedUsers } from "./seeds/users.seed";
 import { seedUnits } from "./seeds/units.seed";
-import { seedInventory } from "./seeds/inventory.seed";
-import { seedProductUnitConversions } from "./seeds/productUnitConversions.seed";
+import { seedCanonical } from "./seeds/canonical.seed";
 
 const newPrismaClient = () => {
   const connectionString = `${process.env.DATABASE_URL}`;
@@ -19,8 +18,7 @@ async function main() {
   console.log("Starting seed...");
   await seedUsers(prisma);
   await seedUnits(prisma);
-  await seedInventory(prisma);
-  await seedProductUnitConversions(prisma);
+  await seedCanonical(prisma);
   console.log("Seeding finished successfully.");
 }
 

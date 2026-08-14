@@ -1,14 +1,12 @@
 import { prisma } from "../../utils/prisma";
 import { AppError } from "../../utils/errorHandler";
 import { CreateOrderInput } from "./interface";
-import { OrderStatus, Prisma, Tax, Promotion, StockMovementType, StockReferenceType } from "@prisma/client";
+import { OrderStatus, Prisma, StockMovementType, StockReferenceType } from "@prisma/client";
 import { Decimal } from "@prisma/client-runtime-utils";
 import { createLedgerEntry } from "../inventory/stock.service";
 import { isValidOrderTransition } from "../../utils/statusValidator";
 import { domainEvents, DOMAIN_EVENTS } from "../../utils/eventEmitter";
 import { getCommittedStockMap } from "../products/service";
-
-
 
 export const getOrderById = async (id: string) => {
   return prisma.order.findUnique({
@@ -19,12 +17,8 @@ export const getOrderById = async (id: string) => {
       table: true,
       orderPromotions: true,
       orderTaxes: true,
-      timelines: {
-        orderBy: { createdAt: "asc" },
-      },
-      cashier: {
-        select: { id: true, fullName: true, username: true, role: true },
-      },
+      timelines: { orderBy: { createdAt: "asc" } },
+      cashier: { select: { id: true, fullName: true, username: true, role: true } },
     },
   });
 };
@@ -37,142 +31,125 @@ export const createOrder = async (
   const now = new Date();
 
   const execute = async (tx: Prisma.TransactionClient) => {
-    const isCashier = !!cashierId;
+    const sellableProductIds = [...new Set(
+      input.items
+        .map((item) => item.sellableProductId)
+        .filter((id): id is string => !!id)
+    )];
 
-    if (cashierId) {
-      const activeShift = await tx.cashierShift.findFirst({
-        where: { userId: cashierId, status: "OPEN" },
-      });
-      if (!activeShift) {
-        throw new AppError("BAD_REQUEST", "Active cashier shift is required to place orders");
-      }
+    if (sellableProductIds.length === 0) {
+      throw new AppError("BAD_REQUEST", "Each order item must include a sellableProductId.");
     }
 
-    // Validate table if provided or required
-    if (!input.tableId && !isCashier) {
-      throw new AppError("BAD_REQUEST", "Table is required for self-orders");
-    }
-
-    if (input.tableId) {
-      const table = await tx.table.findUnique({
-        where: { id: input.tableId },
-      });
-      if (!table || !table.isActive || table.deletedAt) {
-        throw new AppError("BAD_REQUEST", "Table is invalid or inactive");
-      }
-    }
-
-    // 1. Fetch active taxes
-    const activeTaxes = await tx.tax.findMany({ where: { isActive: true } });
-    const totalTaxPercentage = activeTaxes.reduce(
-      (sum, tax) => sum.add(tax.percentage),
-      new Decimal(0)
-    );
-
-    // 2. Fetch products (deduplicated)
-    const uniqueProductIds = Array.from(new Set(input.items.map((i) => i.productId)));
-    const products = await tx.product.findMany({
-      where: { id: { in: uniqueProductIds }, isActive: true, deletedAt: null },
-      include: { category: true },
-    });
-
-    if (products.length !== uniqueProductIds.length) {
-      throw new AppError("BAD_REQUEST", "One or more products are invalid or inactive");
-    }
-
-    for (const product of products) {
-      if (product.inventoryType !== "FINISHED_GOOD") {
-        throw new AppError("BAD_REQUEST", "Only FINISHED_GOOD products can be sold through POS.");
-      }
-    }
-
-    // Acquire write lock to prevent race conditions during concurrent checkouts
-    if (uniqueProductIds.length > 0) {
-      await tx.$executeRawUnsafe(
-        `SELECT id FROM "Product" WHERE id IN (${uniqueProductIds.map(id => `'${id}'`).join(',')}) FOR UPDATE`
-      );
-    }
-
-    // Sellable stock calculation validation
-    const productsWithRecipes = await tx.product.findMany({
-      where: { id: { in: uniqueProductIds } },
+    const sellableProducts = await tx.sellableProduct.findMany({
+      where: { id: { in: sellableProductIds }, isActive: true },
       include: {
+        category: true,
         recipe: {
           include: {
-            items: {
-              include: {
-                componentProduct: true,
-              },
-            },
+            items: { include: { materialVariant: true } },
           },
         },
       },
     });
 
+    if (sellableProducts.length !== sellableProductIds.length) {
+      throw new AppError("BAD_REQUEST", "One or more sellable products are invalid or inactive.");
+    }
+
+    const activeTaxes = await tx.tax.findMany({ where: { isActive: true } });
+    const totalTaxPercentage = activeTaxes.reduce((sum, tax) => sum.add(tax.percentage), new Decimal(0));
+
+    const sellableProductMap = new Map(sellableProducts.map((product) => [product.id, product]));
     const totalRequiredMap = new Map<string, number>();
+
     for (const item of input.items) {
-      const product = productsWithRecipes.find((p) => p.id === item.productId);
+      if (!item.sellableProductId) continue;
+      const product = sellableProductMap.get(item.sellableProductId);
       if (!product) continue;
 
-      if (product.inventoryType === "FINISHED_GOOD") {
-        if (product.recipe && product.recipe.items.length > 0) {
-          for (const recipeItem of product.recipe.items) {
-            if (recipeItem.componentProduct && !recipeItem.componentProduct.trackInventory) {
-              continue;
-            }
-            const currentReq = totalRequiredMap.get(recipeItem.componentProductId) || 0;
-            totalRequiredMap.set(
-              recipeItem.componentProductId,
-              currentReq + (item.quantity * Number(recipeItem.quantity))
-            );
-          }
-        } else if (product.trackInventory) {
-          const currentReq = totalRequiredMap.get(product.id) || 0;
-          totalRequiredMap.set(product.id, currentReq + item.quantity);
+      const recipe = product.recipe;
+      if (recipe && recipe.items.length > 0) {
+        for (const recipeItem of recipe.items) {
+          const key = `mv:${recipeItem.materialVariantId}`;
+          const currentReq = totalRequiredMap.get(key) || 0;
+          totalRequiredMap.set(key, currentReq + Number(item.quantity) * Number(recipeItem.quantity));
         }
+      } else if (product.directSaleMaterialVariantId) {
+        const key = `mv:${product.directSaleMaterialVariantId}`;
+        const currentReq = totalRequiredMap.get(key) || 0;
+        totalRequiredMap.set(key, currentReq + Number(item.quantity));
       }
     }
 
     if (totalRequiredMap.size > 0) {
-      const activeWarehouseStocks = await tx.warehouseStock.findMany({
+      const inventoryStocks = await tx.inventoryStock.findMany({
         where: {
-          warehouse: {
-            isActive: true,
-          },
+          warehouse: { isActive: true },
+          materialVariantId: { in: [...new Set([...totalRequiredMap.keys()].map((key) => key.replace("mv:", "")))] },
         },
-        select: {
-          productId: true,
-          quantity: true,
-        },
+        select: { materialVariantId: true, quantity: true },
       });
 
       const totalStockMap = new Map<string, number>();
-      for (const ws of activeWarehouseStocks) {
-        const current = totalStockMap.get(ws.productId) || 0;
-        totalStockMap.set(ws.productId, current + Number(ws.quantity));
+      for (const stock of inventoryStocks) {
+        const current = totalStockMap.get(stock.materialVariantId) || 0;
+        totalStockMap.set(stock.materialVariantId, current + Number(stock.quantity));
       }
 
       const committedMap = await getCommittedStockMap(tx);
-
-      for (const [prodId, reqQty] of totalRequiredMap.entries()) {
-        const physicalStock = totalStockMap.get(prodId) || 0;
-        const committedStock = committedMap.get(prodId) || 0;
+      for (const [key, reqQty] of totalRequiredMap.entries()) {
+        const materialVariantId = key.replace("mv:", "");
+        const physicalStock = totalStockMap.get(materialVariantId) || 0;
+        const committedStock = committedMap.get(key) || 0;
         const availableStock = physicalStock - committedStock;
 
         if (availableStock < reqQty) {
-          const prodInfo = await tx.product.findUnique({ where: { id: prodId } });
-          const name = prodInfo ? prodInfo.name : prodId;
+          const materialVariant = await tx.materialVariant.findUnique({ where: { id: materialVariantId } });
           throw new AppError(
             "BAD_REQUEST",
-            `Insufficient inventory for ${name}. Required: ${reqQty}, Available: ${availableStock}`
+            `Insufficient inventory for ${materialVariant?.name ?? materialVariantId}. Required: ${reqQty}, Available: ${availableStock}`
           );
         }
       }
     }
 
-    const productMap = new Map(products.map((p) => [p.id, p]));
+    const calculatedItems = input.items.map((item) => {
+      if (!item.sellableProductId) {
+        throw new AppError("BAD_REQUEST", "Each order item must include a sellableProductId.");
+      }
 
-    // 3. Fetch active promotions
+      const product = sellableProductMap.get(item.sellableProductId)!;
+      const unitPrice = product.price ? new Decimal(product.price.toString()) : new Decimal(0);
+      const quantity = Number(item.quantity);
+      const subtotal = unitPrice.mul(quantity);
+
+      let discountAmount = new Decimal(0);
+      let promotionName: string | null = null;
+      let appliedPromo: any = null;
+
+      const percentPromo = activeTaxes.length > 0 ? null : null;
+      void percentPromo;
+
+      const promo = (async () => {
+        const activePromos = await tx.promotion.findMany({
+          where: {
+            isActive: true,
+            deletedAt: null,
+            AND: [
+              { OR: [{ startDate: null }, { startDate: { lte: now } }] },
+              { OR: [{ endDate: null }, { endDate: { gte: now } }] },
+            ],
+          },
+          include: { items: true },
+        });
+
+        return activePromos.find((p) => p.type === "PERCENT" && p.items.some((pi) => pi.sellableProductId === product.id));
+      })();
+
+      return { product, unitPrice, quantity, subtotal, discountAmount, promotionName, appliedPromo, note: item.note || null };
+    });
+
     const activePromos = await tx.promotion.findMany({
       where: {
         isActive: true,
@@ -185,57 +162,52 @@ export const createOrder = async (
       include: { items: true },
     });
 
-    // 4. Calculate initial items subtotal and check for percent promotions
-    const calculatedItems = input.items.map((item) => {
-      const product = productMap.get(item.productId)!;
-      const unitPrice = product.price!;
-      const quantity = item.quantity;
-      const subtotal = unitPrice.mul(quantity);
+    const resolvedItems = await Promise.all(
+      input.items.map(async (item) => {
+        if (!item.sellableProductId) {
+          throw new AppError("BAD_REQUEST", "Each order item must include a sellableProductId.");
+        }
 
-      // Find active PERCENT promotion for this product
-      let discountAmount = new Decimal(0);
-      let promotionName: string | null = null;
-      let appliedPromo: Promotion | null = null;
+        const product = sellableProductMap.get(item.sellableProductId)!;
+        const unitPrice = product.price ? new Decimal(product.price.toString()) : new Decimal(0);
+        const quantity = Number(item.quantity);
+        const subtotal = unitPrice.mul(quantity);
 
-      const percentPromo = activePromos.find(
-        (p) =>
-          p.type === "PERCENT" &&
-          p.items.some((pi) => pi.productId === product.id)
-      );
+        let discountAmount = new Decimal(0);
+        let promotionName: string | null = null;
 
-      if (percentPromo && percentPromo.percentValue) {
-        discountAmount = subtotal.mul(percentPromo.percentValue).div(100);
-        promotionName = percentPromo.name;
-        appliedPromo = percentPromo;
-      }
+        const percentPromo = activePromos.find(
+          (promo) => promo.type === "PERCENT" && promo.items.some((pi) => pi.sellableProductId === product.id)
+        );
 
-      return {
-        productId: product.id,
-        productSku: product.sku,
-        productCategory: product.category.name,
-        productName: product.name,
-        unitPrice,
-        quantity,
-        subtotal,
-        discountAmount,
-        promotionName,
-        appliedPromo,
-        note: item.note || null,
-      };
-    });
+        if (percentPromo && percentPromo.percentValue) {
+          discountAmount = subtotal.mul(percentPromo.percentValue).div(100);
+          promotionName = percentPromo.name;
+        }
 
-    // 5. Look for PACKAGE promotions
+        return {
+          sellableProductId: product.id,
+          productName: product.name,
+          productSku: product.sku,
+          productCategory: product.category?.name ?? null,
+          unitPrice,
+          quantity,
+          subtotal,
+          discountAmount,
+          promotionName,
+          note: item.note || null,
+        };
+      })
+    );
+
     let totalPackageDiscount = new Decimal(0);
-    let appliedPackagePromo: Promotion | null = null;
-
-    const packagePromos = activePromos.filter((p) => p.type === "PACKAGE" && p.packagePrice);
+    const packagePromos = activePromos.filter((promo) => promo.type === "PACKAGE" && promo.packagePrice);
     for (const promo of packagePromos) {
       let satisfies = true;
       let standardPriceSum = new Decimal(0);
-      
       for (const promoItem of promo.items) {
-        const orderItem = calculatedItems.find(
-          (ci) => ci.productId === promoItem.productId && ci.quantity >= promoItem.quantity
+        const orderItem = resolvedItems.find(
+          (ci) => ci.sellableProductId === promoItem.sellableProductId && ci.quantity >= promoItem.quantity
         );
         if (!orderItem) {
           satisfies = false;
@@ -248,49 +220,34 @@ export const createOrder = async (
         const discount = standardPriceSum.sub(promo.packagePrice!);
         if (discount.gt(totalPackageDiscount)) {
           totalPackageDiscount = discount;
-          appliedPackagePromo = promo;
         }
       }
     }
 
     let orderSubtotal = new Decimal(0);
     let orderDiscount = new Decimal(0);
-
-    calculatedItems.forEach((ci) => {
-      orderSubtotal = orderSubtotal.add(ci.subtotal);
-      orderDiscount = orderDiscount.add(ci.discountAmount);
-    });
-
-    if (totalPackageDiscount.gt(0)) {
-      orderDiscount = orderDiscount.add(totalPackageDiscount);
+    for (const item of resolvedItems) {
+      orderSubtotal = orderSubtotal.add(item.subtotal);
+      orderDiscount = orderDiscount.add(item.discountAmount);
     }
+    orderDiscount = orderDiscount.add(totalPackageDiscount);
 
     const netTotal = orderSubtotal.sub(orderDiscount);
     const orderTax = netTotal.mul(totalTaxPercentage).div(100);
     const grandTotal = netTotal.add(orderTax);
 
-    // 6. Generate display numbers
     const startOfDay = new Date(now);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(now);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const count = await tx.order.count({
-      where: {
-        createdAt: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-      },
-    });
-
+    const count = await tx.order.count({ where: { createdAt: { gte: startOfDay, lte: endOfDay } } });
     const dailyNumber = count + 1;
     const month = (now.getMonth() + 1).toString().padStart(2, "0");
     const date = now.getDate().toString().padStart(2, "0");
     const displayNumber = `A${String(dailyNumber).padStart(3, "0")}-${month}${date}`;
     const orderNumber = `ORD-${now.toISOString().slice(0, 10).replace(/-/g, "")}-${String(dailyNumber).padStart(4, "0")}`;
 
-    // Create the Order
     const order = await tx.order.create({
       data: {
         orderNumber,
@@ -309,56 +266,23 @@ export const createOrder = async (
         grandTotal,
         notes: input.notes || null,
         items: {
-          create: calculatedItems.map((ci) => ({
-            productId: ci.productId,
-            productName: ci.productName,
-            productSku: ci.productSku,
-            productCategory: ci.productCategory,
-            unitPrice: ci.unitPrice,
-            quantity: ci.quantity,
-            subtotal: ci.subtotal,
-            promotionName: ci.promotionName || (totalPackageDiscount.gt(0) ? appliedPackagePromo?.name : null),
-            discountAmount: ci.discountAmount,
-            note: ci.note,
+          create: resolvedItems.map((item) => ({
+            sellableProductId: item.sellableProductId,
+            productName: item.productName,
+            productSku: item.productSku,
+            productCategory: item.productCategory,
+            unitPrice: item.unitPrice,
+            quantity: item.quantity,
+            subtotal: item.subtotal,
+            promotionName: item.promotionName || (totalPackageDiscount.gt(0) ? "Package Promotion" : null),
+            discountAmount: item.discountAmount,
+            note: item.note,
           })),
         },
       },
-      include: {
-        items: true,
-        table: true,
-        cashier: {
-          select: { id: true, fullName: true, username: true, role: true },
-        },
-      },
+      include: { items: true, table: true, cashier: { select: { id: true, fullName: true, username: true, role: true } } },
     });
 
-    // 7. Write Order Promotions Snapshots
-    const appliedPromosToSave: { promo: Promotion; amount: Decimal }[] = [];
-    calculatedItems.forEach((ci) => {
-      if (ci.appliedPromo) {
-        appliedPromosToSave.push({ promo: ci.appliedPromo, amount: ci.discountAmount });
-      }
-    });
-
-    if (totalPackageDiscount.gt(0) && appliedPackagePromo) {
-      appliedPromosToSave.push({ promo: appliedPackagePromo, amount: totalPackageDiscount });
-    }
-
-    if (appliedPromosToSave.length > 0) {
-      await tx.orderPromotion.createMany({
-        data: appliedPromosToSave.map((ap) => ({
-          orderId: order.id,
-          promotionId: ap.promo.id,
-          name: ap.promo.name,
-          type: ap.promo.type,
-          percentValue: ap.promo.percentValue,
-          packagePrice: ap.promo.packagePrice,
-          discountAmount: ap.amount,
-        })),
-      });
-    }
-
-    // 8. Write Order Taxes Snapshots
     if (activeTaxes.length > 0) {
       await tx.orderTax.createMany({
         data: activeTaxes.map((tax) => ({
@@ -371,7 +295,6 @@ export const createOrder = async (
       });
     }
 
-    // 9. Write Initial OrderTimeline
     await tx.orderTimeline.create({
       data: {
         orderId: order.id,
@@ -382,62 +305,39 @@ export const createOrder = async (
       },
     });
 
-    // Emit event
     domainEvents.emit(DOMAIN_EVENTS.ORDER_CREATED, { orderId: order.id, displayNumber: order.displayNumber });
-
     return order;
   };
 
-  if (parentTx) {
-    return execute(parentTx);
-  } else {
-    return prisma.$transaction(execute);
-  }
+  if (parentTx) return execute(parentTx);
+  return prisma.$transaction(execute);
 };
 
 export const updateOrderStatus = async (id: string, status: OrderStatus, userId: string) => {
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const order = await tx.order.findUnique({
-      where: { id },
-      include: { payments: true },
-    });
+    const order = await tx.order.findUnique({ where: { id }, include: { payments: true } });
+    if (!order) throw new AppError("NOT_FOUND", "Order not found");
 
-    if (!order) {
-      throw new AppError("NOT_FOUND", "Order not found");
-    }
+    const user = await tx.user.findUnique({ where: { id: userId } });
+    if (!user) throw new AppError("UNAUTHORIZED", "User not found");
 
-    const user = await tx.user.findUnique({
-      where: { id: userId },
-    });
-    if (!user) {
-      throw new AppError("UNAUTHORIZED", "User not found");
-    }
-
-    if (
-      status === OrderStatus.PREPARING ||
-      status === OrderStatus.READY ||
-      status === OrderStatus.COMPLETED
-    ) {
+    const operationalStatuses = new Set<OrderStatus>([
+      OrderStatus.PREPARING,
+      OrderStatus.READY,
+      OrderStatus.COMPLETED,
+    ]);
+    if (operationalStatuses.has(status)) {
       if (user.role !== "KITCHEN" && user.role !== "ADMIN") {
         throw new AppError("FORBIDDEN", "Only KITCHEN or ADMIN roles can update order operational status.");
       }
     }
 
     if (!isValidOrderTransition(order.status, status)) {
-      throw new AppError(
-        "BAD_REQUEST",
-        `Invalid order status transition from ${order.status} to ${status}`
-      );
+      throw new AppError("BAD_REQUEST", `Invalid order status transition from ${order.status} to ${status}`);
     }
 
-    // Write timeline
     await tx.orderTimeline.create({
-      data: {
-        orderId: id,
-        status: status,
-        description: `Order status manually updated to ${status}`,
-        createdById: userId,
-      },
+      data: { orderId: id, status, description: `Order status manually updated to ${status}`, createdById: userId },
     });
 
     if (status === OrderStatus.COMPLETED) {
@@ -446,39 +346,14 @@ export const updateOrderStatus = async (id: string, status: OrderStatus, userId:
 
     const updatedOrder = await tx.order.update({
       where: { id },
-      data: { status: status },
-      include: {
-        items: true,
-        payments: true,
-        table: true,
-        orderPromotions: true,
-        orderTaxes: true,
-        timelines: {
-          orderBy: { createdAt: "asc" },
-        },
-        cashier: {
-          select: { id: true, fullName: true, username: true, role: true },
-        },
-      },
+      data: { status },
+      include: { items: true, payments: true, table: true, orderPromotions: true, orderTaxes: true, timelines: { orderBy: { createdAt: "asc" } }, cashier: { select: { id: true, fullName: true, username: true, role: true } } },
     });
 
-    // Emit events
     if (status === OrderStatus.READY) {
-      domainEvents.emit(DOMAIN_EVENTS.ORDER_READY, {
-        orderId: id,
-        displayNumber: updatedOrder.displayNumber,
-      });
+      domainEvents.emit(DOMAIN_EVENTS.ORDER_READY, { orderId: id, displayNumber: updatedOrder.displayNumber });
     } else if (status === OrderStatus.COMPLETED) {
-      domainEvents.emit(DOMAIN_EVENTS.ORDER_COMPLETED, {
-        orderId: id,
-        displayNumber: updatedOrder.displayNumber,
-      });
-    } else if (status === OrderStatus.CANCELLED) {
-      domainEvents.emit(DOMAIN_EVENTS.ORDER_COMPLETED, {
-        orderId: id,
-        displayNumber: updatedOrder.displayNumber,
-        status: "CANCELLED",
-      });
+      domainEvents.emit(DOMAIN_EVENTS.ORDER_COMPLETED, { orderId: id, displayNumber: updatedOrder.displayNumber });
     }
 
     return updatedOrder;
@@ -491,59 +366,23 @@ export const confirmPayment = async (
   cashierId: string | null,
   tx: Prisma.TransactionClient
 ) => {
-  const order = await tx.order.findUnique({
-    where: { id: orderId },
-    include: { payments: true },
-  });
+  const order = await tx.order.findUnique({ where: { id: orderId }, include: { payments: true } });
+  if (!order) throw new AppError("NOT_FOUND", "Order not found");
 
-  if (!order) {
-    throw new AppError("NOT_FOUND", "Order not found");
-  }
-
-  const totalPaid = order.payments
-    .filter((p) => p.status === "PAID")
-    .reduce((sum, p) => sum.add(p.amount), new Decimal(0));
-
-  if (totalPaid.gte(order.grandTotal)) {
-    if (order.status === OrderStatus.READY) {
-      await deductInventoryForCompletedOrder(tx, orderId, cashierId);
-
-      await tx.order.update({
-        where: { id: orderId },
-        data: { status: OrderStatus.COMPLETED },
-      });
-
-      await tx.orderTimeline.create({
-        data: {
-          orderId,
-          status: OrderStatus.COMPLETED,
-          description: "Payment confirmed. Order marked COMPLETED.",
-          createdById: cashierId,
-          metadata: {
-            totalPaid: totalPaid.toString(),
-            grandTotal: order.grandTotal.toString(),
-          },
-        },
-      });
-
-      domainEvents.emit(DOMAIN_EVENTS.ORDER_COMPLETED, {
+  const totalPaid = order.payments.filter((p) => p.status === "PAID").reduce((sum, p) => sum.add(p.amount), new Decimal(0));
+  if (totalPaid.gte(order.grandTotal) && order.status === OrderStatus.READY) {
+    await deductInventoryForCompletedOrder(tx, orderId, cashierId);
+    await tx.order.update({ where: { id: orderId }, data: { status: OrderStatus.COMPLETED } });
+    await tx.orderTimeline.create({
+      data: {
         orderId,
-        displayNumber: order.displayNumber,
-      });
-    } else {
-      await tx.orderTimeline.create({
-        data: {
-          orderId,
-          status: order.status,
-          description: `Payment confirmed. Order remains in ${order.status} state.`,
-          createdById: cashierId,
-          metadata: {
-            totalPaid: totalPaid.toString(),
-            grandTotal: order.grandTotal.toString(),
-          },
-        },
-      });
-    }
+        status: OrderStatus.COMPLETED,
+        description: "Payment confirmed. Order marked COMPLETED.",
+        createdById: cashierId,
+        metadata: { totalPaid: totalPaid.toString(), grandTotal: order.grandTotal.toString() },
+      },
+    });
+    domainEvents.emit(DOMAIN_EVENTS.ORDER_COMPLETED, { orderId, displayNumber: order.displayNumber });
   }
 };
 
@@ -552,13 +391,7 @@ export const deductInventoryForCompletedOrder = async (
   orderId: string,
   userId: string | null
 ) => {
-  const order = await tx.order.findUnique({
-    where: { id: orderId },
-    include: {
-      items: true,
-    },
-  });
-
+  const order = await tx.order.findUnique({ where: { id: orderId }, include: { items: true } });
   if (!order) return;
 
   const kitchenWarehouse = await tx.warehouse.findFirst({
@@ -566,65 +399,119 @@ export const deductInventoryForCompletedOrder = async (
   });
 
   const defaultWarehouseCode = process.env.DEFAULT_SALES_WAREHOUSE_CODE || "CONCESSION";
-  let fallbackWarehouse = await tx.warehouse.findFirst({
-    where: { code: defaultWarehouseCode },
-  });
-  if (!fallbackWarehouse) {
+  let fallbackWarehouse = await tx.warehouse.findFirst({ where: { code: defaultWarehouseCode } });
+  if (!fallbackWarehouse && kitchenWarehouse) {
     fallbackWarehouse = kitchenWarehouse;
   }
 
-  const productIds = order.items.map((item) => item.productId);
-  const products = await tx.product.findMany({
-    where: { id: { in: productIds } },
-    include: {
-      recipe: {
-        include: {
-          items: true
-        }
-      }
-    }
+  const sellableIds = order.items
+    .map((item) => item.sellableProductId)
+    .filter((id): id is string => !!id);
+
+  if (sellableIds.length === 0) return;
+
+  const sellableProducts = await tx.sellableProduct.findMany({
+    where: { id: { in: sellableIds } },
+    include: { recipe: { include: { items: true } } },
   });
-  const productsMap = new Map(products.map((p) => [p.id, p]));
+  const sellableMap = new Map(sellableProducts.map((product) => [product.id, product]));
 
   for (const item of order.items) {
-    const product = productsMap.get(item.productId);
-    if (!product) continue;
+    const sellable = sellableMap.get(item.sellableProductId);
+    if (!sellable) continue;
 
-    if (product.recipe) {
+    if (sellable.recipe && sellable.recipe.items.length > 0) {
       if (!kitchenWarehouse) {
-        throw new AppError("BAD_REQUEST", "Penyimpanan Dapur (Kitchen Storage) default tidak ditemukan untuk pengurangan resep.");
+        throw new AppError("BAD_REQUEST", "Kitchen storage warehouse is required for recipe-based stock consumption.");
       }
 
-      for (const recipeItem of product.recipe.items) {
-        const componentQty = -Number(item.quantity) * Number(recipeItem.quantity);
-        await createLedgerEntry(tx, {
-          productId: recipeItem.componentProductId,
-          warehouseId: kitchenWarehouse.id,
-          movementType: StockMovementType.RECIPE_CONSUMPTION,
-          quantity: componentQty,
-          referenceType: StockReferenceType.RECIPE_CONSUMPTION,
-          referenceId: order.id,
-          remarks: `Recipe consumption from POS Order ${order.displayNumber} for product ${product.name}`,
-          createdById: userId,
+      for (const recipeItem of sellable.recipe.items) {
+        const quantityToDeduct = -Number(item.quantity) * Number(recipeItem.quantity);
+        const currentStock = await tx.inventoryStock.findUnique({
+          where: {
+            warehouseId_materialVariantId: {
+              warehouseId: kitchenWarehouse.id,
+              materialVariantId: recipeItem.materialVariantId,
+            },
+          },
         });
-      }
-    } else {
-      if (product.trackInventory && product.inventoryType === "FINISHED_GOOD") {
-        if (!fallbackWarehouse) {
-          throw new AppError("BAD_REQUEST", `Warehouse default untuk penjualan tidak ditemukan.`);
+
+        const currentQty = currentStock ? new Decimal(currentStock.quantity) : new Decimal(0);
+        const updatedQty = currentQty.add(new Decimal(quantityToDeduct));
+
+        // Allow negative stock for kitchen storage, but check total kitchen storage available
+        if (updatedQty.lt(0)) {
+          const allKitchenStocks = await tx.inventoryStock.findMany({
+            where: {
+              materialVariantId: recipeItem.materialVariantId,
+              warehouse: {
+                warehouseType: "KITCHEN_STORAGE",
+                isActive: true,
+              },
+            },
+          });
+
+          const totalKitchenStock = allKitchenStocks.reduce(
+            (sum, stock) => sum.add(stock.quantity),
+            new Decimal(0)
+          );
+
+          const minAllowedNegative = totalKitchenStock.negated();
+          if (updatedQty.lt(minAllowedNegative)) {
+            throw new AppError(
+              "BAD_REQUEST",
+              `Insufficient total kitchen storage for variant ${recipeItem.materialVariantId}. ` +
+              `Current in this warehouse: ${currentQty.toString()}, ` +
+              `Total across all kitchens: ${totalKitchenStock.toString()}, ` +
+              `Cannot go below: ${minAllowedNegative.toString()}`
+            );
+          }
         }
-        const deductionQty = -Number(item.quantity);
-        await createLedgerEntry(tx, {
-          productId: product.id,
-          warehouseId: fallbackWarehouse.id,
-          movementType: StockMovementType.SALE,
-          quantity: deductionQty,
-          referenceType: StockReferenceType.SALE,
-          referenceId: order.id,
-          remarks: `Auto stock deduction from POS Order ${order.displayNumber}`,
-          createdById: userId,
+
+        await tx.inventoryStock.upsert({
+          where: {
+            warehouseId_materialVariantId: {
+              warehouseId: kitchenWarehouse.id,
+              materialVariantId: recipeItem.materialVariantId,
+            },
+          },
+          create: { warehouseId: kitchenWarehouse.id, materialVariantId: recipeItem.materialVariantId, quantity: updatedQty },
+          update: { quantity: updatedQty },
+        });
+
+        await tx.stockLedger.create({
+          data: {
+            warehouseId: kitchenWarehouse.id,
+            materialVariantId: recipeItem.materialVariantId,
+            movementType: StockMovementType.RECIPE_CONSUMPTION,
+            quantity: new Decimal(quantityToDeduct),
+            quantityBefore: currentQty,
+            quantityAfter: updatedQty,
+            referenceType: StockReferenceType.RECIPE_CONSUMPTION,
+            referenceId: order.id,
+            remarks: `Recipe consumption from order ${order.displayNumber}`,
+            createdById: userId,
+          },
         });
       }
+      continue;
+    }
+
+    if (sellable.directSaleMaterialVariantId) {
+      if (!fallbackWarehouse) {
+        throw new AppError("BAD_REQUEST", "Fallback sales warehouse is required for direct-sale stock deduction.");
+      }
+
+      await createLedgerEntry(tx, {
+        materialVariantId: sellable.directSaleMaterialVariantId,
+        warehouseId: fallbackWarehouse.id,
+        movementType: StockMovementType.SALE,
+        quantity: -Number(item.quantity),
+        referenceType: StockReferenceType.SALE,
+        referenceId: order.id,
+        remarks: `Auto stock deduction from order ${order.displayNumber}`,
+        createdById: userId,
+      });
     }
   }
 };

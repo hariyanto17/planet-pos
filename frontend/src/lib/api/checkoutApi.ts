@@ -7,7 +7,7 @@ export interface CheckoutPayload {
   orderType: OrderType;
   notes?: string;
   items: {
-    productId: string;
+    sellableProductId: string;
     quantity: number;
   }[];
   paymentMethod: PaymentMethod;

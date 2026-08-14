@@ -1,67 +1,32 @@
 import Joi from "joi";
 
 export const createProductSchema = Joi.object({
-  categoryId: Joi.string().required(),
-  sku: Joi.string().allow(null, "").optional(),
   name: Joi.string().required(),
-  imageUrl: Joi.string().uri().allow(null, "").optional(),
-  price: Joi.number().precision(2).positive().allow(null).when("inventoryType", {
-    is: Joi.string().valid("RAW_MATERIAL", "PACKAGING"),
-    then: Joi.optional().allow(null).empty("").default(null),
-    otherwise: Joi.required(),
-  }),
-  cost: Joi.number().precision(2).positive().allow(null).optional(),
-  trackInventory: Joi.boolean().default(false).optional(),
-  inventoryType: Joi.string().valid("FINISHED_GOOD", "RAW_MATERIAL", "PACKAGING").default("FINISHED_GOOD").optional(),
-  unitId: Joi.string().when("trackInventory", {
-    is: true,
-    then: Joi.required(),
-    otherwise: Joi.optional().allow(null, ""),
-  }),
-  baseUnit: Joi.string().valid("G", "ML", "PCS").when("trackInventory", {
-    is: true,
-    then: Joi.required(),
-    otherwise: Joi.optional().allow(null, ""),
-  }),
-  minimumStock: Joi.number().min(0).default(0).optional(),
-});
+  sku: Joi.string().allow(null, "").optional(),
+  categoryId: Joi.string().allow(null, "").optional(),
+  brandId: Joi.string().allow(null, "").optional(),
+  productType: Joi.string().valid("DIRECT_SALE", "RECIPE_BASED").default("DIRECT_SALE").optional(),
+  price: Joi.number().precision(2).positive().allow(null).optional(),
+  directSaleMaterialVariantId: Joi.string().allow(null, "").optional(),
+  isActive: Joi.boolean().default(true).optional(),
+}).required();
 
 export const updateProductSchema = Joi.object({
-  categoryId: Joi.string().optional(),
-  sku: Joi.string().allow(null, "").optional(),
   name: Joi.string().optional(),
-  imageUrl: Joi.string().uri().allow(null, "").optional(),
+  sku: Joi.string().allow(null, "").optional(),
+  categoryId: Joi.string().allow(null, "").optional(),
+  brandId: Joi.string().allow(null, "").optional(),
+  productType: Joi.string().valid("DIRECT_SALE", "RECIPE_BASED").optional(),
   price: Joi.number().precision(2).positive().allow(null).optional(),
-  cost: Joi.number().precision(2).positive().allow(null).optional(),
+  directSaleMaterialVariantId: Joi.string().allow(null, "").optional(),
   isActive: Joi.boolean().optional(),
-  trackInventory: Joi.boolean().optional(),
-  inventoryType: Joi.string().valid("FINISHED_GOOD", "RAW_MATERIAL", "PACKAGING").when("trackInventory", {
-    is: true,
-    then: Joi.required(),
-    otherwise: Joi.optional().allow(null, ""),
-  }),
-  unitId: Joi.string().when("trackInventory", {
-    is: true,
-    then: Joi.required(),
-    otherwise: Joi.optional().allow(null, ""),
-  }),
-  baseUnit: Joi.string().valid("G", "ML", "PCS").optional().allow(null, ""),
-  minimumStock: Joi.number().min(0).optional(),
-  unitConversions: Joi.array().items(
-    Joi.object({
-      unit: Joi.string().required(),
-      baseQuantity: Joi.number().positive().required(),
-      isDefault: Joi.boolean().optional(),
-    })
-  ).optional(),
-});
+}).required();
 
 export const upsertRecipeSchema = Joi.object({
   items: Joi.array().items(
     Joi.object({
-      componentProductId: Joi.string().required(),
+      materialVariantId: Joi.string().required(),
       quantity: Joi.number().positive().precision(3).required(),
-      unitId: Joi.string().required(),
-    })
+    }).unknown(false)
   ).required(),
-});
+}).required();

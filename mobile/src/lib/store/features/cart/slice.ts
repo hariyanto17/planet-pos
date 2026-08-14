@@ -16,9 +16,9 @@ const cartSlice = createSlice({
   initialState,
   reducers: {
     addItem: (state, action: PayloadAction<CartItem>) => {
-      // Find item with same productId AND same note
+      // Find item with same sellable product and note
       const existing = state.items.find(
-        (i) => i.productId === action.payload.productId && (i.note || "") === (action.payload.note || "")
+        (i) => i.sellableProductId === action.payload.sellableProductId && (i.note || "") === (action.payload.note || "")
       );
       if (existing) {
         existing.quantity += action.payload.quantity;
@@ -26,17 +26,17 @@ const cartSlice = createSlice({
         state.items.push(action.payload);
       }
     },
-    removeItem: (state, action: PayloadAction<{ productId: string; note?: string }>) => {
+    removeItem: (state, action: PayloadAction<{ sellableProductId: string; note?: string }>) => {
       state.items = state.items.filter(
-        (i) => !(i.productId === action.payload.productId && (i.note || "") === (action.payload.note || ""))
+        (i) => !(i.sellableProductId === action.payload.sellableProductId && (i.note || "") === (action.payload.note || ""))
       );
     },
     updateQuantity: (
       state,
-      action: PayloadAction<{ productId: string; note?: string; quantity: number }>
+      action: PayloadAction<{ sellableProductId: string; note?: string; quantity: number }>
     ) => {
       const item = state.items.find(
-        (i) => i.productId === action.payload.productId && (i.note || "") === (action.payload.note || "")
+        (i) => i.sellableProductId === action.payload.sellableProductId && (i.note || "") === (action.payload.note || "")
       );
       if (item) {
         item.quantity = action.payload.quantity;
@@ -44,10 +44,10 @@ const cartSlice = createSlice({
     },
     updateItemNote: (
       state,
-      action: PayloadAction<{ productId: string; oldNote?: string; newNote: string }>
+      action: PayloadAction<{ sellableProductId: string; oldNote?: string; newNote: string }>
     ) => {
       const item = state.items.find(
-        (i) => i.productId === action.payload.productId && (i.note || "") === (action.payload.oldNote || "")
+        (i) => i.sellableProductId === action.payload.sellableProductId && (i.note || "") === (action.payload.oldNote || "")
       );
       if (item) {
         item.note = action.payload.newNote;

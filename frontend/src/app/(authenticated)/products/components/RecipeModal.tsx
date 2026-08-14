@@ -28,11 +28,10 @@ export const RecipeModal: React.FC<Props> = ({
   });
   const [updateRecipe, { isLoading: isSaving }] = useUpdateProductRecipeMutation();
 
-  const [items, setItems] = useState<Array<{ componentProductId: string; quantity: string; unitId: string }>>([]);
+  const [items, setItems] = useState<Array<{ materialVariantId: string; quantity: string }>>([]);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  // Filter products that can be recipe ingredients: RAW_MATERIAL or PACKAGING, active, tracked
   const ingredientOptions = allProducts.filter(
     (p) =>
       p.id !== productId &&
@@ -45,9 +44,8 @@ export const RecipeModal: React.FC<Props> = ({
     if (recipe && recipe.items) {
       setItems(
         recipe.items.map((it: any) => ({
-          componentProductId: it.componentProductId,
+          materialVariantId: it.materialVariantId ?? it.componentProductId ?? it.id ?? "",
           quantity: Number(it.quantity).toString(),
-          unitId: it.unitId,
         }))
       );
     } else {
@@ -58,7 +56,7 @@ export const RecipeModal: React.FC<Props> = ({
   }, [recipe, isOpen]);
 
   const handleAddRow = () => {
-    setItems((prev) => [...prev, { componentProductId: "", quantity: "1", unitId: "" }]);
+    setItems((prev) => [...prev, { materialVariantId: "", quantity: "1" }]);
   };
 
   const handleRemoveRow = (index: number) => {
@@ -68,22 +66,10 @@ export const RecipeModal: React.FC<Props> = ({
   const handleRowChange = (index: number, field: string, value: string) => {
     setItems((prev) => {
       const updated = [...prev];
-      if (field === "componentProductId") {
-        // Automatically set the unitId to match the component's base unit
-        const comp = ingredientOptions.find((p) => p.id === value);
-        const availableUnits = getAvailableUnits(comp);
-        const defaultUnit = getDefaultUnit(comp);
-        updated[index] = {
-          ...updated[index],
-          componentProductId: value,
-          unitId: defaultUnit || comp?.unitId || "",
-        };
-      } else {
-        updated[index] = {
-          ...updated[index],
-          [field]: value,
-        };
-      }
+      updated[index] = {
+        ...updated[index],
+        [field]: value,
+      };
       return updated;
     });
   };
@@ -102,7 +88,7 @@ export const RecipeModal: React.FC<Props> = ({
     const seen = new Set<string>();
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
-      if (!it.componentProductId) {
+      if (!it.materialVariantId) {
         setErrorMsg(`Baris ke-${i + 1}: Silakan pilih bahan komponen.`);
         return;
       }
@@ -111,11 +97,11 @@ export const RecipeModal: React.FC<Props> = ({
         setErrorMsg(`Baris ke-${i + 1}: Jumlah bahan harus positif.`);
         return;
       }
-      if (seen.has(it.componentProductId)) {
+      if (seen.has(it.materialVariantId)) {
         setErrorMsg(`Baris ke-${i + 1}: Bahan duplikat terdeteksi.`);
         return;
       }
-      seen.add(it.componentProductId);
+      seen.add(it.materialVariantId);
     }
 
     try {
@@ -123,9 +109,8 @@ export const RecipeModal: React.FC<Props> = ({
         id: productId,
         body: {
           items: items.map((it) => ({
-            componentProductId: it.componentProductId,
+            materialVariantId: it.materialVariantId,
             quantity: parseFloat(it.quantity),
-            unitId: it.unitId,
           })),
         },
       }).unwrap();
@@ -168,25 +153,27 @@ export const RecipeModal: React.FC<Props> = ({
                 </thead>
                 <tbody>
                   {items.map((row, idx) => {
-                    const selectedComp = ingredientOptions.find((p) => p.id === row.componentProductId);
-                    const baseUnit = getAvailableUnits(selectedComp).find((u) => u.isDefault);
-                    const unitSymbol = baseUnit?.symbol || selectedComp?.unit?.symbol || "-";
+                    const selectedComp = ingredientOptions.find((p) => (p.materialVariantId ?? p.id) === row.materialVariantId);
+                    const unitSymbol = selectedComp?.unit?.symbol || selectedComp?.baseUnit || "PCS";
 
                     return (
                       <tr key={idx} className="border-b border-border hover:bg-surface/10">
                         <td className="px-3 py-2">
                           <select
-                            value={row.componentProductId}
-                            onChange={(e) => handleRowChange(idx, "componentProductId", e.target.value)}
+                            value={row.materialVariantId}
+                            onChange={(e) => handleRowChange(idx, "materialVariantId", e.target.value)}
                             className="w-full px-2 py-1.5 bg-surface-secondary border border-border rounded text-text-primary outline-none focus:border-indigo-500 text-xs font-semibold"
                             required
                           >
                             <option value="">Pilih Bahan...</option>
-                            {ingredientOptions.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.name} ({p.sku || "-"})
-                              </option>
-                            ))}
+                            {ingredientOptions.map((p) => {
+                              const optionId = p.materialVariantId ?? p.id;
+                              return (
+                                <option key={optionId} value={optionId}>
+                                  {p.name} ({p.sku || "-"})
+                                </option>
+                              );
+                            })}
                           </select>
                         </td>
                         <td className="px-3 py-2">

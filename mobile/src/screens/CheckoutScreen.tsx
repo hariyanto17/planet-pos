@@ -94,7 +94,7 @@ export default function CheckoutScreen({ navigation }: Props) {
 
     try {
       const itemsPayload = cartItems.map((item) => ({
-        productId: item.productId,
+        sellableProductId: item.sellableProductId,
         quantity: item.quantity,
         note: item.note || undefined,
       }));
@@ -175,7 +175,7 @@ export default function CheckoutScreen({ navigation }: Props) {
           {/* Inline Items Review */}
           <Text style={styles.itemsReviewTitle}>Item Pesanan ({cartItems.length})</Text>
           {cartItems.map((item, index) => (
-            <View key={`${item.productId}-${index}`} style={styles.itemSummaryRow}>
+            <View key={`${item.sellableProductId}-${index}`} style={styles.itemSummaryRow}>
               <View style={styles.itemSummaryInfo}>
                 <Text style={styles.itemSummaryQty}>{item.quantity}x</Text>
                 <Text style={styles.itemSummaryName} numberOfLines={1}>

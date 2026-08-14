@@ -26,7 +26,7 @@ export const CreateStockRequestModal: React.FC<Props> = ({
   const currentUser = useAppSelector(selectCurrentUser);
   const toast = useToast();
   const [requestingWarehouseId, setRequestingWarehouseId] = useState("");
-  const [productId, setProductId] = useState("");
+  const [materialVariantId, setMaterialVariantId] = useState("");
   const [quantity, setQuantity] = useState("");
   const [unit, setUnit] = useState("");
   const [notes, setNotes] = useState("");
@@ -40,13 +40,13 @@ export const CreateStockRequestModal: React.FC<Props> = ({
     }
   }, [currentUser]);
 
-  const selectedProduct = products.find((p) => p.id === productId);
+  const selectedProduct = products.find((p) => (p.materialVariantId ?? p.id) === materialVariantId);
   const availableUnits = getAvailableUnits(selectedProduct);
   const compatibleUnits = availableUnits.map((u) => u.symbol);
 
   const handleProductChange = (val: string) => {
-    setProductId(val);
-    const prod = products.find((p) => p.id === val);
+    setMaterialVariantId(val);
+    const prod = products.find((p) => (p.materialVariantId ?? p.id) === val);
     setUnit(getDefaultUnit(prod));
   };
 
@@ -58,7 +58,7 @@ export const CreateStockRequestModal: React.FC<Props> = ({
       setErrorMsg("Silakan pilih gudang peminta");
       return;
     }
-    if (!productId) {
+    if (!materialVariantId) {
       setErrorMsg("Silakan pilih produk");
       return;
     }
@@ -73,7 +73,7 @@ export const CreateStockRequestModal: React.FC<Props> = ({
         requestingWarehouseId,
         items: [
           {
-            productId,
+            materialVariantId,
             quantity: parsedQty,
             unit: unit || undefined,
           },
@@ -133,14 +133,14 @@ export const CreateStockRequestModal: React.FC<Props> = ({
             Pilih Produk
           </label>
           <select
-            value={productId}
+            value={materialVariantId}
             onChange={(e) => handleProductChange(e.target.value)}
             className="bg-zinc-900 border border-border text-text-primary px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-indigo-500"
             required
           >
             <option value="">Pilih Produk</option>
             {products.map((p) => (
-              <option key={p.id} value={p.id}>
+              <option key={p.materialVariantId ?? p.id} value={p.materialVariantId ?? p.id}>
                 {p.name} {p.baseUnit ? `(${p.baseUnit})` : ""}
               </option>
             ))}

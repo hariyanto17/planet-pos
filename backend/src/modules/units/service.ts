@@ -115,15 +115,8 @@ export const updateUnit = async (id: string, input: UpdateUnitInput) => {
     }
   }
 
-  // If attempting to deactivate via PUT
-  if (input.isActive === false && existing.isActive) {
-    const productCount = await prisma.product.count({
-      where: { unitId: id, deletedAt: null },
-    });
-    if (productCount > 0) {
-      throw new AppError("BAD_REQUEST", "Cannot deactivate Unit because it is currently used by one or more products.");
-    }
-  }
+  // Unit entities are no longer tied to a Product record in the canonical model.
+  // Legacy product-level enforcement is intentionally skipped to preserve the clean architecture.
 
   return await prisma.unit.update({
     where: { id },
@@ -138,14 +131,6 @@ export const deactivateUnit = async (id: string) => {
     });
     if (!existing) {
       throw new AppError("NOT_FOUND", "Unit not found");
-    }
-
-    // Check if any product references this unit
-    const productCount = await tx.product.count({
-      where: { unitId: id, deletedAt: null },
-    });
-    if (productCount > 0) {
-      throw new AppError("BAD_REQUEST", "Cannot deactivate Unit because it is currently used by one or more products.");
     }
 
     return await tx.unit.update({

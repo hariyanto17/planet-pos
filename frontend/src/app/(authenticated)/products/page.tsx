@@ -92,10 +92,14 @@ export interface Product {
   cost?: string | null;
   imageUrl: string | null;
   isActive: boolean;
+  productType?: "DIRECT_SALE" | "RECIPE_BASED";
+  directSaleMaterialVariantId?: string | null;
+  availableStock?: number | null;
   trackInventory?: boolean;
   inventoryType?: string | null;
   minimumStock?: number | null;
   unitId?: string | null;
+  unitConversions?: Array<{ id?: string; unit: string; baseQuantity: number | string; isDefault?: boolean }>;
   category?: {
     name: string;
   };
@@ -107,13 +111,12 @@ export interface Product {
     id: string;
     items: Array<{
       id: string;
-      componentProductId: string;
+      materialVariantId: string;
       quantity: string | number;
-      unitId: string;
-      componentProduct?: Product;
-      unit?: {
-        name: string;
-        symbol: string;
+      materialVariant?: {
+        id?: string;
+        name?: string;
+        baseUnit?: string;
       };
     }>;
   } | null;
@@ -169,7 +172,7 @@ export default function ProductsPage() {
   const [selectedRecipeProductId, setSelectedRecipeProductId] = useState<string | null>(null);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [productConversions, setProductConversions] = useState<Array<{ unit: string; baseQuantity: string; isDefault?: boolean }>>([]);
+  const [productConversions, setProductConversions] = useState<Array<{ id?: string; unit: string; baseQuantity: number | string; isDefault?: boolean }>>([]);
 
   const pageSize = 8;
 
@@ -253,6 +256,14 @@ export default function ProductsPage() {
   const handleAdd = async (data: ProductSchemaInput) => {
     try {
       const isFinishedGood = !data.trackInventory || data.inventoryType === "FINISHED_GOOD";
+
+      // Auto-populate unitId from baseUnit for backward compatibility
+      let autoUnitId: string | undefined = undefined;
+      if (data.trackInventory && data.baseUnit) {
+        const baseUnitRecord = activeUnits.find((u: any) => u.symbol === data.baseUnit);
+        autoUnitId = baseUnitRecord?.id;
+      }
+
       await createProduct({
         categoryId: data.categoryId,
         sku: data.sku || undefined,
@@ -262,7 +273,7 @@ export default function ProductsPage() {
         imageUrl: data.imageUrl || undefined,
         trackInventory: data.trackInventory || false,
         inventoryType: data.trackInventory ? (data.inventoryType as any) : undefined,
-        unitId: data.trackInventory ? data.unitId : undefined,
+        unitId: autoUnitId,
         baseUnit: data.trackInventory ? (data.baseUnit as any) : undefined,
         minimumStock: data.trackInventory ? data.minimumStock : 0,
       }).unwrap();
@@ -277,6 +288,14 @@ export default function ProductsPage() {
     if (!editingProduct) return;
     try {
       const isFinishedGood = !data.trackInventory || data.inventoryType === "FINISHED_GOOD";
+
+      // Auto-populate unitId from baseUnit for backward compatibility
+      let autoUnitId: string | undefined = undefined;
+      if (data.trackInventory && data.baseUnit) {
+        const baseUnitRecord = activeUnits.find((u: any) => u.symbol === data.baseUnit);
+        autoUnitId = baseUnitRecord?.id;
+      }
+
       await updateProduct({
         id: editingProduct.id,
         body: {
@@ -288,10 +307,13 @@ export default function ProductsPage() {
           imageUrl: data.imageUrl || undefined,
           trackInventory: data.trackInventory || false,
           inventoryType: data.trackInventory ? (data.inventoryType as any) : undefined,
-          unitId: data.trackInventory ? data.unitId : undefined,
+          unitId: autoUnitId,
           baseUnit: data.trackInventory ? (data.baseUnit as any) : undefined,
           minimumStock: data.trackInventory ? data.minimumStock : 0,
-          unitConversions: productConversions,
+          unitConversions: productConversions.map((conversion) => ({
+            ...conversion,
+            baseQuantity: Number(conversion.baseQuantity),
+          })),
         },
       }).unwrap();
       setEditingProduct(null);
@@ -321,7 +343,7 @@ export default function ProductsPage() {
 
   const openEditModal = (product: Product) => {
     setEditingProduct(product);
-    setProductConversions((product.unitConversions as any) || []);
+    setProductConversions(((product as any).unitConversions || []) as Array<{ id?: string; unit: string; baseQuantity: number | string; isDefault?: boolean }>);
     resetEdit({
       name: product.name,
       sku: product.sku || "",
@@ -600,47 +622,24 @@ export default function ProductsPage() {
                     )}
                   </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="addUnitId" className="text-sm font-medium text-text-primary">
-                      Unit *
-                    </label>
-                    {activeUnits.length === 0 ? (
-                      <div className="flex items-center justify-between gap-2 p-2 bg-surface border border-border rounded-lg text-sm text-text-secondary">
-                        <span>No active units found.</span>
-                        <Link href="/warehouse/settings/units" className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-text-primary rounded transition duration-200">
-                          Manage Units
-                        </Link>
-                      </div>
-                    ) : (
-                      <select
-                        id="addUnitId"
-                        {...registerAdd("unitId")}
-                        className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
-                      >
-                        <option value="">Select a unit...</option>
-                        {activeUnits.map((u: any) => (
-                          <option key={u.id} value={u.id}>
-                            {u.name} ({u.symbol})
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                    {errorsAdd.unitId ? <p className="text-xs text-rose-500 mt-0.5">{errorsAdd.unitId.message}</p> : null}
-                  </div>
+                  {/* unitId field is deprecated and hidden for UX clarity - kept in schema for compatibility */}
 
                   <div className="flex flex-col gap-1.5">
-                    <label htmlFor="addBaseUnit" className="text-xs font-bold text-text-secondary uppercase tracking-wider">
-                      Base Unit
+                    <label htmlFor="addBaseUnit" className="text-sm font-medium text-text-primary">
+                      Base Unit *
                     </label>
+                    <p className="text-xs text-text-secondary mb-2">
+                      The canonical unit used for recipes and inventory calculations.
+                    </p>
                     <select
                       id="addBaseUnit"
                       {...registerAdd("baseUnit")}
                       className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
                     >
                       <option value="">Select a base unit...</option>
-                      <option value="G">GRAM (G)</option>
-                      <option value="ML">LITER/ML (ML)</option>
-                      <option value="PCS">PCS (PCS)</option>
+                      <option value="G">Gram (G) - for weight</option>
+                      <option value="ML">Milliliter (ML) - for volume</option>
+                      <option value="PCS">Piece (PCS) - for count</option>
                     </select>
                     {errorsAdd.baseUnit ? <p className="text-xs text-rose-500 mt-0.5">{errorsAdd.baseUnit.message}</p> : null}
                   </div>
@@ -810,47 +809,24 @@ export default function ProductsPage() {
                   )}
                 </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="editUnitId" className="text-sm font-medium text-text-primary">
-                    Unit *
-                  </label>
-                  {activeUnits.length === 0 ? (
-                    <div className="flex items-center justify-between gap-2 p-2 bg-surface border border-border rounded-lg text-sm text-text-secondary">
-                      <span>No active units found.</span>
-                      <Link href="/warehouse/settings/units" className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-text-primary rounded transition duration-200">
-                        Manage Units
-                      </Link>
-                    </div>
-                  ) : (
-                    <select
-                      id="editUnitId"
-                      {...registerEdit("unitId")}
-                      className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
-                    >
-                      <option value="">Select a unit...</option>
-                      {activeUnits.map((u: any) => (
-                        <option key={u.id} value={u.id}>
-                          {u.name} ({u.symbol})
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  {errorsEdit.unitId ? <p className="text-xs text-rose-500 mt-0.5">{errorsEdit.unitId.message}</p> : null}
-                </div>
+                {/* unitId field is deprecated and hidden for UX clarity - kept in schema for compatibility */}
 
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="editBaseUnit" className="text-xs font-bold text-text-secondary uppercase tracking-wider">
-                    Base Unit
+                  <label htmlFor="editBaseUnit" className="text-sm font-medium text-text-primary">
+                    Base Unit *
                   </label>
+                  <p className="text-xs text-text-secondary mb-2">
+                    The canonical unit used for recipes and inventory calculations.
+                  </p>
                   <select
                     id="editBaseUnit"
                     {...registerEdit("baseUnit")}
                     className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
                   >
                     <option value="">Select a base unit...</option>
-                    <option value="G">GRAM (G)</option>
-                    <option value="ML">LITER/ML (ML)</option>
-                    <option value="PCS">PCS (PCS)</option>
+                    <option value="G">Gram (G) - for weight</option>
+                    <option value="ML">Milliliter (ML) - for volume</option>
+                    <option value="PCS">Piece (PCS) - for count</option>
                   </select>
                   {errorsEdit.baseUnit ? <p className="text-xs text-rose-500 mt-0.5">{errorsEdit.baseUnit.message}</p> : null}
                 </div>

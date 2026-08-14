@@ -10,7 +10,7 @@ import { useToast } from "@/components/ToastProvider";
 import { getAvailableUnits, getDefaultUnit, formatConversionPreview } from "@/lib/utils/unitConversions";
 
 interface RowItem {
-  productId: string;
+  materialVariantId: string;
   quantity: number;
   unit: string;
   remarks: string;
@@ -28,7 +28,7 @@ export default function OpeningStockPage() {
   // State
   const [warehouseId, setWarehouseId] = useState("");
   const [rows, setRows] = useState<RowItem[]>([
-    { productId: "", quantity: 1, unit: "", remarks: "Initial Stock" },
+    { materialVariantId: "", quantity: 1, unit: "", remarks: "Initial Stock" },
   ]);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -49,7 +49,7 @@ export default function OpeningStockPage() {
 
   // Actions
   const handleAddRow = () => {
-    setRows([...rows, { productId: "", quantity: 1, unit: "", remarks: "Initial Stock" }]);
+    setRows([...rows, { materialVariantId: "", quantity: 1, unit: "", remarks: "Initial Stock" }]);
   };
 
   const handleRemoveRow = (index: number) => {
@@ -63,11 +63,11 @@ export default function OpeningStockPage() {
     const newRows = [...rows];
     if (field === "quantity") {
       newRows[index].quantity = Math.max(1, Number(value) || 0);
-    } else if (field === "productId") {
-      const product = products.find((p: any) => p.id === value);
+    } else if (field === "materialVariantId") {
+      const product = products.find((p: any) => (p.materialVariantId ?? p.id) === value);
       newRows[index] = {
         ...newRows[index],
-        productId: value,
+        materialVariantId: value,
         unit: getDefaultUnit(product),
       };
     } else {
@@ -91,14 +91,14 @@ export default function OpeningStockPage() {
     }
 
     // Check empty product selectors
-    const hasEmptyProduct = rows.some(r => !r.productId);
+    const hasEmptyProduct = rows.some(r => !r.materialVariantId);
     if (hasEmptyProduct) {
       setErrorMsg("Semua baris produk harus dipilih.");
       return;
     }
 
     // Check duplicate products
-    const productIds = rows.map(r => r.productId);
+    const productIds = rows.map(r => r.materialVariantId);
     const uniqueIds = new Set(productIds);
     if (uniqueIds.size !== productIds.length) {
       setErrorMsg("Duplicate products are not allowed in Opening Stock.");
@@ -116,7 +116,7 @@ export default function OpeningStockPage() {
       await recordOpeningStock({
         warehouseId,
         items: rows.map(r => ({
-          productId: r.productId,
+          materialVariantId: r.materialVariantId,
           quantity: r.quantity,
           unit: r.unit || undefined,
           remarks: r.remarks || "Stok Awal",
@@ -178,7 +178,7 @@ export default function OpeningStockPage() {
               </div>
 
               {rows.map((row, idx) => {
-                const product = products.find((p: any) => p.id === row.productId);
+                const product = products.find((p: any) => (p.materialVariantId ?? p.id) === row.materialVariantId);
                 const availableUnits = getAvailableUnits(product);
                 const preview = formatConversionPreview(product, row.quantity, row.unit);
 
@@ -188,13 +188,13 @@ export default function OpeningStockPage() {
                     <div className="col-span-1 md:col-span-4 flex flex-col gap-1">
                       <label className="text-[10px] font-bold text-text-muted md:hidden uppercase">Produk</label>
                       <select
-                        value={row.productId}
-                        onChange={(e) => handleRowChange(idx, "productId", e.target.value)}
+                        value={row.materialVariantId}
+                        onChange={(e) => handleRowChange(idx, "materialVariantId", e.target.value)}
                         className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm cursor-pointer"
                       >
                         <option value="">Pilih Produk...</option>
                         {trackableProducts.map((p: any) => (
-                          <option key={p.id} value={p.id}>
+                          <option key={p.materialVariantId ?? p.id} value={p.materialVariantId ?? p.id}>
                             {p.name} (SKU: {p.sku || "-"})
                           </option>
                         ))}
@@ -220,7 +220,7 @@ export default function OpeningStockPage() {
                         value={row.unit}
                         onChange={(e) => handleRowChange(idx, "unit", e.target.value)}
                         className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm cursor-pointer"
-                        disabled={!row.productId}
+                        disabled={!row.materialVariantId}
                       >
                         <option value="">Pilih Satuan...</option>
                         {availableUnits.map((u) => (
@@ -286,7 +286,7 @@ export default function OpeningStockPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-text-secondary">Total Macam Produk</span>
-              <span className="font-bold text-indigo-400">{rows.filter(r => r.productId).length} Item</span>
+              <span className="font-bold text-indigo-400">{rows.filter(r => r.materialVariantId).length} Item</span>
             </div>
             <div className="flex justify-between">
               <span className="text-text-secondary">Total Kuantitas</span>

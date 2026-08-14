@@ -1,7 +1,7 @@
 import { OrderType } from "@shared/types";
 
 export interface CartItem {
-  productId: string;
+  sellableProductId: string;
   productName: string;
   price: number;
   quantity: number;

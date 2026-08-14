@@ -22,7 +22,7 @@ export const inventoryApi = baseApi.injectEndpoints({
         search?: string;
         warehouseId?: string;
         movementType?: string;
-        productId?: string;
+        materialVariantId?: string;
         dateFrom?: string;
         dateTo?: string;
         page?: number;
@@ -35,7 +35,7 @@ export const inventoryApi = baseApi.injectEndpoints({
       }),
       providesTags: ["Inventory"],
     }),
-    receiveStock: builder.mutation<any, { productId: string; warehouseId: string; quantity: number; unit?: string; remarks?: string }>({
+    receiveStock: builder.mutation<any, { materialVariantId: string; warehouseId: string; quantity: number; unit?: string; remarks?: string }>({
       query: (body) => ({
         url: "/inventory/receive",
         method: "POST",
@@ -43,7 +43,7 @@ export const inventoryApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Inventory"],
     }),
-    adjustStock: builder.mutation<any, { productId: string; warehouseId: string; quantity: number; unit?: string; remarks?: string }>({
+    adjustStock: builder.mutation<any, { materialVariantId: string; warehouseId: string; quantity: number; unit?: string; remarks?: string }>({
       query: (body) => ({
         url: "/inventory/adjust",
         method: "POST",
@@ -51,7 +51,7 @@ export const inventoryApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Inventory"],
     }),
-    removeWaste: builder.mutation<any, { productId: string; warehouseId: string; quantity: number; unit?: string; remarks?: string }>({
+    removeWaste: builder.mutation<any, { materialVariantId: string; warehouseId: string; quantity: number; unit?: string; remarks?: string }>({
       query: (body) => ({
         url: "/inventory/waste",
         method: "POST",
@@ -59,7 +59,7 @@ export const inventoryApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Inventory"],
     }),
-    recordOpeningStock: builder.mutation<any, { warehouseId: string; items: Array<{ productId: string; quantity: number; unit?: string; remarks?: string }> }>({
+    recordOpeningStock: builder.mutation<any, { warehouseId: string; items: Array<{ materialVariantId: string; quantity: number; unit?: string; remarks?: string }> }>({
       query: (body) => ({
         url: "/inventory/opening",
         method: "POST",
@@ -67,7 +67,7 @@ export const inventoryApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Inventory"],
     }),
-    transferStock: builder.mutation<any, { sourceWarehouseId: string; destinationWarehouseId: string; items: Array<{ productId: string; quantity: number; unit?: string }>; remarks?: string; sourceResponsibleUserId?: string | null; destinationResponsibleUserId?: string | null }>({
+    transferStock: builder.mutation<any, { sourceWarehouseId: string; destinationWarehouseId: string; items: Array<{ materialVariantId: string; quantity: number; unit?: string }>; remarks?: string; sourceResponsibleUserId?: string | null; destinationResponsibleUserId?: string | null }>({
       query: (body) => ({
         url: "/inventory/transfer",
         method: "POST",
@@ -101,7 +101,7 @@ export const inventoryApi = baseApi.injectEndpoints({
       }),
       providesTags: ["Inventory"],
     }),
-    createStockRequest: builder.mutation<any, { requestingWarehouseId: string; items: Array<{ productId: string; quantity: number; unit?: string }>; notes?: string }>({
+    createStockRequest: builder.mutation<any, { requestingWarehouseId: string; items: Array<{ materialVariantId: string; quantity: number; unit?: string }>; notes?: string }>({
       query: (body) => ({
         url: "/inventory/requests",
         method: "POST",

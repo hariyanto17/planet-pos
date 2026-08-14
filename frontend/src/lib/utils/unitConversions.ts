@@ -1,8 +1,8 @@
 export interface ProductUnitConversion {
-  id: string;
+  id?: string;
   unit: string;
   unitName?: string;
-  baseQuantity: string;
+  baseQuantity: number | string;
   isDefault?: boolean;
 }
 
@@ -27,7 +27,7 @@ export const getAvailableUnits = (product?: Product | null): Array<{ symbol: str
       .filter((c) => c.unit && c.unit !== baseUnit)
       .map((c) => ({
         symbol: c.unit,
-        baseQuantity: c.baseQuantity,
+        baseQuantity: String(c.baseQuantity),
         isDefault: c.isDefault,
       }));
 

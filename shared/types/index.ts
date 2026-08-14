@@ -33,6 +33,8 @@ export interface UpdateCategoryInput {
 }
 
 // Product Types
+export type SellableProductType = "DIRECT_SALE" | "RECIPE_BASED";
+
 export interface CreateProductInput {
   categoryId: string;
   sku?: string;
@@ -65,6 +67,56 @@ export interface UpdateProductInput {
     baseQuantity: number;
     isDefault?: boolean;
   }>;
+}
+
+export interface SellableProduct {
+  id: string;
+  name: string;
+  sku?: string | null;
+  categoryId?: string | null;
+  brandId?: string | null;
+  productType?: SellableProductType;
+  price?: string | number | null;
+  directSaleMaterialVariantId?: string | null;
+  isActive: boolean;
+  availableStock?: number | null;
+  category?: { id?: string; name?: string } | null;
+  brand?: { id?: string; name?: string } | null;
+  recipe?: {
+    id?: string;
+    items?: Array<{
+      id?: string;
+      materialVariantId?: string;
+      quantity?: number | string;
+      materialVariant?: {
+        id?: string;
+        name?: string;
+        baseUnit?: string;
+      };
+    }>;
+  } | null;
+}
+
+export interface CreateSellableProductInput {
+  name: string;
+  sku?: string | null;
+  categoryId?: string | null;
+  brandId?: string | null;
+  productType?: SellableProductType;
+  price?: number | string | null;
+  directSaleMaterialVariantId?: string | null;
+  isActive?: boolean;
+}
+
+export interface UpdateSellableProductInput {
+  name?: string;
+  sku?: string | null;
+  categoryId?: string | null;
+  brandId?: string | null;
+  productType?: SellableProductType;
+  price?: number | string | null;
+  directSaleMaterialVariantId?: string | null;
+  isActive?: boolean;
 }
 
 // Table Types
@@ -124,7 +176,8 @@ export interface UpdatePromotionInput {
 
 // Order Types
 export interface OrderItemInput {
-  productId: string;
+  productId?: string | null;
+  sellableProductId?: string | null;
   quantity: number;
   note?: string;
 }

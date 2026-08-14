@@ -23,98 +23,51 @@ const DEFAULT_SALES_WAREHOUSE_CODE = process.env.DEFAULT_SALES_WAREHOUSE_CODE ||
  * Get inventory statistics summary for dashboard cards
  */
 export const getInventorySummary = async () => {
-  const allProducts = await prisma.product.findMany({
-    where: { deletedAt: null, isActive: true },
+  const materialVariants = await prisma.materialVariant.findMany({
+    where: { isActive: true },
     include: {
-      recipe: {
+      inventoryStocks: {
         include: {
-          items: {
-            include: {
-              componentProduct: true,
-            },
-          },
+          warehouse: true,
         },
       },
     },
   });
 
-  const products = allProducts.filter((p) => !(p.inventoryType === "FINISHED_GOOD" && p.recipe));
-
-  const activeWarehouseStocks = await prisma.warehouseStock.findMany({
+  const activeWarehouseStocks = await prisma.inventoryStock.findMany({
     where: {
-      warehouse: {
-        isActive: true,
-      },
+      warehouse: { isActive: true },
     },
     select: {
-      productId: true,
+      materialVariantId: true,
       quantity: true,
     },
   });
 
   const totalStockMap = new Map<string, number>();
-  for (const ws of activeWarehouseStocks) {
-    const current = totalStockMap.get(ws.productId) || 0;
-    totalStockMap.set(ws.productId, current + Number(ws.quantity));
+  for (const stock of activeWarehouseStocks) {
+    const current = totalStockMap.get(stock.materialVariantId) || 0;
+    totalStockMap.set(stock.materialVariantId, current + Number(stock.quantity));
   }
 
   const committedMap = await getCommittedStockMap(prisma);
-
-  const totalProducts = products.length;
-  const trackedProducts = products.filter((p) => p.trackInventory).length;
 
   let lowStockProducts = 0;
   let outOfStockProducts = 0;
   let totalValue = 0;
 
-  for (const p of products) {
-    const physicalQty = totalStockMap.get(p.id) || 0;
+  for (const variant of materialVariants) {
+    const physicalQty = totalStockMap.get(variant.id) || 0;
+    totalValue += physicalQty * 0;
 
-    // Valuation calculation: FINISHED_GOOD uses price, RAW_MATERIAL/PACKAGING uses cost
-    if (p.inventoryType === "FINISHED_GOOD") {
-      totalValue += physicalQty * Number(p.price || 0);
-    } else {
-      totalValue += physicalQty * Number(p.cost || 0);
-    }
-
-    if (!p.trackInventory) continue;
-
-    let availableStock = 0;
-
-    if (p.inventoryType === "FINISHED_GOOD") {
-      if (p.recipe && p.recipe.items && p.recipe.items.length > 0) {
-        let minProducible = Infinity;
-        for (const item of p.recipe.items) {
-          if (item.componentProduct && !item.componentProduct.trackInventory) {
-            continue;
-          }
-          const componentPhysical = totalStockMap.get(item.componentProductId) || 0;
-          const componentCommitted = committedMap.get(item.componentProductId) || 0;
-          const componentStock = componentPhysical - componentCommitted;
-
-          const requiredQty = Number(item.quantity);
-          const producible = Math.floor(componentStock / requiredQty);
-          if (producible < minProducible) {
-            minProducible = producible;
-          }
-        }
-        availableStock = minProducible === Infinity ? 0 : Math.max(0, minProducible);
-      } else {
-        availableStock = Math.max(0, physicalQty - (committedMap.get(p.id) || 0));
-      }
-    } else {
-      // RAW_MATERIAL / PACKAGING
-      availableStock = physicalQty - (committedMap.get(p.id) || 0);
-    }
-
+    const availableStock = Math.max(0, physicalQty - (committedMap.get(`mv:${variant.id}`) || 0));
     if (availableStock <= 0) {
       outOfStockProducts++;
-    } else if (availableStock <= Number(p.minimumStock)) {
+    } else if (availableStock <= 0) {
       lowStockProducts++;
     }
   }
 
-  // Count ledger entries created today
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
   const todayMovements = await prisma.stockLedger.count({
@@ -124,8 +77,8 @@ export const getInventorySummary = async () => {
   });
 
   return {
-    totalProducts,
-    trackedProducts,
+    totalProducts: materialVariants.length,
+    trackedProducts: materialVariants.length,
     lowStockProducts,
     outOfStockProducts,
     todayMovements,
@@ -134,38 +87,14 @@ export const getInventorySummary = async () => {
 };
 
 /**
- * Get list of products with active warehouse stock snapshot values
+ * Get list of inventory variants with active warehouse stock snapshot values
  */
 export const getProductStockList = async (filters: GetProductStockListFilters) => {
   const page = Number(filters.page || 1);
   const limit = Number(filters.limit || 10);
   const skip = (page - 1) * limit;
 
-  // Build where clause to only include physical inventory (RAW_MATERIAL, PACKAGING, and FINISHED_GOOD without recipe)
-  const whereClause: Prisma.ProductWhereInput = {
-    deletedAt: null,
-    OR: [
-      { inventoryType: { not: "FINISHED_GOOD" } },
-      {
-        inventoryType: "FINISHED_GOOD",
-        recipe: null,
-      },
-    ],
-  };
-
-  if (filters.search) {
-    whereClause.AND = [
-      {
-        OR: [
-          { name: { contains: filters.search, mode: "insensitive" } },
-          { sku: { contains: filters.search, mode: "insensitive" } },
-        ],
-      },
-    ];
-  }
-
   const isAllWarehouses = !filters.warehouseId || filters.warehouseId === "all";
-
   let mapped: any[] = [];
 
   if (isAllWarehouses) {
@@ -175,48 +104,37 @@ export const getProductStockList = async (filters: GetProductStockListFilters) =
     });
 
     if (activeWarehouses.length === 0) {
-      return {
-        data: [],
-        pagination: { total: 0, page, limit, totalPages: 0 },
-      };
+      return { data: [], pagination: { total: 0, page, limit, totalPages: 0 } };
     }
 
-    const allProducts = await prisma.product.findMany({
-      where: whereClause,
+    const allVariants = await prisma.materialVariant.findMany({
+      where: { isActive: true },
       include: {
-        unit: true,
-        warehouseStocks: {
-          where: {
-            warehouse: { isActive: true },
-          },
-          include: {
-            warehouse: true,
-          },
+        inventoryStocks: {
+          where: { warehouse: { isActive: true } },
+          include: { warehouse: true },
         },
       },
       orderBy: { name: "asc" },
     });
 
-    for (const p of allProducts) {
+    for (const variant of allVariants) {
       for (const wh of activeWarehouses) {
-        const ws = p.warehouseStocks.find((s) => s.warehouseId === wh.id);
-        const quantity = ws ? Number(ws.quantity) : 0;
-        const minimumStock = Number(p.minimumStock);
-        const status = getInventoryStatus(p.trackInventory, quantity, minimumStock);
-
+        const stock = variant.inventoryStocks.find((s) => s.warehouseId === wh.id);
+        const quantity = stock ? Number(stock.quantity) : 0;
         mapped.push({
-          id: p.id,
-          sku: p.sku || "-",
-          name: p.name,
-          trackInventory: p.trackInventory,
-          inventoryType: p.inventoryType,
-          unit: p.unit ? p.unit.symbol : "PCS",
-          baseUnit: p.baseUnit,
+          id: variant.id,
+          sku: variant.sku || "-",
+          name: variant.name,
+          trackInventory: true,
+          inventoryType: "RAW_MATERIAL",
+          unit: variant.baseUnit,
+          baseUnit: variant.baseUnit,
           warehouseName: wh.name,
           warehouseId: wh.id,
           quantity,
-          minimumStock,
-          status,
+          minimumStock: 0,
+          status: quantity > 0 ? "IN_STOCK" : "OUT_OF_STOCK",
         });
       }
     }
@@ -226,67 +144,57 @@ export const getProductStockList = async (filters: GetProductStockListFilters) =
     });
 
     if (!targetWarehouse || !targetWarehouse.isActive) {
-      return {
-        data: [],
-        pagination: { total: 0, page, limit, totalPages: 0 },
-      };
+      return { data: [], pagination: { total: 0, page, limit, totalPages: 0 } };
     }
 
-    const allProducts = await prisma.product.findMany({
-      where: whereClause,
+    const allVariants = await prisma.materialVariant.findMany({
+      where: { isActive: true },
       include: {
-        unit: true,
-        warehouseStocks: {
+        inventoryStocks: {
           where: { warehouseId: filters.warehouseId },
-          include: {
-            warehouse: true,
-          },
+          include: { warehouse: true },
         },
       },
       orderBy: { name: "asc" },
     });
 
-    mapped = allProducts.map((p) => {
-      const ws = p.warehouseStocks[0];
-      const quantity = ws ? Number(ws.quantity) : 0;
-      const minimumStock = Number(p.minimumStock);
-      const status = getInventoryStatus(p.trackInventory, quantity, minimumStock);
-
+    mapped = allVariants.map((variant) => {
+      const stock = variant.inventoryStocks[0];
+      const quantity = stock ? Number(stock.quantity) : 0;
       return {
-        id: p.id,
-        sku: p.sku || "-",
-        name: p.name,
-        trackInventory: p.trackInventory,
-        inventoryType: p.inventoryType,
-        unit: p.unit ? p.unit.symbol : "PCS",
-        baseUnit: p.baseUnit,
+        id: variant.id,
+        sku: variant.sku || "-",
+        name: variant.name,
+        trackInventory: true,
+        inventoryType: "RAW_MATERIAL",
+        unit: variant.baseUnit,
+        baseUnit: variant.baseUnit,
         warehouseName: targetWarehouse.name,
         warehouseId: filters.warehouseId,
         quantity,
-        minimumStock,
-        status,
+        minimumStock: 0,
+        status: quantity > 0 ? "IN_STOCK" : "OUT_OF_STOCK",
       };
     });
   }
 
-  // Filter by stock status on JS level if filter is active
   let filtered = mapped;
+  if (filters.search) {
+    const searchTerm = filters.search.trim().toLowerCase();
+    filtered = mapped.filter((item) =>
+      item.name.toLowerCase().includes(searchTerm) || item.sku.toLowerCase().includes(searchTerm)
+    );
+  }
   if (filters.stockStatus) {
-    filtered = mapped.filter((item) => item.status === filters.stockStatus);
+    filtered = filtered.filter((item) => item.status === filters.stockStatus);
   }
 
-  // Paginate result subset
   const total = filtered.length;
   const sliced = filtered.slice(skip, skip + limit);
 
   return {
     data: sliced,
-    pagination: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    },
+    pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
   };
 };
 
@@ -294,16 +202,16 @@ export const getProductStockList = async (filters: GetProductStockListFilters) =
  * Record stock replenishment (RECEIVE)
  */
 export const createStockReceipt = async (userId: string, params: ReceiveStockParams) => {
-  const product = await prisma.product.findUnique({ where: { id: params.productId } });
-  if (!product) throw new AppError("NOT_FOUND", "Product not found");
-  
-  const unit = params.unit || (product.baseUnit === "G" ? "g" : product.baseUnit === "ML" ? "ml" : "pcs");
+  const materialVariant = await prisma.materialVariant.findUnique({ where: { id: params.materialVariantId } });
+  if (!materialVariant) throw new AppError("NOT_FOUND", "Material variant not found");
+
+  const unit = params.unit || (materialVariant.baseUnit === "G" ? "g" : materialVariant.baseUnit === "ML" ? "ml" : "pcs");
 
   let normalizedQuantity: any = null;
   const newBalance = await prisma.$transaction(async (tx) => {
-    normalizedQuantity = await convertToBaseUnit(params.productId, params.quantity, unit, (product.baseUnit || "PCS") as any, tx);
+    normalizedQuantity = await convertToBaseUnit(params.materialVariantId, params.quantity, unit, (materialVariant.baseUnit || "PCS") as any, tx);
     return await createLedgerEntry(tx, {
-      productId: params.productId,
+      materialVariantId: params.materialVariantId,
       warehouseId: params.warehouseId,
       movementType: StockMovementType.RECEIVE,
       quantity: normalizedQuantity.toNumber(),
@@ -316,9 +224,9 @@ export const createStockReceipt = async (userId: string, params: ReceiveStockPar
   return {
     newBalance: Number(newBalance),
     quantity: params.quantity,
-    unit: params.unit || (product.baseUnit === "G" ? "g" : product.baseUnit === "ML" ? "ml" : "pcs"),
+    unit: params.unit || (materialVariant.baseUnit === "G" ? "g" : materialVariant.baseUnit === "ML" ? "ml" : "pcs"),
     normalizedQuantity: normalizedQuantity?.toNumber() ?? 0,
-    normalizedUnit: product.baseUnit || "PCS"
+    normalizedUnit: materialVariant.baseUnit || "PCS"
   };
 };
 
@@ -326,18 +234,18 @@ export const createStockReceipt = async (userId: string, params: ReceiveStockPar
  * Record stock correction (ADJUSTMENT)
  */
 export const adjustStock = async (userId: string, params: AdjustStockParams) => {
-  const product = await prisma.product.findUnique({ where: { id: params.productId } });
-  if (!product) throw new AppError("NOT_FOUND", "Product not found");
+  const materialVariant = await prisma.materialVariant.findUnique({ where: { id: params.materialVariantId } });
+  if (!materialVariant) throw new AppError("NOT_FOUND", "Material variant not found");
 
-  const unit = params.unit || (product.baseUnit === "G" ? "g" : product.baseUnit === "ML" ? "ml" : "pcs");
+  const unit = params.unit || (materialVariant.baseUnit === "G" ? "g" : materialVariant.baseUnit === "ML" ? "ml" : "pcs");
 
   let normalizedQuantity: any = null;
   const newBalance = await prisma.$transaction(async (tx) => {
-    const quantity = await convertToBaseUnit(params.productId, Math.abs(params.quantity), unit, (product.baseUnit || "PCS") as any, tx);
+    const quantity = await convertToBaseUnit(params.materialVariantId, Math.abs(params.quantity), unit, (materialVariant.baseUnit || "PCS") as any, tx);
     const signedQty = params.quantity < 0 ? quantity.negated() : quantity;
     normalizedQuantity = signedQty;
     return await createLedgerEntry(tx, {
-      productId: params.productId,
+      materialVariantId: params.materialVariantId,
       warehouseId: params.warehouseId,
       movementType: StockMovementType.ADJUSTMENT,
       quantity: signedQty.toNumber(),
@@ -350,9 +258,9 @@ export const adjustStock = async (userId: string, params: AdjustStockParams) => 
   return {
     newBalance: Number(newBalance),
     quantity: params.quantity,
-    unit: params.unit || (product.baseUnit === "G" ? "g" : product.baseUnit === "ML" ? "ml" : "pcs"),
+    unit: params.unit || (materialVariant.baseUnit === "G" ? "g" : materialVariant.baseUnit === "ML" ? "ml" : "pcs"),
     normalizedQuantity: normalizedQuantity?.toNumber() ?? 0,
-    normalizedUnit: product.baseUnit || "PCS"
+    normalizedUnit: materialVariant.baseUnit || "PCS"
   };
 };
 
@@ -360,20 +268,20 @@ export const adjustStock = async (userId: string, params: AdjustStockParams) => 
  * Record inventory wastage (WASTE)
  */
 export const removeAsWaste = async (userId: string, params: RemoveAsWasteParams) => {
-  const product = await prisma.product.findUnique({ where: { id: params.productId } });
-  if (!product) throw new AppError("NOT_FOUND", "Product not found");
-  
-  const unit = params.unit || (product.baseUnit === "G" ? "g" : product.baseUnit === "ML" ? "ml" : "pcs");
+  const materialVariant = await prisma.materialVariant.findUnique({ where: { id: params.materialVariantId } });
+  if (!materialVariant) throw new AppError("NOT_FOUND", "Material variant not found");
+
+  const unit = params.unit || (materialVariant.baseUnit === "G" ? "g" : materialVariant.baseUnit === "ML" ? "ml" : "pcs");
 
   let normalizedQuantity: any = null;
   const newBalance = await prisma.$transaction(async (tx) => {
-    const quantity = await convertToBaseUnit(params.productId, params.quantity, unit, (product.baseUnit || "PCS") as any, tx);
+    const quantity = await convertToBaseUnit(params.materialVariantId, params.quantity, unit, (materialVariant.baseUnit || "PCS") as any, tx);
     normalizedQuantity = quantity.negated();
     return await createLedgerEntry(tx, {
-      productId: params.productId,
+      materialVariantId: params.materialVariantId,
       warehouseId: params.warehouseId,
       movementType: StockMovementType.WASTE,
-      quantity: normalizedQuantity.toNumber(), // deduction is negative
+      quantity: normalizedQuantity.toNumber(),
       referenceType: StockReferenceType.WASTE,
       remarks: params.remarks,
       createdById: userId,
@@ -383,9 +291,9 @@ export const removeAsWaste = async (userId: string, params: RemoveAsWasteParams)
   return {
     newBalance: Number(newBalance),
     quantity: params.quantity,
-    unit: params.unit || (product.baseUnit === "G" ? "g" : product.baseUnit === "ML" ? "ml" : "pcs"),
+    unit: params.unit || (materialVariant.baseUnit === "G" ? "g" : materialVariant.baseUnit === "ML" ? "ml" : "pcs"),
     normalizedQuantity: normalizedQuantity?.toNumber() ?? 0,
-    normalizedUnit: product.baseUnit || "PCS"
+    normalizedUnit: materialVariant.baseUnit || "PCS"
   };
 };
 
@@ -407,8 +315,8 @@ export const getStockMovements = async (filters: GetStockMovementsFilters) => {
     whereClause.movementType = filters.movementType;
   }
 
-  if (filters.productId) {
-    whereClause.productId = filters.productId;
+  if (filters.materialVariantId) {
+    whereClause.materialVariantId = filters.materialVariantId;
   }
 
   if (filters.dateFrom || filters.dateTo) {
@@ -419,9 +327,10 @@ export const getStockMovements = async (filters: GetStockMovementsFilters) => {
   }
 
   if (filters.search) {
+    const search = filters.search.trim();
     whereClause.OR = [
-      { product: { name: { contains: filters.search, mode: "insensitive" } } },
-      { product: { sku: { contains: filters.search, mode: "insensitive" } } },
+      { materialVariant: { name: { contains: search, mode: "insensitive" } } },
+      { materialVariant: { sku: { contains: search, mode: "insensitive" } } },
     ];
   }
 
@@ -431,7 +340,7 @@ export const getStockMovements = async (filters: GetStockMovementsFilters) => {
     where: whereClause,
     include: {
       warehouse: { select: { name: true } },
-      product: { select: { name: true, sku: true } },
+      materialVariant: { select: { name: true, sku: true } },
       createdBy: { select: { fullName: true } },
     },
     orderBy: { createdAt: "desc" },
@@ -443,8 +352,8 @@ export const getStockMovements = async (filters: GetStockMovementsFilters) => {
     id: r.id,
     createdAt: r.createdAt.toISOString(),
     warehouseName: r.warehouse.name,
-    productName: r.product.name,
-    sku: r.product.sku || "-",
+    productName: r.materialVariant.name,
+    sku: r.materialVariant.sku || "-",
     movementType: r.movementType,
     quantity: Number(r.quantity),
     quantityBefore: Number(r.quantityBefore),
@@ -481,7 +390,7 @@ export const getActiveUnits = async () => {
 };
 
 export interface OpeningStockItem {
-  productId: string;
+  materialVariantId: string;
   quantity: number;
   unit?: string;
   remarks?: string;
@@ -496,47 +405,34 @@ export const recordOpeningStock = async (userId: string, payload: RecordOpeningS
   const { warehouseId, items } = payload;
 
   return await prisma.$transaction(async (tx) => {
-    // 1. Verify warehouse exists and is active
-    const warehouse = await tx.warehouse.findUnique({
-      where: { id: warehouseId },
-    });
+    const warehouse = await tx.warehouse.findUnique({ where: { id: warehouseId } });
     if (!warehouse || !warehouse.isActive) {
       throw new AppError("BAD_REQUEST", "Warehouse does not exist or is inactive");
     }
 
-    // 2. Prevent duplicate products in the request
-    const productIdsInRequest = items.map((item) => item.productId);
-    const uniqueProductIds = new Set(productIdsInRequest);
-    if (uniqueProductIds.size !== productIdsInRequest.length) {
-      throw new AppError("BAD_REQUEST", "Duplicate products are not allowed in Opening Stock.");
+    const materialVariantIdsInRequest = items.map((item) => item.materialVariantId);
+    const uniqueMaterialVariantIds = new Set(materialVariantIdsInRequest);
+    if (uniqueMaterialVariantIds.size !== materialVariantIdsInRequest.length) {
+      throw new AppError("BAD_REQUEST", "Duplicate material variants are not allowed in Opening Stock.");
     }
 
-    // 3. Process each line item
     const results = [];
     for (const item of items) {
-      const { productId, quantity, remarks } = item;
+      const { materialVariantId, quantity, remarks } = item;
 
-      // Validate quantity > 0
       if (quantity <= 0) {
         throw new AppError("BAD_REQUEST", "Quantity must be greater than zero");
       }
 
-      // Fetch product and verify active & tracks inventory
-      const product = await tx.product.findUnique({
-        where: { id: productId },
-      });
-      if (!product || product.deletedAt !== null || !product.isActive) {
-        throw new AppError("BAD_REQUEST", `Product ${productId} not found or inactive`);
-      }
-      if (!product.trackInventory) {
-        throw new AppError("BAD_REQUEST", `Product '${product.name}' is not configured to track inventory.`);
+      const materialVariant = await tx.materialVariant.findUnique({ where: { id: materialVariantId } });
+      if (!materialVariant || !materialVariant.isActive) {
+        throw new AppError("BAD_REQUEST", `Material variant ${materialVariantId} not found or inactive`);
       }
 
-      // Validate duplicate opening stock: Check if an OPENING movement already exists in StockLedger for this (warehouseId, productId) pair
       const existingOpening = await tx.stockLedger.findFirst({
         where: {
           warehouseId,
-          productId,
+          materialVariantId,
           movementType: StockMovementType.OPENING,
         },
       });
@@ -544,12 +440,11 @@ export const recordOpeningStock = async (userId: string, payload: RecordOpeningS
         throw new AppError("BAD_REQUEST", "Opening stock already exists.");
       }
 
-      // Create ledger entry using gatekeeper createLedgerEntry
-      const inputUnit = item.unit || (product.baseUnit === "G" ? "g" : product.baseUnit === "ML" ? "ml" : "pcs");
-      const normalizedQuantity = await convertToBaseUnit(product.id, quantity, inputUnit, (product.baseUnit || "PCS") as any, tx);
+      const inputUnit = item.unit || (materialVariant.baseUnit === "G" ? "g" : materialVariant.baseUnit === "ML" ? "ml" : "pcs");
+      const normalizedQuantity = await convertToBaseUnit(materialVariant.id, quantity, inputUnit, (materialVariant.baseUnit || "PCS") as any, tx);
 
       const newBalance = await createLedgerEntry(tx, {
-        productId,
+        materialVariantId,
         warehouseId,
         movementType: StockMovementType.OPENING,
         quantity: normalizedQuantity.toNumber(),
@@ -559,13 +454,13 @@ export const recordOpeningStock = async (userId: string, payload: RecordOpeningS
       });
 
       results.push({
-        productId,
-        name: product.name,
+        materialVariantId,
+        name: materialVariant.name,
         newBalance: Number(newBalance),
         quantity,
         unit: inputUnit,
         normalizedQuantity: normalizedQuantity.toNumber(),
-        normalizedUnit: product.baseUnit || "PCS"
+        normalizedUnit: materialVariant.baseUnit || "PCS"
       });
     }
 
@@ -574,7 +469,7 @@ export const recordOpeningStock = async (userId: string, payload: RecordOpeningS
 };
 
 export interface CreateStockTransferItem {
-  productId: string;
+  materialVariantId: string;
   quantity: number;
   unit?: string;
 }
@@ -595,30 +490,24 @@ export const createStockTransfer = async (userId: string, payload: CreateStockTr
     throw new AppError("BAD_REQUEST", "Source and destination warehouses must be different");
   }
 
-  // Basic validations
   const sourceWarehouse = await prisma.warehouse.findUnique({ where: { id: sourceWarehouseId } });
   const destinationWarehouse = await prisma.warehouse.findUnique({ where: { id: destinationWarehouseId } });
   if (!sourceWarehouse || !sourceWarehouse.isActive) throw new AppError("BAD_REQUEST", "Source warehouse not found or inactive");
   if (!destinationWarehouse || !destinationWarehouse.isActive) throw new AppError("BAD_REQUEST", "Destination warehouse not found or inactive");
 
-  // Validate products
-  const productIds = items.map((i) => i.productId);
-  const products = await prisma.product.findMany({ where: { id: { in: productIds } } });
-  const productMap = new Map(products.map((p) => [p.id, p]));
+  const materialVariantIds = items.map((i) => i.materialVariantId);
+  const materialVariants = await prisma.materialVariant.findMany({ where: { id: { in: materialVariantIds } } });
+  const materialVariantMap = new Map(materialVariants.map((variant) => [variant.id, variant]));
   for (const it of items) {
-    const p = productMap.get(it.productId);
-    if (!p || p.deletedAt !== null || !p.isActive) {
-      throw new AppError("BAD_REQUEST", `Product ${it.productId} not found or inactive`);
-    }
-    if (!p.trackInventory) {
-      throw new AppError("BAD_REQUEST", `Product '${p.name}' is not configured to track inventory.`);
+    const variant = materialVariantMap.get(it.materialVariantId);
+    if (!variant || !variant.isActive) {
+      throw new AppError("BAD_REQUEST", `Material variant ${it.materialVariantId} not found or inactive`);
     }
     if (it.quantity <= 0) {
       throw new AppError("BAD_REQUEST", "Quantity must be greater than zero");
     }
   }
 
-  // Validate responsible users if provided
   if (sourceResponsibleUserId) {
     const su = await prisma.user.findUnique({ where: { id: sourceResponsibleUserId } });
     if (!su) throw new AppError("BAD_REQUEST", "Source responsible user not found");
@@ -634,7 +523,6 @@ export const createStockTransfer = async (userId: string, payload: CreateStockTr
     }
   }
 
-  // Create transfer document with items
   const transferNumber = `TRF-${new Date().toISOString().slice(0,10).replace(/-/g,"")}-${Math.floor(Math.random()*900000+100000)}`;
 
   const created = await prisma.stockTransfer.create({
@@ -648,11 +536,11 @@ export const createStockTransfer = async (userId: string, payload: CreateStockTr
       remarks: remarks || null,
       items: {
         create: await Promise.all(items.map(async (it) => {
-          const comp = productMap.get(it.productId)!;
-          const inputUnit = it.unit || (comp.baseUnit === "G" ? "g" : comp.baseUnit === "ML" ? "ml" : "pcs");
-          const normalizedQty = await convertToBaseUnit(comp.id, it.quantity, inputUnit, (comp.baseUnit || "PCS") as any, prisma);
+          const variant = materialVariantMap.get(it.materialVariantId)!;
+          const inputUnit = it.unit || (variant.baseUnit === "G" ? "g" : variant.baseUnit === "ML" ? "ml" : "pcs");
+          const normalizedQty = await convertToBaseUnit(variant.id, it.quantity, inputUnit, (variant.baseUnit || "PCS") as any, prisma);
           return {
-            productId: it.productId,
+            materialVariantId: it.materialVariantId,
             quantity: normalizedQty.toNumber()
           };
         })),
@@ -673,7 +561,6 @@ export const completeStockTransfer = async (userId: string, transferId: string) 
     if (!transfer) throw new AppError("NOT_FOUND", "Stock transfer not found");
     if (transfer.status !== "DRAFT") throw new AppError("BAD_REQUEST", "Only DRAFT transfers can be completed");
 
-    // Role validation: if destination is kitchen storage, require completing user to be KITCHEN or ADMIN
     const completingUser = await tx.user.findUnique({ where: { id: userId } });
     if (!completingUser) throw new AppError("UNAUTHORIZED", "User not found");
     if (transfer.destinationWarehouse.warehouseType === "KITCHEN_STORAGE") {
@@ -682,14 +569,12 @@ export const completeStockTransfer = async (userId: string, transferId: string) 
       }
     }
 
-    // For each item, create TRANSFER_OUT then TRANSFER_IN ledger entries
     for (const item of transfer.items) {
       const qty = Number(item.quantity);
       if (qty <= 0) throw new AppError("BAD_REQUEST", "Item quantity must be greater than zero");
 
-      // Create OUT on source (negative)
       await createLedgerEntry(tx, {
-        productId: item.productId,
+        materialVariantId: item.materialVariantId,
         warehouseId: transfer.sourceWarehouseId,
         movementType: StockMovementType.TRANSFER_OUT,
         quantity: -qty,
@@ -699,9 +584,8 @@ export const completeStockTransfer = async (userId: string, transferId: string) 
         createdById: userId,
       });
 
-      // Create IN on destination (positive)
       await createLedgerEntry(tx, {
-        productId: item.productId,
+        materialVariantId: item.materialVariantId,
         warehouseId: transfer.destinationWarehouseId,
         movementType: StockMovementType.TRANSFER_IN,
         quantity: qty,
@@ -712,7 +596,6 @@ export const completeStockTransfer = async (userId: string, transferId: string) 
       });
     }
 
-    // Mark transfer completed
     const updated = await tx.stockTransfer.update({
       where: { id: transfer.id },
       data: { status: "COMPLETED", completedById: userId, completedAt: new Date() },
@@ -744,7 +627,7 @@ export const getStockTransfers = async (userId: string, userRole: string, userWa
     include: {
       items: {
         include: {
-          product: { select: { name: true, sku: true } }
+          materialVariant: { select: { name: true, sku: true } }
         }
       },
       sourceWarehouse: { select: { name: true } },

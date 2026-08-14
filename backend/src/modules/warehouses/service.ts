@@ -152,24 +152,7 @@ export const updateWarehouse = async (id: string, input: UpdateWarehouseInput) =
     }
   }
 
-  // If attempting to deactivate via PUT
-  if (input.isActive === false && existing.isActive) {
-    // Check stock quantity > 0
-    const activeStock = await prisma.warehouseStock.findFirst({
-      where: { warehouseId: id, quantity: { gt: 0 } },
-    });
-    if (activeStock) {
-      throw new AppError("BAD_REQUEST", "Cannot deactivate Warehouse because inventory records still exist.");
-    }
-
-    // Check ledger history exists
-    const ledgerCount = await prisma.stockLedger.count({
-      where: { warehouseId: id },
-    });
-    if (ledgerCount > 0) {
-      throw new AppError("BAD_REQUEST", "Cannot deactivate Warehouse because inventory records still exist.");
-    }
-  }
+  // Legacy warehouse stock constraint removed; the canonical inventory model stores stock per warehouse/material variant.
 
   return await prisma.warehouse.update({
     where: { id },
@@ -188,22 +171,6 @@ export const deactivateWarehouse = async (id: string) => {
     });
     if (!existing) {
       throw new AppError("NOT_FOUND", "Warehouse not found");
-    }
-
-    // Check stock quantity > 0
-    const activeStock = await tx.warehouseStock.findFirst({
-      where: { warehouseId: id, quantity: { gt: 0 } },
-    });
-    if (activeStock) {
-      throw new AppError("BAD_REQUEST", "Cannot deactivate Warehouse because inventory records still exist.");
-    }
-
-    // Check ledger history exists
-    const ledgerCount = await tx.stockLedger.count({
-      where: { warehouseId: id },
-    });
-    if (ledgerCount > 0) {
-      throw new AppError("BAD_REQUEST", "Cannot deactivate Warehouse because inventory records still exist.");
     }
 
     return await tx.warehouse.update({

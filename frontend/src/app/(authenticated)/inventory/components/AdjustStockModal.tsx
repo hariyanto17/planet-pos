@@ -21,7 +21,7 @@ export const AdjustStockModal: React.FC<Props> = ({
   warehouses = [],
   onSuccess,
 }) => {
-  const [productId, setProductId] = useState("");
+  const [materialVariantId, setMaterialVariantId] = useState("");
   const [warehouseId, setWarehouseId] = useState("");
   const [adjustType, setAdjustType] = useState<"INCREASE" | "DECREASE">("INCREASE");
   const [quantity, setQuantity] = useState("");
@@ -31,12 +31,12 @@ export const AdjustStockModal: React.FC<Props> = ({
 
   const [adjustStock, { isLoading }] = useAdjustStockMutation();
 
-  const selectedProduct = products.find((p) => p.id === productId);
+  const selectedProduct = products.find((p) => (p.materialVariantId ?? p.id) === materialVariantId);
   const availableUnits = getAvailableUnits(selectedProduct);
 
   const handleProductChange = (val: string) => {
-    setProductId(val);
-    const prod = products.find((p) => p.id === val);
+    setMaterialVariantId(val);
+    const prod = products.find((p) => (p.materialVariantId ?? p.id) === val);
     setUnit(getDefaultUnit(prod));
   };
 
@@ -44,7 +44,7 @@ export const AdjustStockModal: React.FC<Props> = ({
     e.preventDefault();
     setErrorMsg("");
 
-    if (!productId) {
+    if (!materialVariantId) {
       setErrorMsg("Silakan pilih produk");
       return;
     }
@@ -63,14 +63,14 @@ export const AdjustStockModal: React.FC<Props> = ({
 
     try {
       await adjustStock({
-        productId,
+        materialVariantId,
         warehouseId,
         quantity: finalQuantity,
         unit: unit || undefined,
         remarks: remarks || undefined,
       }).unwrap();
       onSuccess();
-      setProductId("");
+      setMaterialVariantId("");
       setWarehouseId("");
       setQuantity("");
       setUnit("");
@@ -102,14 +102,14 @@ export const AdjustStockModal: React.FC<Props> = ({
         <div className="flex flex-col gap-1.5">
           <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Produk</label>
           <select
-            value={productId}
+            value={materialVariantId}
             onChange={(e) => handleProductChange(e.target.value)}
             className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm font-semibold"
             required
           >
             <option value="">Pilih Produk...</option>
             {uniqueProducts.map((p) => (
-              <option key={p.id} value={p.id}>
+              <option key={p.materialVariantId ?? p.id} value={p.materialVariantId ?? p.id}>
                 {p.name} ({p.sku})
               </option>
             ))}
@@ -173,7 +173,7 @@ export const AdjustStockModal: React.FC<Props> = ({
               required
             />
           </div>
-          {productId && availableUnits.length > 0 && (
+          {materialVariantId && availableUnits.length > 0 && (
             <div className="w-28 flex flex-col gap-1.5">
               <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Satuan</label>
               <select

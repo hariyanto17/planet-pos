@@ -1,7 +1,7 @@
 import { StockMovementType, StockReferenceType } from "@prisma/client";
 
 export interface CreateLedgerEntryParams {
-  productId: string;
+  materialVariantId: string;
   warehouseId: string;
   movementType: StockMovementType;
   quantity: number; // Signed: + for receipt, - for sale/waste/decrement
@@ -23,7 +23,7 @@ export interface GetStockMovementsFilters {
   search?: string;
   warehouseId?: string;
   movementType?: StockMovementType;
-  productId?: string;
+  materialVariantId?: string;
   dateFrom?: string;
   dateTo?: string;
   page?: number;
@@ -31,7 +31,7 @@ export interface GetStockMovementsFilters {
 }
 
 export interface ReceiveStockParams {
-  productId: string;
+  materialVariantId: string;
   warehouseId: string;
   quantity: number; // positive only
   unit?: string;
@@ -39,7 +39,7 @@ export interface ReceiveStockParams {
 }
 
 export interface AdjustStockParams {
-  productId: string;
+  materialVariantId: string;
   warehouseId: string;
   quantity: number; // signed adjustment value: e.g. +10, -5
   unit?: string;
@@ -47,7 +47,7 @@ export interface AdjustStockParams {
 }
 
 export interface RemoveAsWasteParams {
-  productId: string;
+  materialVariantId: string;
   warehouseId: string;
   quantity: number; // positive only (deduction is handled as negative quantity internally)
   unit?: string;

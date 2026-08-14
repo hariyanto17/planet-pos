@@ -88,7 +88,7 @@ export default function CartScreen({ navigation }: Props) {
     if (editingItem) {
       dispatch(
         updateItemNote({
-          productId: editingItem.productId,
+          sellableProductId: editingItem.sellableProductId,
           oldNote: editingItem.note,
           newNote: noteInput.trim(),
         })
@@ -185,7 +185,7 @@ export default function CartScreen({ navigation }: Props) {
 
     try {
       const itemsPayload = cartItems.map((item) => ({
-        productId: item.productId,
+        sellableProductId: item.sellableProductId,
         quantity: item.quantity,
         note: item.note || undefined,
       }));
@@ -263,7 +263,7 @@ export default function CartScreen({ navigation }: Props) {
                 </View>
               ) : (
                 cartItems.map((item: CartItem, idx) => (
-                  <View key={`${item.productId}-${idx}`} style={styles.cartItemCard}>
+                  <View key={`${item.sellableProductId}-${idx}`} style={styles.cartItemCard}>
                     <View style={styles.itemMain}>
                       <View style={styles.details}>
                         <Text style={styles.itemName}>{item.productName}</Text>
@@ -287,9 +287,9 @@ export default function CartScreen({ navigation }: Props) {
                           disabled={isCheckoutLoading}
                           onPress={() => {
                             if (item.quantity === 1) {
-                              dispatch(removeItem({ productId: item.productId, note: item.note }));
+                              dispatch(removeItem({ sellableProductId: item.sellableProductId, note: item.note }));
                             } else {
-                              dispatch(updateQuantity({ productId: item.productId, note: item.note, quantity: item.quantity - 1 }));
+                              dispatch(updateQuantity({ sellableProductId: item.sellableProductId, note: item.note, quantity: item.quantity - 1 }));
                             }
                           }}
                         >
@@ -300,7 +300,7 @@ export default function CartScreen({ navigation }: Props) {
                           style={styles.qtyBtn}
                           disabled={isCheckoutLoading}
                           onPress={() => {
-                            const product = products.find((p: any) => p.id === item.productId);
+                            const product = products.find((p: any) => p.id === item.sellableProductId);
                             if (product && product.trackInventory && product.availableStock !== null && product.availableStock !== undefined) {
                               if (item.quantity >= product.availableStock) {
                                 showToast({
@@ -311,7 +311,7 @@ export default function CartScreen({ navigation }: Props) {
                                 return;
                               }
                             }
-                            dispatch(updateQuantity({ productId: item.productId, note: item.note, quantity: item.quantity + 1 }));
+                            dispatch(updateQuantity({ sellableProductId: item.sellableProductId, note: item.note, quantity: item.quantity + 1 }));
                           }}
                         >
                           <Text style={styles.qtyText}>+</Text>

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Product } from "@/lib/utils/unitConversions";
+import { Product, ProductUnitConversion } from "@/lib/utils/unitConversions";
+import { Button } from "@/components/Button";
 
 interface Props {
   product: Product;
-  onSave: (conversions: Array<{ unit: string; baseQuantity: string; isDefault?: boolean }>) => void;
+  onSave: (conversions: ProductUnitConversion[]) => void;
   isLoading?: boolean;
 }
 
@@ -21,9 +22,9 @@ export const ProductConversions: React.FC<Props> = ({ product, onSave, isLoading
     const exists = conversions.some((c) => c.unit.toLowerCase() === newUnit.trim().toLowerCase());
     if (exists) return;
 
-    const updated = [...conversions, {
+    const updated: ProductUnitConversion[] = [...conversions, {
       unit: newUnit.trim().toUpperCase(),
-      baseQuantity: newBaseQuantity,
+      baseQuantity: Number(newBaseQuantity),
       isDefault: conversions.length === 0,
     }];
     setConversions(updated);

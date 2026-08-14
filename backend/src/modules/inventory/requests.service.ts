@@ -9,7 +9,7 @@ export const createStockRequest = async (
   userWarehouseId: string | null,
   userRole: string,
   requestingWarehouseId: string,
-  items: Array<{ productId: string; quantity: number; unit?: string }>,
+  items: Array<{ materialVariantId: string; quantity: number; unit?: string }>,
   notes?: string
 ) => {
   if (userRole === "WAREHOUSE" && userWarehouseId !== requestingWarehouseId) {
@@ -41,35 +41,26 @@ export const createStockRequest = async (
     });
 
     for (const item of items) {
-      const product = await tx.product.findUnique({ where: { id: item.productId } });
-      if (!product || !product.isActive || product.deletedAt) {
-        throw new AppError("BAD_REQUEST", `Product ${item.productId} not found or inactive`);
+      const materialVariant = await tx.materialVariant.findUnique({ where: { id: item.materialVariantId } });
+      if (!materialVariant || !materialVariant.isActive) {
+        throw new AppError("BAD_REQUEST", `Material variant ${item.materialVariantId} not found or inactive`);
       }
 
-      const inputUnit = item.unit || (product.baseUnit === "G" ? "g" : product.baseUnit === "ML" ? "ml" : "pcs");
-      const normalizedQty = await convertToBaseUnit(product.id, item.quantity, inputUnit, (product.baseUnit || "PCS") as any, tx);
-
-      // Resolve unit record to store unitId
-      const unitRecord = await tx.unit.findFirst({
-        where: { symbol: { equals: inputUnit, mode: "insensitive" } },
-      });
-      if (!unitRecord) {
-        throw new AppError("BAD_REQUEST", `Unit ${inputUnit} not found`);
-      }
+      const inputUnit = item.unit || (materialVariant.baseUnit === "G" ? "g" : materialVariant.baseUnit === "ML" ? "ml" : "pcs");
+      const normalizedQty = await convertToBaseUnit(materialVariant.id, item.quantity, inputUnit, (materialVariant.baseUnit || "PCS") as any, tx);
 
       await tx.stockRequestItem.create({
         data: {
           stockRequestId: created.id,
-          productId: item.productId,
+          materialVariantId: item.materialVariantId,
           quantity: normalizedQty.toNumber(),
-          unitId: unitRecord.id,
         },
       });
     }
 
     return tx.stockRequest.findUnique({
       where: { id: created.id },
-      include: { items: { include: { product: true, unit: true } } },
+      include: { items: { include: { materialVariant: true } } },
     });
   });
 };
@@ -108,20 +99,19 @@ export const claimStockRequest = async (
       throw new AppError("BAD_REQUEST", "Source and requesting warehouse cannot be the same");
     }
 
-    // Validate stock in base units
     for (const item of request.items) {
-      const stock = await tx.warehouseStock.findUnique({
+      const stock = await tx.inventoryStock.findUnique({
         where: {
-          warehouseId_productId: {
+          warehouseId_materialVariantId: {
             warehouseId: sourceWarehouseId,
-            productId: item.productId,
+            materialVariantId: item.materialVariantId,
           },
         },
       });
 
       const available = stock ? Number(stock.quantity) : 0;
       if (available < Number(item.quantity)) {
-        throw new AppError("BAD_REQUEST", `Insufficient stock in source warehouse for product ${item.productId}`);
+        throw new AppError("BAD_REQUEST", `Insufficient stock in source warehouse for material variant ${item.materialVariantId}`);
       }
     }
 
@@ -141,7 +131,7 @@ export const claimStockRequest = async (
 
     return tx.stockRequest.findUniqueOrThrow({
       where: { id: requestId },
-      include: { items: { include: { product: true, unit: true } } },
+      include: { items: { include: { materialVariant: true } } },
     });
   });
 };
@@ -165,19 +155,18 @@ export const shipStockRequest = async (userId: string, requestId: string) => {
     const sourceWarehouseId = request.sourceWarehouseId;
     const destinationWarehouseId = request.requestingWarehouseId;
 
-    // Validate stock again right before shipment
     for (const item of request.items) {
-      const stock = await tx.warehouseStock.findUnique({
+      const stock = await tx.inventoryStock.findUnique({
         where: {
-          warehouseId_productId: {
+          warehouseId_materialVariantId: {
             warehouseId: sourceWarehouseId,
-            productId: item.productId,
+            materialVariantId: item.materialVariantId,
           },
         },
       });
       const available = stock ? Number(stock.quantity) : 0;
       if (available < Number(item.quantity)) {
-        throw new AppError("BAD_REQUEST", `Insufficient stock for product ${item.productId}`);
+        throw new AppError("BAD_REQUEST", `Insufficient stock for material variant ${item.materialVariantId}`);
       }
     }
 
@@ -198,7 +187,7 @@ export const shipStockRequest = async (userId: string, requestId: string) => {
         remarks: request.notes || `Fulfillment of request ${request.requestNumber}`,
         items: {
           create: request.items.map((it) => ({
-            productId: it.productId,
+            materialVariantId: it.materialVariantId,
             quantity: it.quantity,
           })),
         },
@@ -208,7 +197,7 @@ export const shipStockRequest = async (userId: string, requestId: string) => {
     // Create TRANSFER_OUT ledger entries (deduct from source)
     for (const item of request.items) {
       await createLedgerEntry(tx, {
-        productId: item.productId,
+        materialVariantId: item.materialVariantId,
         warehouseId: sourceWarehouseId,
         movementType: StockMovementType.TRANSFER_OUT,
         quantity: -Number(item.quantity),
@@ -226,7 +215,7 @@ export const shipStockRequest = async (userId: string, requestId: string) => {
         status: StockRequestStatus.SHIPPED,
         shippedAt: new Date(),
       },
-      include: { items: { include: { product: true, unit: true } } },
+      include: { items: { include: { materialVariant: true } } },
     });
   });
 };
@@ -266,7 +255,7 @@ export const receiveStockRequest = async (
         status: StockRequestStatus.RECEIVED,
         receivedAt: new Date(),
       },
-      include: { items: { include: { product: true, unit: true } } },
+      include: { items: { include: { materialVariant: true } } },
     });
   });
 };
@@ -300,7 +289,7 @@ export const acceptStockRequest = async (
     // Create TRANSFER_IN ledger entries (add to destination)
     for (const item of request.items) {
       await createLedgerEntry(tx, {
-        productId: item.productId,
+        materialVariantId: item.materialVariantId,
         warehouseId: request.requestingWarehouseId,
         movementType: StockMovementType.TRANSFER_IN,
         quantity: Number(item.quantity),
@@ -328,7 +317,7 @@ export const acceptStockRequest = async (
         status: StockRequestStatus.ACCEPTED,
         acceptedAt: new Date(),
       },
-      include: { items: { include: { product: true, unit: true } } },
+      include: { items: { include: { materialVariant: true } } },
     });
   });
 };
@@ -372,7 +361,7 @@ export const cancelStockRequest = async (
       data: {
         status: StockRequestStatus.CANCELLED,
       },
-      include: { items: { include: { product: true, unit: true } } },
+      include: { items: { include: { materialVariant: true } } },
     });
   });
 };
@@ -444,7 +433,7 @@ export const getStockRequests = async (
       sourceUser: { select: { id: true, fullName: true, username: true } },
       requestingWarehouse: true,
       sourceWarehouse: true,
-      items: { include: { product: true, unit: true } },
+      items: { include: { materialVariant: true } },
       stockTransfer: true,
     },
     orderBy: { createdAt: "desc" },

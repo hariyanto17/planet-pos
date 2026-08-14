@@ -5,7 +5,7 @@ import { Prisma } from "@prisma/client";
 export const getAllPromotions = async () => {
   return prisma.promotion.findMany({
     where: { deletedAt: null },
-    include: { items: { include: { product: true } } },
+    include: { items: { include: { sellableProduct: true } } },
     orderBy: { createdAt: "desc" },
   });
 };
@@ -13,7 +13,7 @@ export const getAllPromotions = async () => {
 export const getPromotionById = async (id: string) => {
   return prisma.promotion.findFirst({
     where: { id, deletedAt: null },
-    include: { items: { include: { product: true } } },
+    include: { items: { include: { sellableProduct: true } } },
   });
 };
 
@@ -35,7 +35,7 @@ export const createPromotion = async (createdById: string, input: CreatePromotio
       await tx.promotionItem.createMany({
         data: items.map((item) => ({
           promotionId: promotion.id,
-          productId: item.productId,
+          sellableProductId: item.productId,
           quantity: item.quantity,
         })),
       });
@@ -43,7 +43,7 @@ export const createPromotion = async (createdById: string, input: CreatePromotio
 
     return tx.promotion.findUnique({
       where: { id: promotion.id },
-      include: { items: { include: { product: true } } },
+      include: { items: { include: { sellableProduct: true } } },
     });
   });
 };
@@ -80,7 +80,7 @@ export const updatePromotion = async (id: string, input: UpdatePromotionInput) =
         await tx.promotionItem.createMany({
           data: items.map((item) => ({
             promotionId: id,
-            productId: item.productId,
+            sellableProductId: item.productId,
             quantity: item.quantity,
           })),
         });
@@ -89,7 +89,7 @@ export const updatePromotion = async (id: string, input: UpdatePromotionInput) =
 
     return tx.promotion.findUnique({
       where: { id },
-      include: { items: { include: { product: true } } },
+      include: { items: { include: { sellableProduct: true } } },
     });
   });
 };

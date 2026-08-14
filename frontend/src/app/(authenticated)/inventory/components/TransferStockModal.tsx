@@ -19,7 +19,7 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
   const currentUser = useAppSelector(selectCurrentUser);
   const [sourceWarehouseId, setSourceWarehouseId] = useState("");
   const [destinationWarehouseId, setDestinationWarehouseId] = useState("");
-  const [productId, setProductId] = useState("");
+  const [materialVariantId, setMaterialVariantId] = useState("");
   const [quantity, setQuantity] = useState("");
   const [unit, setUnit] = useState("");
   const [remarks, setRemarks] = useState("");
@@ -27,12 +27,12 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
 
   const [transferStock, { isLoading }] = useTransferStockMutation();
 
-  const selectedProduct = products.find((p) => p.id === productId);
+  const selectedProduct = products.find((p) => (p.materialVariantId ?? p.id) === materialVariantId);
   const availableUnits = getAvailableUnits(selectedProduct);
 
   const handleProductChange = (val: string) => {
-    setProductId(val);
-    const prod = products.find((p) => p.id === val);
+    setMaterialVariantId(val);
+    const prod = products.find((p) => (p.materialVariantId ?? p.id) === val);
     setUnit(getDefaultUnit(prod));
   };
 
@@ -64,7 +64,7 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
       setErrorMsg("Sumber dan tujuan gudang tidak boleh sama");
       return;
     }
-    if (!productId) {
+    if (!materialVariantId) {
       setErrorMsg("Pilih produk");
       return;
     }
@@ -78,13 +78,13 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
       await transferStock({
         sourceWarehouseId,
         destinationWarehouseId,
-        items: [{ productId, quantity: qtyNum, unit: unit || undefined }],
+        items: [{ materialVariantId, quantity: qtyNum, unit: unit || undefined }],
         remarks: remarks || undefined,
       }).unwrap();
       onSuccess();
       setSourceWarehouseId("");
       setDestinationWarehouseId("");
-      setProductId("");
+      setMaterialVariantId("");
       setQuantity("");
       setUnit("");
       setRemarks("");
@@ -151,14 +151,14 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
         <div className="flex flex-col gap-1.5">
           <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Produk</label>
           <select
-            value={productId}
+            value={materialVariantId}
             onChange={(e) => handleProductChange(e.target.value)}
             className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm font-semibold"
             required
           >
             <option value="">Pilih Produk...</option>
             {uniqueProducts.map((p) => (
-              <option key={p.id} value={p.id}>
+              <option key={p.materialVariantId ?? p.id} value={p.materialVariantId ?? p.id}>
                 {p.name} ({p.sku})
               </option>
             ))}
@@ -177,7 +177,7 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
               required
             />
           </div>
-          {productId && availableUnits.length > 0 && (
+          {materialVariantId && availableUnits.length > 0 && (
             <div className="w-28 flex flex-col gap-1.5">
               <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Satuan</label>
               <select

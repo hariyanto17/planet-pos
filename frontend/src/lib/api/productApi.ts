@@ -1,5 +1,10 @@
 import { baseApi } from "./baseApi";
-import { CreateProductInput, UpdateProductInput } from "@shared/types";
+import {
+  CreateProductInput,
+  UpdateProductInput,
+  CreateSellableProductInput,
+  UpdateSellableProductInput,
+} from "@shared/types";
 
 export const productApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -14,7 +19,7 @@ export const productApi = baseApi.injectEndpoints({
       query: (id) => `/products/${id}`,
       providesTags: (result, error, id) => [{ type: "Product", id }],
     }),
-    createProduct: builder.mutation<any, CreateProductInput>({
+    createProduct: builder.mutation<any, CreateSellableProductInput | CreateProductInput>({
       query: (body) => ({
         url: "/products",
         method: "POST",
@@ -22,7 +27,7 @@ export const productApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Product"],
     }),
-    updateProduct: builder.mutation<any, { id: string; body: UpdateProductInput }>({
+    updateProduct: builder.mutation<any, { id: string; body: UpdateSellableProductInput | UpdateProductInput }>({
       query: ({ id, body }) => ({
         url: `/products/${id}`,
         method: "PUT",

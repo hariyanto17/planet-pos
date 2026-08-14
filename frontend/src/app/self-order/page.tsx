@@ -204,7 +204,7 @@ function SelfOrderContent() {
         orderType,
         notes: notes || undefined,
         items: cartItems.map((item: CartItem) => ({
-          productId: item.productId,
+          sellableProductId: item.sellableProductId,
           quantity: item.quantity,
         })),
         paymentMethod,
@@ -223,7 +223,7 @@ function SelfOrderContent() {
   };
 
   const getQuantityInCart = (productId: string) => {
-    const item = cartItems.find((i: CartItem) => i.productId === productId);
+    const item = cartItems.find((i: CartItem) => i.sellableProductId === productId);
     return item ? item.quantity : 0;
   };
 
@@ -354,7 +354,7 @@ function SelfOrderContent() {
             <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Ringkasan Pesanan</h3>
             <div className="flex flex-col gap-2 bg-zinc-900/30 border border-zinc-900 rounded-2xl p-4">
               {cartItems.map((item: CartItem) => (
-                <div key={item.productId} className="flex justify-between items-start gap-4 text-sm py-1 border-b border-zinc-900/50 last:border-0">
+                <div key={item.sellableProductId} className="flex justify-between items-start gap-4 text-sm py-1 border-b border-zinc-900/50 last:border-0">
                   <span className="text-zinc-300 font-medium break-words max-w-[70%]">{item.productName} <span className="text-zinc-500 font-semibold">x{item.quantity}</span></span>
                   <span className="text-zinc-200 font-bold shrink-0">Rp {(item.price * item.quantity).toLocaleString()}</span>
                 </div>
@@ -474,7 +474,7 @@ function SelfOrderContent() {
                                 if (qty === 1) {
                                   dispatch(removeItem(p.id));
                                 } else {
-                                  dispatch(updateQuantity({ productId: p.id, quantity: qty - 1 }));
+                                  dispatch(updateQuantity({ sellableProductId: p.id, quantity: qty - 1 }));
                                 }
                               }}
                               className="w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 flex items-center justify-center transition active:scale-90 font-bold shrink-0"
@@ -484,7 +484,7 @@ function SelfOrderContent() {
                             <span className="text-xs font-black text-center text-zinc-100 flex-1 min-w-[18px]">{qty}</span>
                             <button
                               onClick={() => {
-                                dispatch(updateQuantity({ productId: p.id, quantity: qty + 1 }));
+                                dispatch(updateQuantity({ sellableProductId: p.id, quantity: qty + 1 }));
                               }}
                               className="w-7 h-7 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center transition active:scale-90 font-bold shrink-0 shadow-md shadow-indigo-600/10"
                             >
@@ -496,7 +496,7 @@ function SelfOrderContent() {
                             onClick={() => {
                               dispatch(
                                 addItem({
-                                  productId: p.id,
+                                  sellableProductId: p.id,
                                   productName: p.name,
                                   price: Number(p.price),
                                   quantity: 1,
@@ -556,7 +556,7 @@ function SelfOrderContent() {
 
             <div className="flex flex-col gap-3 overflow-y-auto pr-1 py-1 flex-1 min-h-0">
               {cartItems.map((item: CartItem) => (
-                <div key={item.productId} className="flex flex-col gap-2 py-2.5 border-b border-zinc-850/50 last:border-0">
+                <div key={item.sellableProductId} className="flex flex-col gap-2 py-2.5 border-b border-zinc-850/50 last:border-0">
                   <span className="text-xs sm:text-sm font-black text-zinc-200 break-words leading-tight">{item.productName}</span>
                   <div className="flex items-center justify-between gap-4">
                     <span className="text-xs font-extrabold text-indigo-400">Rp {item.price.toLocaleString()}</span>
@@ -565,9 +565,9 @@ function SelfOrderContent() {
                       <button
                         onClick={() => {
                           if (item.quantity === 1) {
-                            dispatch(removeItem(item.productId));
+                            dispatch(removeItem(item.sellableProductId));
                           } else {
-                            dispatch(updateQuantity({ productId: item.productId, quantity: item.quantity - 1 }));
+                            dispatch(updateQuantity({ sellableProductId: item.sellableProductId, quantity: item.quantity - 1 }));
                           }
                         }}
                         className="w-7 h-7 bg-zinc-900 rounded-lg flex items-center justify-center text-xs font-bold text-zinc-300 hover:bg-zinc-800 transition"
@@ -577,7 +577,7 @@ function SelfOrderContent() {
                       <span className="text-xs font-black w-5 text-center text-zinc-200">{item.quantity}</span>
                       <button
                         onClick={() => {
-                          dispatch(updateQuantity({ productId: item.productId, quantity: item.quantity + 1 }));
+                          dispatch(updateQuantity({ sellableProductId: item.sellableProductId, quantity: item.quantity + 1 }));
                         }}
                         className="w-7 h-7 bg-zinc-900 rounded-lg flex items-center justify-center text-xs font-bold text-zinc-300 hover:bg-zinc-800 transition"
                       >

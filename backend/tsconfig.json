@@ -15,5 +15,6 @@
       "@shared/*": ["../shared/*", "dist/shared/*"]
     }
   },
-  "include": ["src/**/*", "../shared/**/*"]
+  "include": ["src/**/*", "../shared/**/*"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.mjs", "src/**/__tests__/**"]
 }

@@ -204,8 +204,8 @@ export default function NewOrderScreen({ navigation }: Props) {
 
 
 
-  const getQuantityInCart = useCallback((productId: string) => {
-    const item = cartItems.find((i) => i.productId === productId);
+  const getQuantityInCart = useCallback((sellableProductId: string) => {
+    const item = cartItems.find((i) => i.sellableProductId === sellableProductId);
     return item ? item.quantity : 0;
   }, [cartItems]);
 
@@ -223,7 +223,7 @@ export default function NewOrderScreen({ navigation }: Props) {
     }
     dispatch(
       addItem({
-        productId: p.id,
+        sellableProductId: p.id,
         productName: p.name,
         price: Number(p.price),
         quantity: 1,
@@ -232,15 +232,15 @@ export default function NewOrderScreen({ navigation }: Props) {
     );
   }, [dispatch, getQuantityInCart, showToast]);
 
-  const handleIncrease = useCallback((productId: string, currentQty: number) => {
-    dispatch(updateQuantity({ productId, quantity: currentQty + 1 }));
+  const handleIncrease = useCallback((sellableProductId: string, currentQty: number) => {
+    dispatch(updateQuantity({ sellableProductId, quantity: currentQty + 1 }));
   }, [dispatch]);
 
-  const handleDecrease = useCallback((productId: string, currentQty: number) => {
+  const handleDecrease = useCallback((sellableProductId: string, currentQty: number) => {
     if (currentQty === 1) {
-      dispatch(removeItem({ productId }));
+      dispatch(removeItem({ sellableProductId }));
     } else {
-      dispatch(updateQuantity({ productId, quantity: currentQty - 1 }));
+      dispatch(updateQuantity({ sellableProductId, quantity: currentQty - 1 }));
     }
   }, [dispatch]);
 
@@ -350,7 +350,7 @@ export default function NewOrderScreen({ navigation }: Props) {
     return (
       <ScrollView style={styles.cartItemsScroll} contentContainerStyle={{ gap: 8 }}>
         {cartItems.map((item) => (
-          <View key={item.productId} style={styles.cartItemRow}>
+          <View key={item.sellableProductId} style={styles.cartItemRow}>
             <View style={styles.cartItemInfo}>
               <Text style={styles.cartItemName} numberOfLines={1}>
                 {item.productName}
@@ -362,14 +362,14 @@ export default function NewOrderScreen({ navigation }: Props) {
             <View style={styles.cartItemActions}>
               <TouchableOpacity
                 style={styles.cartQtyBtn}
-                onPress={() => handleDecrease(item.productId, item.quantity)}
+                onPress={() => handleDecrease(item.sellableProductId, item.quantity)}
               >
                 <Text style={styles.cartQtyText}>-</Text>
               </TouchableOpacity>
               <Text style={styles.cartQtyVal}>{item.quantity}</Text>
               <TouchableOpacity
                 style={styles.cartQtyBtn}
-                onPress={() => handleIncrease(item.productId, item.quantity)}
+                onPress={() => handleIncrease(item.sellableProductId, item.quantity)}
               >
                 <Text style={styles.cartQtyText}>+</Text>
               </TouchableOpacity>
