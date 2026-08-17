@@ -3,7 +3,6 @@ import { PrismaClient } from "@prisma/client";
 import dotenv from "dotenv";
 dotenv.config();
 import { seedUsers } from "./seeds/users.seed";
-import { seedUnits } from "./seeds/units.seed";
 import { seedCanonical } from "./seeds/canonical.seed";
 
 const newPrismaClient = () => {
@@ -17,7 +16,6 @@ const prisma = newPrismaClient();
 async function main() {
   console.log("Starting seed...");
   await seedUsers(prisma);
-  await seedUnits(prisma);
   await seedCanonical(prisma);
   console.log("Seeding finished successfully.");
 }

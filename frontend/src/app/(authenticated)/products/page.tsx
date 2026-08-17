@@ -14,7 +14,7 @@ import {
   useUpdateMaterialMutation,
 } from "@/lib/api/productApi";
 import { useGetCategoriesQuery } from "@/lib/api/categoryApi";
-import { useGetUnitsQuery } from "@/lib/api/inventoryApi";
+
 import { PageHeader } from "@/components/PageHeader";
 import { SearchInput } from "@/components/SearchInput";
 import { DataTable } from "@/components/DataTable";
@@ -158,7 +158,6 @@ export default function ProductsPage() {
   const router = useRouter();
   const { data: products = [], isLoading: isLoadingProducts } = useGetProductsQuery();
   const { data: categories = [], isLoading: isLoadingCategories } = useGetCategoriesQuery();
-  const { data: units = [], isLoading: isLoadingUnits } = useGetUnitsQuery();
   const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
   const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
   const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation();
@@ -207,9 +206,6 @@ export default function ProductsPage() {
     }
   }, [trackInventoryEdit, inventoryTypeEdit, setValueEdit]);
 
-  const activeUnits = useMemo(() => {
-    return units.filter((u: any) => u.isActive);
-  }, [units]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((p: Product) => {
@@ -249,13 +245,6 @@ export default function ProductsPage() {
           }
         }).unwrap();
       } else {
-        // Auto-populate unitId from baseUnit for backward compatibility
-        let autoUnitId: string | undefined = undefined;
-        if (data.trackInventory && data.baseUnit) {
-          const baseUnitRecord = activeUnits.find((u: any) => u.symbol === data.baseUnit);
-          autoUnitId = baseUnitRecord?.id;
-        }
-
         await updateProduct({
           id: editingProduct.id,
           body: {
@@ -266,7 +255,6 @@ export default function ProductsPage() {
             imageUrl: data.imageUrl || undefined,
             trackInventory: data.trackInventory || false,
             inventoryType: data.trackInventory ? (data.inventoryType as any) : undefined,
-            unitId: autoUnitId,
             baseUnit: data.trackInventory ? (data.baseUnit as any) : undefined,
             minimumStock: data.trackInventory ? data.minimumStock : 0,
             unitConversions: productConversions.map((conversion) => ({
@@ -319,7 +307,7 @@ export default function ProductsPage() {
     });
   };
 
-  const isLoading = isLoadingProducts || isLoadingCategories || isLoadingUnits;
+  const isLoading = isLoadingProducts || isLoadingCategories;
 
   return (
     <div className="flex flex-col gap-6">
@@ -673,7 +661,6 @@ export default function ProductsPage() {
           onClose={() => setSelectedRecipeProductId(null)}
           productId={selectedRecipeProductId}
           allProducts={products}
-          allUnits={units}
         />
       )}
     </div>

@@ -457,13 +457,6 @@ export const getActiveWarehouses = async () => {
   });
 };
 
-export const getActiveUnits = async () => {
-  return await prisma.unit.findMany({
-    where: { isActive: true },
-    orderBy: { name: "asc" },
-  });
-};
-
 export interface OpeningStockItem {
   materialVariantId: string;
   quantity: number;

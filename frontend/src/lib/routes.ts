@@ -52,7 +52,6 @@ export const ROUTES_CONFIG: RouteConfig[] = [
   { path: "/warehouse/dashboard", workspace: "WAREHOUSE" },
   { path: "/warehouse/current-stock", workspace: "WAREHOUSE" },
   { path: "/warehouse/opening", workspace: "WAREHOUSE" },
-  { path: "/warehouse/settings/units", workspace: "ADMIN" },
   { path: "/warehouse/settings/warehouses", workspace: "ADMIN" },
 
   // Accounting Workspace Routes
@@ -70,7 +69,6 @@ export const SIDEBAR_CONFIGS: Record<WorkspaceType, SidebarItemConfig[]> = {
     { name: "Dashboard", href: "/dashboard", iconName: "dashboard" },
     { name: "Laporan", href: "/reports", iconName: "reports" },
     { name: "Pesanan", href: "/orders", iconName: "orders" },
-    { name: "Units", href: "/warehouse/settings/units", iconName: "ruler" },
     { name: "Kategori", href: "/categories", iconName: "categories" },
     { name: "Supplier", href: "/suppliers", iconName: "users" },
     { name: "Produk", href: "/products", iconName: "products" },

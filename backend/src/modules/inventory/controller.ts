@@ -182,11 +182,6 @@ export const getWarehouses = catchAsync(async (req: Request, res: Response) => {
   return responseHandler.ok(res, warehouses);
 });
 
-export const getUnits = catchAsync(async (req: Request, res: Response) => {
-  const units = await inventoryService.getActiveUnits();
-  return responseHandler.ok(res, units);
-});
-
 export const recordOpening = catchAsync(async (req: Request, res: Response) => {
   const { error, value } = recordOpeningStockSchema.validate(req.body);
   if (error) {

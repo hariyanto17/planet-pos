@@ -100,10 +100,7 @@ export const inventoryApi = baseApi.injectEndpoints({
       query: () => "/inventory/warehouses",
       providesTags: ["Inventory"],
     }),
-    getUnits: builder.query<any[], void>({
-      query: () => "/inventory/units",
-      providesTags: ["Inventory"],
-    }),
+
     getStockRequests: builder.query<any[], { scope?: string; status?: string }>({
       query: (params) => ({
         url: "/inventory/requests",
@@ -170,7 +167,6 @@ export const {
   useGetStockTransfersQuery,
   useCompleteStockTransferMutation,
   useGetWarehousesQuery,
-  useGetUnitsQuery,
   useGetStockRequestsQuery,
   useCreateStockRequestMutation,
   useClaimStockRequestMutation,

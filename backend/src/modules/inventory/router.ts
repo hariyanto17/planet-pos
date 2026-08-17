@@ -8,7 +8,6 @@ import {
   adjustStock,
   removeWaste,
   getWarehouses,
-  getUnits,
   recordOpening,
   createStockTransferHandler,
   completeStockTransferHandler,
@@ -26,7 +25,6 @@ router.get("/summary", requireRoles(["ADMIN", "WAREHOUSE", "ACCOUNTING"]), getSu
 router.get("/products", requireRoles(["ADMIN", "WAREHOUSE", "ACCOUNTING", "CASHIER", "KITCHEN"]), getProducts);
 router.get("/movements", requireRoles(["ADMIN", "WAREHOUSE", "ACCOUNTING", "CASHIER", "KITCHEN"]), getMovements);
 router.get("/warehouses", requireRoles(["ADMIN", "WAREHOUSE", "ACCOUNTING", "CASHIER", "KITCHEN"]), getWarehouses);
-router.get("/units", requireRoles(["ADMIN", "WAREHOUSE", "ACCOUNTING", "CASHIER", "KITCHEN"]), getUnits);
 
 // Mutating endpoints: WAREHOUSE and ADMIN only
 router.post("/opening", requireRoles(["ADMIN", "WAREHOUSE", "KITCHEN"]), recordOpening);

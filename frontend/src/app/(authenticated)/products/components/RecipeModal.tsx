@@ -13,7 +13,6 @@ interface Props {
   onClose: () => void;
   productId: string;
   allProducts: any[];
-  allUnits: any[];
 }
 
 export const RecipeModal: React.FC<Props> = ({
@@ -21,7 +20,6 @@ export const RecipeModal: React.FC<Props> = ({
   onClose,
   productId,
   allProducts = [],
-  allUnits = [],
 }) => {
   const { data: recipe, isLoading: isLoadingRecipe } = useGetProductRecipeQuery(productId, {
     skip: !productId || !isOpen,
