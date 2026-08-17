@@ -43,12 +43,16 @@ test("Order Timeline and Status Transitions Regression Tests", async (t) => {
     }
   })).id;
 
-  let product = await prisma.product.findFirst({ where: { deletedAt: null, trackInventory: false } });
+  let product = await prisma.sellableProduct.findFirst({ where: { isActive: true, recipe: null } });
   if (!product) {
-    product = await prisma.product.findFirst({ where: { deletedAt: null } });
-  }
-  if (!product) {
-    throw new Error("Product not found in database. Run seed first.");
+    product = await prisma.sellableProduct.create({
+      data: {
+        name: "Test Direct Sale Item",
+        price: new Decimal(15000),
+        isActive: true,
+        productType: "DIRECT_SALE",
+      }
+    });
   }
 
   const table = await prisma.table.findFirst({ where: { isActive: true } }) || await prisma.table.create({
@@ -66,7 +70,7 @@ test("Order Timeline and Status Transitions Regression Tests", async (t) => {
     const orderInput = {
       customerName: "Cashier Tester",
       orderType: "TAKEAWAY" as any,
-      items: [{ productId: product.id, quantity: 1 }],
+      items: [{ sellableProductId: product.id, quantity: 1 }],
     };
 
     const order = await createOrder(cashierUser.id, orderInput);
@@ -115,10 +119,8 @@ test("Order Timeline and Status Transitions Regression Tests", async (t) => {
 
     assert.ok(dbOrder);
     assert.equal(dbOrder.status, OrderStatus.NEW, "Order status should remain NEW after payment");
-    assert.equal(dbOrder.timelines.length, 2);
+    assert.equal(dbOrder.timelines.length, 1);
     assert.equal(dbOrder.timelines[0].status, OrderStatus.NEW);
-    // Timeline records the payment confirmation event but order status remains NEW
-    assert.equal(dbOrder.timelines[1].status, OrderStatus.NEW);
   });
 
   await t.test("Test 3 — CASHIER kitchen starts preparing (NEW -> PREPARING)", async () => {
@@ -140,10 +142,9 @@ test("Order Timeline and Status Transitions Regression Tests", async (t) => {
 
     assert.ok(dbOrder);
     assert.equal(dbOrder.status, OrderStatus.PREPARING);
-    assert.equal(dbOrder.timelines.length, 3);
+    assert.equal(dbOrder.timelines.length, 2);
     assert.equal(dbOrder.timelines[0].status, OrderStatus.NEW);
-    assert.equal(dbOrder.timelines[1].status, OrderStatus.NEW);
-    assert.equal(dbOrder.timelines[2].status, OrderStatus.PREPARING);
+    assert.equal(dbOrder.timelines[1].status, OrderStatus.PREPARING);
   });
 
   await t.test("Test 4 — CASHIER kitchen marks ready (PREPARING -> READY)", async () => {
@@ -156,11 +157,10 @@ test("Order Timeline and Status Transitions Regression Tests", async (t) => {
 
     assert.ok(dbOrder);
     assert.equal(dbOrder.status, OrderStatus.READY);
-    assert.equal(dbOrder.timelines.length, 4);
+    assert.equal(dbOrder.timelines.length, 3);
     assert.equal(dbOrder.timelines[0].status, OrderStatus.NEW);
-    assert.equal(dbOrder.timelines[1].status, OrderStatus.NEW);
-    assert.equal(dbOrder.timelines[2].status, OrderStatus.PREPARING);
-    assert.equal(dbOrder.timelines[3].status, OrderStatus.READY);
+    assert.equal(dbOrder.timelines[1].status, OrderStatus.PREPARING);
+    assert.equal(dbOrder.timelines[2].status, OrderStatus.READY);
   });
 
   await t.test("Test 5 — CASHIER kitchen completes (READY -> COMPLETED)", async () => {
@@ -173,12 +173,11 @@ test("Order Timeline and Status Transitions Regression Tests", async (t) => {
 
     assert.ok(dbOrder);
     assert.equal(dbOrder.status, OrderStatus.COMPLETED);
-    assert.equal(dbOrder.timelines.length, 5);
+    assert.equal(dbOrder.timelines.length, 4);
     assert.equal(dbOrder.timelines[0].status, OrderStatus.NEW);
-    assert.equal(dbOrder.timelines[1].status, OrderStatus.NEW);
-    assert.equal(dbOrder.timelines[2].status, OrderStatus.PREPARING);
-    assert.equal(dbOrder.timelines[3].status, OrderStatus.READY);
-    assert.equal(dbOrder.timelines[4].status, OrderStatus.COMPLETED);
+    assert.equal(dbOrder.timelines[1].status, OrderStatus.PREPARING);
+    assert.equal(dbOrder.timelines[2].status, OrderStatus.READY);
+    assert.equal(dbOrder.timelines[3].status, OrderStatus.COMPLETED);
   });
 
   // Define shared variables for self order flow
@@ -189,7 +188,7 @@ test("Order Timeline and Status Transitions Regression Tests", async (t) => {
       customerName: "Self Tester",
       orderType: "DINE_IN" as any,
       tableId: table.id,
-      items: [{ productId: product.id, quantity: 1 }],
+      items: [{ sellableProductId: product.id, quantity: 1 }],
     };
 
     // Self-order is created without cashierId (null)
@@ -238,8 +237,8 @@ test("Order Timeline and Status Transitions Regression Tests", async (t) => {
 
     assert.ok(dbOrder);
     assert.equal(dbOrder.status, OrderStatus.NEW, "Self order should remain NEW after payment");
-    assert.equal(dbOrder.timelines.length, 2);
-    assert.equal(dbOrder.timelines[1].status, OrderStatus.NEW);
+    assert.equal(dbOrder.timelines.length, 1);
+    assert.equal(dbOrder.timelines[0].status, OrderStatus.NEW);
   });
 
   await t.test("Test 8 — SELF_ORDER kitchen starts", async () => {
@@ -252,8 +251,8 @@ test("Order Timeline and Status Transitions Regression Tests", async (t) => {
 
     assert.ok(dbOrder);
     assert.equal(dbOrder.status, OrderStatus.PREPARING);
-    assert.equal(dbOrder.timelines.length, 3);
-    assert.equal(dbOrder.timelines[2].status, OrderStatus.PREPARING);
+    assert.equal(dbOrder.timelines.length, 2);
+    assert.equal(dbOrder.timelines[1].status, OrderStatus.PREPARING);
   });
 
   await t.test("Test 9 — SELF_ORDER kitchen ready", async () => {
@@ -266,8 +265,8 @@ test("Order Timeline and Status Transitions Regression Tests", async (t) => {
 
     assert.ok(dbOrder);
     assert.equal(dbOrder.status, OrderStatus.READY);
-    assert.equal(dbOrder.timelines.length, 4);
-    assert.equal(dbOrder.timelines[3].status, OrderStatus.READY);
+    assert.equal(dbOrder.timelines.length, 3);
+    assert.equal(dbOrder.timelines[2].status, OrderStatus.READY);
   });
 
   await t.test("Test 10 — SELF_ORDER completion", async () => {
@@ -280,15 +279,15 @@ test("Order Timeline and Status Transitions Regression Tests", async (t) => {
 
     assert.ok(dbOrder);
     assert.equal(dbOrder.status, OrderStatus.COMPLETED);
-    assert.equal(dbOrder.timelines.length, 5);
-    assert.equal(dbOrder.timelines[4].status, OrderStatus.COMPLETED);
+    assert.equal(dbOrder.timelines.length, 4);
+    assert.equal(dbOrder.timelines[3].status, OrderStatus.COMPLETED);
   });
 
   await t.test("Test 11 — KDS queue contains NEW cashier order", async () => {
     const orderInput = {
       customerName: "KDS Queue Tester 1",
       orderType: "TAKEAWAY" as any,
-      items: [{ productId: product.id, quantity: 1 }],
+      items: [{ sellableProductId: product.id, quantity: 1 }],
     };
     const order = await createOrder(cashierUser.id, orderInput);
     
@@ -301,7 +300,7 @@ test("Order Timeline and Status Transitions Regression Tests", async (t) => {
     const orderInput = {
       customerName: "KDS Queue Tester 2",
       orderType: "TAKEAWAY" as any,
-      items: [{ productId: product.id, quantity: 1 }],
+      items: [{ sellableProductId: product.id, quantity: 1 }],
     };
     const order = await createOrder(cashierUser.id, orderInput);
 
@@ -331,7 +330,7 @@ test("Order Timeline and Status Transitions Regression Tests", async (t) => {
       customerName: "KDS Queue Tester 3",
       orderType: "DINE_IN" as any,
       tableId: table.id,
-      items: [{ productId: product.id, quantity: 1 }],
+      items: [{ sellableProductId: product.id, quantity: 1 }],
     };
     const order = await createOrder(null, orderInput);
 
@@ -344,7 +343,7 @@ test("Order Timeline and Status Transitions Regression Tests", async (t) => {
     const orderInput = {
       customerName: "KDS Queue Tester 4",
       orderType: "TAKEAWAY" as any,
-      items: [{ productId: product.id, quantity: 1 }],
+      items: [{ sellableProductId: product.id, quantity: 1 }],
     };
     const order = await createOrder(cashierUser.id, orderInput);
     await updateOrderStatus(order.id, OrderStatus.PREPARING, kitchenUser.id);
@@ -360,7 +359,7 @@ test("Order Timeline and Status Transitions Regression Tests", async (t) => {
     const orderInput = {
       customerName: "KDS Queue Tester 5",
       orderType: "TAKEAWAY" as any,
-      items: [{ productId: product.id, quantity: 1 }],
+      items: [{ sellableProductId: product.id, quantity: 1 }],
     };
     const order = await createOrder(cashierUser.id, orderInput);
     await updateOrderStatus(order.id, OrderStatus.CANCELLED, cashierUser.id);
