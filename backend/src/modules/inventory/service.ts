@@ -110,6 +110,7 @@ export const getProductStockList = async (filters: GetProductStockListFilters) =
     const allVariants = await prisma.materialVariant.findMany({
       where: { isActive: true },
       include: {
+        material: true,
         inventoryStocks: {
           where: { warehouse: { isActive: true } },
           include: { warehouse: true },
@@ -126,10 +127,11 @@ export const getProductStockList = async (filters: GetProductStockListFilters) =
           id: variant.id,
           sku: variant.sku || "-",
           name: variant.name,
+          materialName: variant.material.name,
           trackInventory: true,
           inventoryType: "RAW_MATERIAL",
-          unit: variant.baseUnit,
-          baseUnit: variant.baseUnit,
+          unit: variant.material.baseUnit,
+          baseUnit: variant.material.baseUnit,
           warehouseName: wh.name,
           warehouseId: wh.id,
           quantity,
@@ -150,6 +152,7 @@ export const getProductStockList = async (filters: GetProductStockListFilters) =
     const allVariants = await prisma.materialVariant.findMany({
       where: { isActive: true },
       include: {
+        material: true,
         inventoryStocks: {
           where: { warehouseId: filters.warehouseId },
           include: { warehouse: true },
@@ -165,10 +168,11 @@ export const getProductStockList = async (filters: GetProductStockListFilters) =
         id: variant.id,
         sku: variant.sku || "-",
         name: variant.name,
+        materialName: variant.material.name,
         trackInventory: true,
         inventoryType: "RAW_MATERIAL",
-        unit: variant.baseUnit,
-        baseUnit: variant.baseUnit,
+        unit: variant.material.baseUnit,
+        baseUnit: variant.material.baseUnit,
         warehouseName: targetWarehouse.name,
         warehouseId: filters.warehouseId,
         quantity,
@@ -182,7 +186,9 @@ export const getProductStockList = async (filters: GetProductStockListFilters) =
   if (filters.search) {
     const searchTerm = filters.search.trim().toLowerCase();
     filtered = mapped.filter((item) =>
-      item.name.toLowerCase().includes(searchTerm) || item.sku.toLowerCase().includes(searchTerm)
+      item.name.toLowerCase().includes(searchTerm) ||
+      (item.materialName && item.materialName.toLowerCase().includes(searchTerm)) ||
+      item.sku.toLowerCase().includes(searchTerm)
     );
   }
   if (filters.stockStatus) {
@@ -202,14 +208,17 @@ export const getProductStockList = async (filters: GetProductStockListFilters) =
  * Record stock replenishment (RECEIVE)
  */
 export const createStockReceipt = async (userId: string, params: ReceiveStockParams) => {
-  const materialVariant = await prisma.materialVariant.findUnique({ where: { id: params.materialVariantId } });
+  const materialVariant = await prisma.materialVariant.findUnique({
+    where: { id: params.materialVariantId },
+    include: { material: true }
+  });
   if (!materialVariant) throw new AppError("NOT_FOUND", "Material variant not found");
 
-  const unit = params.unit || (materialVariant.baseUnit === "G" ? "g" : materialVariant.baseUnit === "ML" ? "ml" : "pcs");
+  const unit = params.unit || (materialVariant.material.baseUnit === "G" ? "g" : materialVariant.material.baseUnit === "ML" ? "ml" : "pcs");
 
   let normalizedQuantity: any = null;
   const newBalance = await prisma.$transaction(async (tx) => {
-    normalizedQuantity = await convertToBaseUnit(params.materialVariantId, params.quantity, unit, (materialVariant.baseUnit || "PCS") as any, tx);
+    normalizedQuantity = await convertToBaseUnit(params.materialVariantId, params.quantity, unit, (materialVariant.material.baseUnit || "PCS") as any, tx);
     return await createLedgerEntry(tx, {
       materialVariantId: params.materialVariantId,
       warehouseId: params.warehouseId,
@@ -224,9 +233,9 @@ export const createStockReceipt = async (userId: string, params: ReceiveStockPar
   return {
     newBalance: Number(newBalance),
     quantity: params.quantity,
-    unit: params.unit || (materialVariant.baseUnit === "G" ? "g" : materialVariant.baseUnit === "ML" ? "ml" : "pcs"),
+    unit: params.unit || (materialVariant.material.baseUnit === "G" ? "g" : materialVariant.material.baseUnit === "ML" ? "ml" : "pcs"),
     normalizedQuantity: normalizedQuantity?.toNumber() ?? 0,
-    normalizedUnit: materialVariant.baseUnit || "PCS"
+    normalizedUnit: materialVariant.material.baseUnit || "PCS"
   };
 };
 
@@ -234,14 +243,17 @@ export const createStockReceipt = async (userId: string, params: ReceiveStockPar
  * Record stock correction (ADJUSTMENT)
  */
 export const adjustStock = async (userId: string, params: AdjustStockParams) => {
-  const materialVariant = await prisma.materialVariant.findUnique({ where: { id: params.materialVariantId } });
+  const materialVariant = await prisma.materialVariant.findUnique({
+    where: { id: params.materialVariantId },
+    include: { material: true }
+  });
   if (!materialVariant) throw new AppError("NOT_FOUND", "Material variant not found");
 
-  const unit = params.unit || (materialVariant.baseUnit === "G" ? "g" : materialVariant.baseUnit === "ML" ? "ml" : "pcs");
+  const unit = params.unit || (materialVariant.material.baseUnit === "G" ? "g" : materialVariant.material.baseUnit === "ML" ? "ml" : "pcs");
 
   let normalizedQuantity: any = null;
   const newBalance = await prisma.$transaction(async (tx) => {
-    const quantity = await convertToBaseUnit(params.materialVariantId, Math.abs(params.quantity), unit, (materialVariant.baseUnit || "PCS") as any, tx);
+    const quantity = await convertToBaseUnit(params.materialVariantId, Math.abs(params.quantity), unit, (materialVariant.material.baseUnit || "PCS") as any, tx);
     const signedQty = params.quantity < 0 ? quantity.negated() : quantity;
     normalizedQuantity = signedQty;
     return await createLedgerEntry(tx, {
@@ -258,9 +270,9 @@ export const adjustStock = async (userId: string, params: AdjustStockParams) => 
   return {
     newBalance: Number(newBalance),
     quantity: params.quantity,
-    unit: params.unit || (materialVariant.baseUnit === "G" ? "g" : materialVariant.baseUnit === "ML" ? "ml" : "pcs"),
+    unit: params.unit || (materialVariant.material.baseUnit === "G" ? "g" : materialVariant.material.baseUnit === "ML" ? "ml" : "pcs"),
     normalizedQuantity: normalizedQuantity?.toNumber() ?? 0,
-    normalizedUnit: materialVariant.baseUnit || "PCS"
+    normalizedUnit: materialVariant.material.baseUnit || "PCS"
   };
 };
 
@@ -268,14 +280,17 @@ export const adjustStock = async (userId: string, params: AdjustStockParams) => 
  * Record inventory wastage (WASTE)
  */
 export const removeAsWaste = async (userId: string, params: RemoveAsWasteParams) => {
-  const materialVariant = await prisma.materialVariant.findUnique({ where: { id: params.materialVariantId } });
+  const materialVariant = await prisma.materialVariant.findUnique({
+    where: { id: params.materialVariantId },
+    include: { material: true }
+  });
   if (!materialVariant) throw new AppError("NOT_FOUND", "Material variant not found");
 
-  const unit = params.unit || (materialVariant.baseUnit === "G" ? "g" : materialVariant.baseUnit === "ML" ? "ml" : "pcs");
+  const unit = params.unit || (materialVariant.material.baseUnit === "G" ? "g" : materialVariant.material.baseUnit === "ML" ? "ml" : "pcs");
 
   let normalizedQuantity: any = null;
   const newBalance = await prisma.$transaction(async (tx) => {
-    const quantity = await convertToBaseUnit(params.materialVariantId, params.quantity, unit, (materialVariant.baseUnit || "PCS") as any, tx);
+    const quantity = await convertToBaseUnit(params.materialVariantId, params.quantity, unit, (materialVariant.material.baseUnit || "PCS") as any, tx);
     normalizedQuantity = quantity.negated();
     return await createLedgerEntry(tx, {
       materialVariantId: params.materialVariantId,
@@ -291,9 +306,9 @@ export const removeAsWaste = async (userId: string, params: RemoveAsWasteParams)
   return {
     newBalance: Number(newBalance),
     quantity: params.quantity,
-    unit: params.unit || (materialVariant.baseUnit === "G" ? "g" : materialVariant.baseUnit === "ML" ? "ml" : "pcs"),
+    unit: params.unit || (materialVariant.material.baseUnit === "G" ? "g" : materialVariant.material.baseUnit === "ML" ? "ml" : "pcs"),
     normalizedQuantity: normalizedQuantity?.toNumber() ?? 0,
-    normalizedUnit: materialVariant.baseUnit || "PCS"
+    normalizedUnit: materialVariant.material.baseUnit || "PCS"
   };
 };
 
@@ -340,7 +355,13 @@ export const getStockMovements = async (filters: GetStockMovementsFilters) => {
     where: whereClause,
     include: {
       warehouse: { select: { name: true } },
-      materialVariant: { select: { name: true, sku: true } },
+      materialVariant: {
+        select: {
+          name: true,
+          sku: true,
+          material: { select: { name: true } },
+        },
+      },
       createdBy: { select: { fullName: true } },
     },
     orderBy: { createdAt: "desc" },
@@ -352,7 +373,7 @@ export const getStockMovements = async (filters: GetStockMovementsFilters) => {
     id: r.id,
     createdAt: r.createdAt.toISOString(),
     warehouseName: r.warehouse.name,
-    productName: r.materialVariant.name,
+    productName: r.materialVariant.material ? `${r.materialVariant.material.name} - ${r.materialVariant.name}` : r.materialVariant.name,
     sku: r.materialVariant.sku || "-",
     movementType: r.movementType,
     quantity: Number(r.quantity),
@@ -424,7 +445,10 @@ export const recordOpeningStock = async (userId: string, payload: RecordOpeningS
         throw new AppError("BAD_REQUEST", "Quantity must be greater than zero");
       }
 
-      const materialVariant = await tx.materialVariant.findUnique({ where: { id: materialVariantId } });
+      const materialVariant = await tx.materialVariant.findUnique({
+        where: { id: materialVariantId },
+        include: { material: true }
+      });
       if (!materialVariant || !materialVariant.isActive) {
         throw new AppError("BAD_REQUEST", `Material variant ${materialVariantId} not found or inactive`);
       }
@@ -440,8 +464,8 @@ export const recordOpeningStock = async (userId: string, payload: RecordOpeningS
         throw new AppError("BAD_REQUEST", "Opening stock already exists.");
       }
 
-      const inputUnit = item.unit || (materialVariant.baseUnit === "G" ? "g" : materialVariant.baseUnit === "ML" ? "ml" : "pcs");
-      const normalizedQuantity = await convertToBaseUnit(materialVariant.id, quantity, inputUnit, (materialVariant.baseUnit || "PCS") as any, tx);
+      const inputUnit = item.unit || (materialVariant.material.baseUnit === "G" ? "g" : materialVariant.material.baseUnit === "ML" ? "ml" : "pcs");
+      const normalizedQuantity = await convertToBaseUnit(materialVariant.id, quantity, inputUnit, (materialVariant.material.baseUnit || "PCS") as any, tx);
 
       const newBalance = await createLedgerEntry(tx, {
         materialVariantId,
@@ -460,7 +484,7 @@ export const recordOpeningStock = async (userId: string, payload: RecordOpeningS
         quantity,
         unit: inputUnit,
         normalizedQuantity: normalizedQuantity.toNumber(),
-        normalizedUnit: materialVariant.baseUnit || "PCS"
+        normalizedUnit: materialVariant.material.baseUnit || "PCS"
       });
     }
 
@@ -496,7 +520,10 @@ export const createStockTransfer = async (userId: string, payload: CreateStockTr
   if (!destinationWarehouse || !destinationWarehouse.isActive) throw new AppError("BAD_REQUEST", "Destination warehouse not found or inactive");
 
   const materialVariantIds = items.map((i) => i.materialVariantId);
-  const materialVariants = await prisma.materialVariant.findMany({ where: { id: { in: materialVariantIds } } });
+  const materialVariants = await prisma.materialVariant.findMany({
+    where: { id: { in: materialVariantIds } },
+    include: { material: true }
+  });
   const materialVariantMap = new Map(materialVariants.map((variant) => [variant.id, variant]));
   for (const it of items) {
     const variant = materialVariantMap.get(it.materialVariantId);
@@ -537,8 +564,8 @@ export const createStockTransfer = async (userId: string, payload: CreateStockTr
       items: {
         create: await Promise.all(items.map(async (it) => {
           const variant = materialVariantMap.get(it.materialVariantId)!;
-          const inputUnit = it.unit || (variant.baseUnit === "G" ? "g" : variant.baseUnit === "ML" ? "ml" : "pcs");
-          const normalizedQty = await convertToBaseUnit(variant.id, it.quantity, inputUnit, (variant.baseUnit || "PCS") as any, prisma);
+          const inputUnit = it.unit || (variant.material.baseUnit === "G" ? "g" : variant.material.baseUnit === "ML" ? "ml" : "pcs");
+          const normalizedQty = await convertToBaseUnit(variant.id, it.quantity, inputUnit, (variant.material.baseUnit || "PCS") as any, prisma);
           return {
             materialVariantId: it.materialVariantId,
             quantity: normalizedQty.toNumber()

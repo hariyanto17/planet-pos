@@ -9,6 +9,7 @@ export type CreateMaterialInput = {
   brandId?: string | null;
   categoryId?: string | null;
   name: string;
+  baseUnit?: "G" | "ML" | "PCS" | null;
   description?: string | null;
   isActive?: boolean;
 };
@@ -17,9 +18,7 @@ export type CreateMaterialVariantInput = {
   materialId: string;
   name: string;
   variantCode?: string | null;
-  contentQuantity?: number | string | null;
-  contentUnit?: string | null;
-  baseUnit?: "G" | "ML" | "PCS" | null;
+  quantityInBaseUnit?: number | string | any | null;
   sku?: string | null;
   barcode?: string | null;
   isActive?: boolean;
@@ -61,6 +60,7 @@ export const normalizeMaterialInput = (input: CreateMaterialInput) => {
     brandId: input.brandId ?? null,
     categoryId: input.categoryId ?? null,
     name: input.name.trim(),
+    baseUnit: input.baseUnit ?? "PCS",
     description: input.description ?? null,
     isActive: input.isActive ?? true,
   };
@@ -79,12 +79,7 @@ export const normalizeMaterialVariantInput = (input: CreateMaterialVariantInput)
     materialId: input.materialId,
     name: input.name.trim(),
     variantCode: input.variantCode ?? null,
-    contentQuantity:
-      input.contentQuantity !== undefined && input.contentQuantity !== null
-        ? input.contentQuantity.toString()
-        : null,
-    contentUnit: input.contentUnit ?? null,
-    baseUnit: input.baseUnit ?? "PCS",
+    quantityInBaseUnit: input.quantityInBaseUnit ? input.quantityInBaseUnit.toString() : "1",
     sku: input.sku ?? null,
     barcode: input.barcode ?? null,
     isActive: input.isActive ?? true,
@@ -163,7 +158,12 @@ export const createInventoryStock = async (input: CreateInventoryStockInput) => 
         materialVariantId: input.materialVariantId,
       },
     },
+    update: {
+      quantity:
+        input.quantity !== undefined && input.quantity !== null
+          ? input.quantity.toString()
+          : "0",
+    },
     create: normalizeInventoryStockInput(input),
-    update: normalizeInventoryStockInput(input),
   });
 };

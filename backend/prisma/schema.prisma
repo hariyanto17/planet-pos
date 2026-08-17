@@ -173,11 +173,13 @@ model Material {
   categoryId  String?
   category    Category?        @relation(fields: [categoryId], references: [id])
   name        String
+  baseUnit    BaseUnit
   description String?
   isActive    Boolean          @default(true)
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   variants    MaterialVariant[]
+  recipeItems RecipeItem[]
 
   @@index([brandId])
   @@index([categoryId])
@@ -191,15 +193,15 @@ model MaterialVariant {
   name                   String
   variantCode            String?
   specification          String?
-  baseUnit               BaseUnit
+  quantityInBaseUnit     Decimal                  @db.Decimal(12, 3)
   sku                    String?                  @unique
   barcode                String?                  @unique
   isActive               Boolean                  @default(true)
+  cost                   Decimal?                 @db.Decimal(12, 2)
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
   inventoryStocks        InventoryStock[]
   stockLedgers           StockLedger[]
-  recipeItems            RecipeItem[]
   packagingConfigurations PackagingConfiguration[]
   supplierOffers         SupplierOffer[]
   stockTransferItems     StockTransferItem[]
@@ -245,7 +247,6 @@ model PackagingVersion {
   isActive                Boolean                 @default(true)
   conversionFactor        Decimal                 @db.Decimal(14, 3)
   normalizedToBaseQuantity Decimal                @db.Decimal(14, 3)
-  baseUnit                BaseUnit
   createdAt               DateTime                @default(now())
   updatedAt               DateTime                @updatedAt
   purchaseReceiptItems    PurchaseReceiptItem[]
@@ -298,12 +299,14 @@ model SellableProduct {
   id                       String              @id @default(uuid())
   name                     String
   sku                      String?             @unique
+  barcode                  String?             @unique
   categoryId               String?
   category                 Category?           @relation(fields: [categoryId], references: [id])
   brandId                  String?
   brand                    Brand?              @relation(fields: [brandId], references: [id])
   productType              SellableProductType @default(DIRECT_SALE)
   price                    Decimal?            @db.Decimal(12, 2)
+  cost                     Decimal?            @db.Decimal(12, 2)
   directSaleMaterialVariantId String?
   directSaleMaterialVariant MaterialVariant?    @relation("DirectSaleMaterialVariant", fields: [directSaleMaterialVariantId], references: [id])
   isActive                 Boolean             @default(true)
@@ -336,17 +339,17 @@ model Recipe {
 }
 
 model RecipeItem {
-  id                String          @id @default(uuid())
-  recipeId          String
-  recipe            Recipe          @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  materialVariantId String
-  materialVariant   MaterialVariant @relation(fields: [materialVariantId], references: [id])
-  quantity          Decimal         @db.Decimal(14, 3)
-  note              String?
-  createdAt         DateTime        @default(now())
+  id         String   @id @default(uuid())
+  recipeId   String
+  recipe     Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  materialId String
+  material   Material @relation(fields: [materialId], references: [id])
+  quantity   Decimal  @db.Decimal(14, 3)
+  note       String?
+  createdAt  DateTime @default(now())
 
   @@index([recipeId])
-  @@index([materialVariantId])
+  @@index([materialId])
 }
 
 model Unit {

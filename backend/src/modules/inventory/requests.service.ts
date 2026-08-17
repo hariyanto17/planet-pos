@@ -41,13 +41,16 @@ export const createStockRequest = async (
     });
 
     for (const item of items) {
-      const materialVariant = await tx.materialVariant.findUnique({ where: { id: item.materialVariantId } });
+      const materialVariant = await tx.materialVariant.findUnique({
+        where: { id: item.materialVariantId },
+        include: { material: true }
+      });
       if (!materialVariant || !materialVariant.isActive) {
         throw new AppError("BAD_REQUEST", `Material variant ${item.materialVariantId} not found or inactive`);
       }
 
-      const inputUnit = item.unit || (materialVariant.baseUnit === "G" ? "g" : materialVariant.baseUnit === "ML" ? "ml" : "pcs");
-      const normalizedQty = await convertToBaseUnit(materialVariant.id, item.quantity, inputUnit, (materialVariant.baseUnit || "PCS") as any, tx);
+      const inputUnit = item.unit || (materialVariant.material.baseUnit === "G" ? "g" : materialVariant.material.baseUnit === "ML" ? "ml" : "pcs");
+      const normalizedQty = await convertToBaseUnit(materialVariant.id, item.quantity, inputUnit, (materialVariant.material.baseUnit || "PCS") as any, tx);
 
       await tx.stockRequestItem.create({
         data: {

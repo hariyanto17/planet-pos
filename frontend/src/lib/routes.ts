@@ -46,6 +46,7 @@ export const ROUTES_CONFIG: RouteConfig[] = [
   { path: "/tables", workspace: "ADMIN" },
   { path: "/users", workspace: "ADMIN" },
   { path: "/inventory", workspace: "ADMIN" },
+  { path: "/suppliers", workspace: "ADMIN" },
 
   // Warehouse Workspace Routes
   { path: "/warehouse/dashboard", workspace: "WAREHOUSE" },
@@ -67,15 +68,16 @@ export interface SidebarItemConfig {
 export const SIDEBAR_CONFIGS: Record<WorkspaceType, SidebarItemConfig[]> = {
   ADMIN: [
     { name: "Dashboard", href: "/dashboard", iconName: "dashboard" },
+    { name: "Laporan", href: "/reports", iconName: "reports" },
     { name: "Pesanan", href: "/orders", iconName: "orders" },
-    { name: "Produk", href: "/products", iconName: "products" },
+    { name: "Units", href: "/warehouse/settings/units", iconName: "ruler" },
     { name: "Kategori", href: "/categories", iconName: "categories" },
+    { name: "Supplier", href: "/suppliers", iconName: "users" },
+    { name: "Produk", href: "/products", iconName: "products" },
+    { name: "Stok Admin", href: "/inventory", iconName: "inventory" },
     { name: "Promosi", href: "/promotions", iconName: "promotions" },
     { name: "Meja", href: "/tables", iconName: "tables" },
-    { name: "Stok Admin", href: "/inventory", iconName: "inventory" },
-    { name: "Laporan", href: "/reports", iconName: "reports" },
     { name: "Staf", href: "/users", iconName: "users" },
-    { name: "Units", href: "/warehouse/settings/units", iconName: "ruler" },
     { name: "Pengaturan Gudang", href: "/warehouse/settings/warehouses", iconName: "tables" },
   ],
   WAREHOUSE: [

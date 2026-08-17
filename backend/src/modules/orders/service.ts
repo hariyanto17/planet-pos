@@ -47,7 +47,7 @@ export const createOrder = async (
         category: true,
         recipe: {
           include: {
-            items: { include: { materialVariant: true } },
+            items: { include: { material: true } },
           },
         },
       },
@@ -62,6 +62,7 @@ export const createOrder = async (
 
     const sellableProductMap = new Map(sellableProducts.map((product) => [product.id, product]));
     const totalRequiredMap = new Map<string, number>();
+    const directSaleRequiredMap = new Map<string, number>();
 
     for (const item of input.items) {
       if (!item.sellableProductId) continue;
@@ -71,22 +72,60 @@ export const createOrder = async (
       const recipe = product.recipe;
       if (recipe && recipe.items.length > 0) {
         for (const recipeItem of recipe.items) {
-          const key = `mv:${recipeItem.materialVariantId}`;
+          const key = `mat:${recipeItem.materialId}`;
           const currentReq = totalRequiredMap.get(key) || 0;
           totalRequiredMap.set(key, currentReq + Number(item.quantity) * Number(recipeItem.quantity));
         }
       } else if (product.directSaleMaterialVariantId) {
         const key = `mv:${product.directSaleMaterialVariantId}`;
-        const currentReq = totalRequiredMap.get(key) || 0;
-        totalRequiredMap.set(key, currentReq + Number(item.quantity));
+        const currentReq = directSaleRequiredMap.get(key) || 0;
+        directSaleRequiredMap.set(key, currentReq + Number(item.quantity));
       }
     }
 
     if (totalRequiredMap.size > 0) {
+      for (const [key, reqQty] of totalRequiredMap.entries()) {
+        const materialId = key.replace("mat:", "");
+        const variants = await tx.materialVariant.findMany({
+          where: { materialId, isActive: true },
+        });
+        const variantIds = variants.map((v) => v.id);
+
+        const inventoryStocks = await tx.inventoryStock.findMany({
+          where: {
+            warehouse: { isActive: true },
+            materialVariantId: { in: variantIds },
+          },
+          select: { materialVariantId: true, quantity: true },
+        });
+
+        let totalPhysicalStock = 0;
+        for (const stock of inventoryStocks) {
+          totalPhysicalStock += Number(stock.quantity);
+        }
+
+        const committedMap = await getCommittedStockMap(tx);
+        let totalCommittedStock = 0;
+        for (const variantId of variantIds) {
+          totalCommittedStock += committedMap.get(`mv:${variantId}`) || 0;
+        }
+
+        const totalAvailableStock = totalPhysicalStock - totalCommittedStock;
+        if (totalAvailableStock < reqQty) {
+          const material = await tx.material.findUnique({ where: { id: materialId } });
+          throw new AppError(
+            "BAD_REQUEST",
+            `Insufficient inventory for material ${material?.name ?? materialId}. Required: ${reqQty}, Available: ${totalAvailableStock}`
+          );
+        }
+      }
+    }
+
+    if (directSaleRequiredMap.size > 0) {
       const inventoryStocks = await tx.inventoryStock.findMany({
         where: {
           warehouse: { isActive: true },
-          materialVariantId: { in: [...new Set([...totalRequiredMap.keys()].map((key) => key.replace("mv:", "")))] },
+          materialVariantId: { in: [...new Set([...directSaleRequiredMap.keys()].map((k) => k.replace("mv:", "")))] },
         },
         select: { materialVariantId: true, quantity: true },
       });
@@ -98,7 +137,7 @@ export const createOrder = async (
       }
 
       const committedMap = await getCommittedStockMap(tx);
-      for (const [key, reqQty] of totalRequiredMap.entries()) {
+      for (const [key, reqQty] of directSaleRequiredMap.entries()) {
         const materialVariantId = key.replace("mv:", "");
         const physicalStock = totalStockMap.get(materialVariantId) || 0;
         const committedStock = committedMap.get(key) || 0;
@@ -108,7 +147,7 @@ export const createOrder = async (
           const materialVariant = await tx.materialVariant.findUnique({ where: { id: materialVariantId } });
           throw new AppError(
             "BAD_REQUEST",
-            `Insufficient inventory for ${materialVariant?.name ?? materialVariantId}. Required: ${reqQty}, Available: ${availableStock}`
+            `Insufficient inventory for variant ${materialVariant?.name ?? materialVariantId}. Required: ${reqQty}, Available: ${availableStock}`
           );
         }
       }
@@ -426,73 +465,127 @@ export const deductInventoryForCompletedOrder = async (
       }
 
       for (const recipeItem of sellable.recipe.items) {
-        const quantityToDeduct = -Number(item.quantity) * Number(recipeItem.quantity);
-        const currentStock = await tx.inventoryStock.findUnique({
+        // Resolve all active variants for the parent material
+        const variants = await tx.materialVariant.findMany({
+          where: { materialId: recipeItem.materialId, isActive: true },
+          orderBy: { cost: "asc" },
+        });
+
+        if (variants.length === 0) {
+          throw new AppError("BAD_REQUEST", `Bahan baku dengan ID ${recipeItem.materialId} tidak memiliki varian aktif.`);
+        }
+
+        // Get current stock in the kitchen warehouse for these variants
+        const stocks = await tx.inventoryStock.findMany({
           where: {
-            warehouseId_materialVariantId: {
-              warehouseId: kitchenWarehouse.id,
-              materialVariantId: recipeItem.materialVariantId,
-            },
+            warehouseId: kitchenWarehouse.id,
+            materialVariantId: { in: variants.map((v) => v.id) },
           },
         });
 
-        const currentQty = currentStock ? new Decimal(currentStock.quantity) : new Decimal(0);
-        const updatedQty = currentQty.add(new Decimal(quantityToDeduct));
+        const stockMap = new Map<string, number>(
+          stocks.map((s) => [s.materialVariantId, Number(s.quantity)])
+        );
 
-        // Allow negative stock for kitchen storage, but check total kitchen storage available
-        if (updatedQty.lt(0)) {
-          const allKitchenStocks = await tx.inventoryStock.findMany({
+        let remainingToDeduct = Number(item.quantity) * Number(recipeItem.quantity);
+        const deductions: Array<{ variantId: string; quantity: number }> = [];
+
+        // Pass 1: Deduct from variants with positive stock
+        for (const variant of variants) {
+          if (remainingToDeduct <= 0) break;
+          const currentStock = stockMap.get(variant.id) || 0;
+          if (currentStock > 0) {
+            const deductAmount = Math.min(remainingToDeduct, currentStock);
+            deductions.push({ variantId: variant.id, quantity: deductAmount });
+            remainingToDeduct -= deductAmount;
+          }
+        }
+
+        // Pass 2: Remaining goes to the primary variant (allowing negative stock in kitchen)
+        if (remainingToDeduct > 0) {
+          const primaryVariant = variants[0];
+          const existingDeduction = deductions.find((d) => d.variantId === primaryVariant.id);
+          if (existingDeduction) {
+            existingDeduction.quantity += remainingToDeduct;
+          } else {
+            deductions.push({ variantId: primaryVariant.id, quantity: remainingToDeduct });
+          }
+          remainingToDeduct = 0;
+        }
+
+        // Execute deductions and write stock ledger logs
+        for (const deduction of deductions) {
+          const quantityToDeduct = -deduction.quantity;
+          const currentStock = await tx.inventoryStock.findUnique({
             where: {
-              materialVariantId: recipeItem.materialVariantId,
-              warehouse: {
-                warehouseType: "KITCHEN_STORAGE",
-                isActive: true,
+              warehouseId_materialVariantId: {
+                warehouseId: kitchenWarehouse.id,
+                materialVariantId: deduction.variantId,
               },
             },
           });
 
-          const totalKitchenStock = allKitchenStocks.reduce(
-            (sum, stock) => sum.add(stock.quantity),
-            new Decimal(0)
-          );
+          const currentQty = currentStock ? new Decimal(currentStock.quantity) : new Decimal(0);
+          const updatedQty = currentQty.add(new Decimal(quantityToDeduct));
 
-          const minAllowedNegative = totalKitchenStock.negated();
-          if (updatedQty.lt(minAllowedNegative)) {
-            throw new AppError(
-              "BAD_REQUEST",
-              `Insufficient total kitchen storage for variant ${recipeItem.materialVariantId}. ` +
-              `Current in this warehouse: ${currentQty.toString()}, ` +
-              `Total across all kitchens: ${totalKitchenStock.toString()}, ` +
-              `Cannot go below: ${minAllowedNegative.toString()}`
+          if (updatedQty.lt(0)) {
+            const allKitchenStocks = await tx.inventoryStock.findMany({
+              where: {
+                materialVariantId: deduction.variantId,
+                warehouse: {
+                  warehouseType: "KITCHEN_STORAGE",
+                  isActive: true,
+                },
+              },
+            });
+
+            const totalKitchenStock = allKitchenStocks.reduce(
+              (sum, stock) => sum.add(stock.quantity),
+              new Decimal(0)
             );
+
+            const minAllowedNegative = totalKitchenStock.negated();
+            if (updatedQty.lt(minAllowedNegative)) {
+              throw new AppError(
+                "BAD_REQUEST",
+                `Insufficient total kitchen storage for variant ${deduction.variantId}. ` +
+                `Current in this warehouse: ${currentQty.toString()}, ` +
+                `Total across all kitchens: ${totalKitchenStock.toString()}, ` +
+                `Cannot go below: ${minAllowedNegative.toString()}`
+              );
+            }
           }
-        }
 
-        await tx.inventoryStock.upsert({
-          where: {
-            warehouseId_materialVariantId: {
-              warehouseId: kitchenWarehouse.id,
-              materialVariantId: recipeItem.materialVariantId,
+          await tx.inventoryStock.upsert({
+            where: {
+              warehouseId_materialVariantId: {
+                warehouseId: kitchenWarehouse.id,
+                materialVariantId: deduction.variantId,
+              },
             },
-          },
-          create: { warehouseId: kitchenWarehouse.id, materialVariantId: recipeItem.materialVariantId, quantity: updatedQty },
-          update: { quantity: updatedQty },
-        });
+            create: {
+              warehouseId: kitchenWarehouse.id,
+              materialVariantId: deduction.variantId,
+              quantity: updatedQty,
+            },
+            update: { quantity: updatedQty },
+          });
 
-        await tx.stockLedger.create({
-          data: {
-            warehouseId: kitchenWarehouse.id,
-            materialVariantId: recipeItem.materialVariantId,
-            movementType: StockMovementType.RECIPE_CONSUMPTION,
-            quantity: new Decimal(quantityToDeduct),
-            quantityBefore: currentQty,
-            quantityAfter: updatedQty,
-            referenceType: StockReferenceType.RECIPE_CONSUMPTION,
-            referenceId: order.id,
-            remarks: `Recipe consumption from order ${order.displayNumber}`,
-            createdById: userId,
-          },
-        });
+          await tx.stockLedger.create({
+            data: {
+              warehouseId: kitchenWarehouse.id,
+              materialVariantId: deduction.variantId,
+              movementType: StockMovementType.RECIPE_CONSUMPTION,
+              quantity: new Decimal(quantityToDeduct),
+              quantityBefore: currentQty,
+              quantityAfter: updatedQty,
+              referenceType: StockReferenceType.RECIPE_CONSUMPTION,
+              referenceId: order.id,
+              remarks: `Recipe consumption from order ${order.displayNumber}`,
+              createdById: userId,
+            },
+          });
+        }
       }
       continue;
     }

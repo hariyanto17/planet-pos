@@ -27,6 +27,9 @@ export const createProductHandler = async (req: Request, res: Response) => {
   }
   
   const product = await productService.createProduct(value);
+  if (!product) {
+    throw new AppError("INTERNAL_SERVER_ERROR", "Product creation failed to return a product record.");
+  }
   
   if (req.user) {
     await logActivity(req.user.id, "CREATE", "Product", product.id, product);

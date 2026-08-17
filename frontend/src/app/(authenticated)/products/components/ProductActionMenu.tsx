@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { MoreVertical, Edit, ClipboardList, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
+import { MoreVertical, Edit, ClipboardList, ToggleLeft, ToggleRight, Trash2, Eye } from "lucide-react";
 import { Product } from "../page";
 
 interface ProductActionMenuProps {
@@ -8,6 +8,7 @@ interface ProductActionMenuProps {
   onRecipe: (productId: string) => void;
   onToggleActive: (product: Product) => void;
   onDelete: (product: Product) => void;
+  onDetail: (product: Product) => void;
 }
 
 export const ProductActionMenu: React.FC<ProductActionMenuProps> = ({
@@ -16,11 +17,15 @@ export const ProductActionMenu: React.FC<ProductActionMenuProps> = ({
   onRecipe,
   onToggleActive,
   onDelete,
+  onDetail,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const toggleMenu = () => setIsOpen((prev) => !prev);
+  const toggleMenu = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsOpen((prev) => !prev);
+  };
 
   // Close menu on click outside
   useEffect(() => {
@@ -52,7 +57,8 @@ export const ProductActionMenu: React.FC<ProductActionMenuProps> = ({
     };
   }, [isOpen]);
 
-  const handleAction = (callback: () => void) => {
+  const handleAction = (e: React.MouseEvent, callback: () => void) => {
+    e.stopPropagation();
     callback();
     setIsOpen(false);
   };
@@ -74,7 +80,16 @@ export const ProductActionMenu: React.FC<ProductActionMenuProps> = ({
         <div className="absolute right-0 mt-1 w-52 rounded-xl bg-surface-secondary border border-border/80 shadow-2xl z-50 py-1.5 focus:outline-none animate-in fade-in slide-in-from-top-1 duration-100">
           <button
             type="button"
-            onClick={() => handleAction(() => onEdit(product))}
+            onClick={(e) => handleAction(e, () => onDetail(product))}
+            className="w-full px-4 py-2.5 text-sm text-text-primary hover:bg-surface/60 hover:text-white flex items-center gap-2.5 transition text-left"
+          >
+            <Eye className="w-4 h-4 text-text-secondary" />
+            <span>Detail</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => handleAction(e, () => onEdit(product))}
             className="w-full px-4 py-2.5 text-sm text-text-primary hover:bg-surface/60 hover:text-white flex items-center gap-2.5 transition text-left"
           >
             <Edit className="w-4 h-4 text-text-secondary" />
@@ -84,7 +99,7 @@ export const ProductActionMenu: React.FC<ProductActionMenuProps> = ({
           {product.inventoryType === "FINISHED_GOOD" && (
             <button
               type="button"
-              onClick={() => handleAction(() => onRecipe(product.id))}
+              onClick={(e) => handleAction(e, () => onRecipe(product.id))}
               className="w-full px-4 py-2 text-sm text-text-primary hover:bg-surface/60 hover:text-white flex items-center gap-2.5 transition text-left"
             >
               <ClipboardList className="w-4 h-4 text-text-secondary" />
@@ -101,7 +116,7 @@ export const ProductActionMenu: React.FC<ProductActionMenuProps> = ({
 
           <button
             type="button"
-            onClick={() => handleAction(() => onToggleActive(product))}
+            onClick={(e) => handleAction(e, () => onToggleActive(product))}
             className="w-full px-4 py-2.5 text-sm text-text-primary hover:bg-surface/60 hover:text-white flex items-center gap-2.5 transition text-left"
           >
             {product.isActive ? (
@@ -121,7 +136,7 @@ export const ProductActionMenu: React.FC<ProductActionMenuProps> = ({
 
           <button
             type="button"
-            onClick={() => handleAction(() => onDelete(product))}
+            onClick={(e) => handleAction(e, () => onDelete(product))}
             className="w-full px-4 py-2.5 text-sm text-rose-400 hover:bg-rose-950/20 hover:text-rose-300 flex items-center gap-2.5 transition text-left font-medium"
           >
             <Trash2 className="w-4 h-4" />

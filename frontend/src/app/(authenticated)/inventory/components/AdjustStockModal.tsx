@@ -110,7 +110,7 @@ export const AdjustStockModal: React.FC<Props> = ({
             <option value="">Pilih Produk...</option>
             {uniqueProducts.map((p) => (
               <option key={p.materialVariantId ?? p.id} value={p.materialVariantId ?? p.id}>
-                {p.name} ({p.sku})
+                {p.materialName ? `${p.materialName} - ${p.name}` : p.name} ({p.sku})
               </option>
             ))}
           </select>

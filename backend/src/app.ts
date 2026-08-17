@@ -22,6 +22,9 @@ import inventoryRouter from "./modules/inventory/router";
 import unitsRouter from "./modules/units/router";
 import warehousesRouter from "./modules/warehouses/router";
 import usersRouter from "./modules/users/router";
+import brandsRouter from "./modules/brands/router";
+import materialsRouter from "./modules/materials/router";
+import suppliersRouter from "./modules/suppliers/router";
 
 const app = express();
 
@@ -60,6 +63,9 @@ app.use("/api/inventory", inventoryRouter);
 app.use("/api/units", unitsRouter);
 app.use("/api/warehouses", warehousesRouter);
 app.use("/api/users", usersRouter);
+app.use("/api/brands", brandsRouter);
+app.use("/api/materials", materialsRouter);
+app.use("/api/suppliers", suppliersRouter);
 
 import { createServer } from "http";
 import { initSocket } from "./utils/socket";

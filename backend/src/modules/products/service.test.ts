@@ -55,17 +55,21 @@ test("Sellable products report available stock based on material-variant invento
     ],
   });
 
-  const products = await getAllProducts(true);
-  const product = products.find((p) => p.id === sellable.id);
+  try {
+    const products = await getAllProducts(true);
+    const product = products.find((p) => p.id === sellable.id);
 
-  assert.ok(product);
-  assert.equal(product.availableStock, 12);
-
-  await prisma.inventoryStock.deleteMany({ where: { materialVariantId: { in: [variantA.id, variantB.id] } } });
-  await prisma.stockLedger.deleteMany({ where: { materialVariantId: { in: [variantA.id, variantB.id] } } });
-  await prisma.recipeItem.deleteMany({ where: { materialVariantId: { in: [variantA.id, variantB.id] } } });
-  await prisma.recipe.delete({ where: { sellableProductId: sellable.id } });
-  await prisma.sellableProduct.delete({ where: { id: sellable.id } });
-  await prisma.materialVariant.deleteMany({ where: { id: { in: [variantA.id, variantB.id] } } });
-  await prisma.material.delete({ where: { id: material.id } });
+    assert.ok(product);
+    assert.equal(product.availableStock, 12);
+  } finally {
+    await prisma.inventoryStock.deleteMany({ where: { materialVariantId: { in: [variantA.id, variantB.id] } } });
+    await prisma.stockLedger.deleteMany({ where: { materialVariantId: { in: [variantA.id, variantB.id] } } });
+    await prisma.recipeItem.deleteMany({ where: { materialVariantId: { in: [variantA.id, variantB.id] } } });
+    await prisma.recipe.delete({ where: { sellableProductId: sellable.id } });
+    await prisma.sellableProduct.delete({ where: { id: sellable.id } });
+    await prisma.materialVariant.deleteMany({ where: { id: { in: [variantA.id, variantB.id] } } });
+    await prisma.material.delete({ where: { id: material.id } });
+    await prisma.$disconnect();
+    await pool.end();
+  }
 });

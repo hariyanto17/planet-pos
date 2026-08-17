@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as zod from "zod";
@@ -10,6 +11,7 @@ import {
   useCreateProductMutation,
   useUpdateProductMutation,
   useDeleteProductMutation,
+  useUpdateMaterialMutation,
 } from "@/lib/api/productApi";
 import { useGetCategoriesQuery } from "@/lib/api/categoryApi";
 import { useGetUnitsQuery } from "@/lib/api/inventoryApi";
@@ -26,6 +28,8 @@ import { TEXT } from "@/lib/i18n/id";
 import { RecipeModal } from "./components/RecipeModal";
 import { ProductActionMenu } from "./components/ProductActionMenu";
 import { ProductConversions } from "./components/ProductConversions";
+import { CreateMaterialModal } from "./components/CreateMaterialModal";
+import { CreateFinishedProductModal } from "./components/CreateFinishedProductModal";
 
 const productSchema = zod
   .object({
@@ -64,13 +68,6 @@ const productSchema = zod
           message: "Product Type is required when tracking stock & inventory",
         });
       }
-      if (!data.unitId) {
-        ctx.addIssue({
-          code: zod.ZodIssueCode.custom,
-          path: ["unitId"],
-          message: "Unit is required when tracking stock & inventory",
-        });
-      }
       if (!data.baseUnit) {
         ctx.addIssue({
           code: zod.ZodIssueCode.custom,
@@ -99,6 +96,7 @@ export interface Product {
   inventoryType?: string | null;
   minimumStock?: number | null;
   unitId?: string | null;
+  baseUnit?: string | null;
   unitConversions?: Array<{ id?: string; unit: string; baseQuantity: number | string; isDefault?: boolean }>;
   category?: {
     name: string;
@@ -157,12 +155,14 @@ const LiveImagePreview = ({ url }: { url?: string }) => {
 };
 
 export default function ProductsPage() {
+  const router = useRouter();
   const { data: products = [], isLoading: isLoadingProducts } = useGetProductsQuery();
   const { data: categories = [], isLoading: isLoadingCategories } = useGetCategoriesQuery();
   const { data: units = [], isLoading: isLoadingUnits } = useGetUnitsQuery();
   const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
   const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
   const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation();
+  const [updateMaterial] = useUpdateMaterialMutation();
 
   const [search, setSearch] = useState("");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("");
@@ -171,28 +171,13 @@ export default function ProductsPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedRecipeProductId, setSelectedRecipeProductId] = useState<string | null>(null);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isAddMaterialOpen, setIsAddMaterialOpen] = useState(false);
+  const [isAddFinishedProductOpen, setIsAddFinishedProductOpen] = useState(false);
+  const [selectedDetailMaterialId, setSelectedDetailMaterialId] = useState<string | null>(null);
+  const [selectedDetailProductId, setSelectedDetailProductId] = useState<string | null>(null);
   const [productConversions, setProductConversions] = useState<Array<{ id?: string; unit: string; baseQuantity: number | string; isDefault?: boolean }>>([]);
 
   const pageSize = 8;
-
-  const {
-    register: registerAdd,
-    handleSubmit: handleSubmitAdd,
-    reset: resetAdd,
-    formState: { errors: errorsAdd },
-    watch: watchAdd,
-    setValue: setValueAdd,
-  } = useForm<ProductSchemaInput>({
-    resolver: zodResolver(productSchema),
-    defaultValues: {
-      trackInventory: false,
-      minimumStock: 0,
-      inventoryType: "",
-      unitId: "",
-      baseUnit: "",
-    },
-  });
 
   const {
     register: registerEdit,
@@ -212,18 +197,9 @@ export default function ProductsPage() {
     },
   });
 
-  const trackInventoryAdd = watchAdd("trackInventory", false);
-  const trackInventoryEdit = watchEdit("trackInventory", false);
-  const imageUrlAdd = watchAdd("imageUrl");
   const imageUrlEdit = watchEdit("imageUrl");
-  const inventoryTypeAdd = watchAdd("inventoryType");
+  const trackInventoryEdit = watchEdit("trackInventory", false);
   const inventoryTypeEdit = watchEdit("inventoryType");
-
-  React.useEffect(() => {
-    if (trackInventoryAdd && (inventoryTypeAdd === "RAW_MATERIAL" || inventoryTypeAdd === "PACKAGING")) {
-      setValueAdd("price", undefined as any);
-    }
-  }, [trackInventoryAdd, inventoryTypeAdd, setValueAdd]);
 
   React.useEffect(() => {
     if (trackInventoryEdit && (inventoryTypeEdit === "RAW_MATERIAL" || inventoryTypeEdit === "PACKAGING")) {
@@ -253,73 +229,57 @@ export default function ProductsPage() {
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
 
-  const handleAdd = async (data: ProductSchemaInput) => {
-    try {
-      const isFinishedGood = !data.trackInventory || data.inventoryType === "FINISHED_GOOD";
-
-      // Auto-populate unitId from baseUnit for backward compatibility
-      let autoUnitId: string | undefined = undefined;
-      if (data.trackInventory && data.baseUnit) {
-        const baseUnitRecord = activeUnits.find((u: any) => u.symbol === data.baseUnit);
-        autoUnitId = baseUnitRecord?.id;
-      }
-
-      await createProduct({
-        categoryId: data.categoryId,
-        sku: data.sku || undefined,
-        name: data.name,
-        price: isFinishedGood ? (isNaN(data.price as any) ? null : data.price) : null,
-        cost: isNaN(data.cost as any) ? null : data.cost,
-        imageUrl: data.imageUrl || undefined,
-        trackInventory: data.trackInventory || false,
-        inventoryType: data.trackInventory ? (data.inventoryType as any) : undefined,
-        unitId: autoUnitId,
-        baseUnit: data.trackInventory ? (data.baseUnit as any) : undefined,
-        minimumStock: data.trackInventory ? data.minimumStock : 0,
-      }).unwrap();
-      setIsAddModalOpen(false);
-      resetAdd();
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   const handleEdit = async (data: ProductSchemaInput) => {
     if (!editingProduct) return;
     try {
       const isFinishedGood = !data.trackInventory || data.inventoryType === "FINISHED_GOOD";
 
-      // Auto-populate unitId from baseUnit for backward compatibility
-      let autoUnitId: string | undefined = undefined;
-      if (data.trackInventory && data.baseUnit) {
-        const baseUnitRecord = activeUnits.find((u: any) => u.symbol === data.baseUnit);
-        autoUnitId = baseUnitRecord?.id;
-      }
-
-      await updateProduct({
-        id: editingProduct.id,
-        body: {
-          categoryId: data.categoryId,
-          sku: data.sku || undefined,
+      if (data.trackInventory && (data.inventoryType === "RAW_MATERIAL" || data.inventoryType === "PACKAGING")) {
+        await updateMaterial({
+          id: editingProduct.id,
           name: data.name,
-          price: isFinishedGood ? (isNaN(data.price as any) ? null : data.price) : null,
-          cost: isNaN(data.cost as any) ? null : data.cost,
-          imageUrl: data.imageUrl || undefined,
-          trackInventory: data.trackInventory || false,
-          inventoryType: data.trackInventory ? (data.inventoryType as any) : undefined,
-          unitId: autoUnitId,
-          baseUnit: data.trackInventory ? (data.baseUnit as any) : undefined,
-          minimumStock: data.trackInventory ? data.minimumStock : 0,
-          unitConversions: productConversions.map((conversion) => ({
-            ...conversion,
-            baseQuantity: Number(conversion.baseQuantity),
-          })),
-        },
-      }).unwrap();
+          categoryId: data.categoryId,
+          isActive: editingProduct.isActive,
+          variant: {
+            sku: data.sku || undefined,
+            baseUnit: data.baseUnit,
+            variantQuantity: 1,
+            purchasePrice: isNaN(data.cost as any) ? undefined : data.cost,
+          }
+        }).unwrap();
+      } else {
+        // Auto-populate unitId from baseUnit for backward compatibility
+        let autoUnitId: string | undefined = undefined;
+        if (data.trackInventory && data.baseUnit) {
+          const baseUnitRecord = activeUnits.find((u: any) => u.symbol === data.baseUnit);
+          autoUnitId = baseUnitRecord?.id;
+        }
+
+        await updateProduct({
+          id: editingProduct.id,
+          body: {
+            categoryId: data.categoryId,
+            sku: data.sku || undefined,
+            name: data.name,
+            price: isFinishedGood ? (isNaN(data.price as any) ? null : data.price) : null,
+            imageUrl: data.imageUrl || undefined,
+            trackInventory: data.trackInventory || false,
+            inventoryType: data.trackInventory ? (data.inventoryType as any) : undefined,
+            unitId: autoUnitId,
+            baseUnit: data.trackInventory ? (data.baseUnit as any) : undefined,
+            minimumStock: data.trackInventory ? data.minimumStock : 0,
+            unitConversions: productConversions.map((conversion) => ({
+              ...conversion,
+              baseQuantity: Number(conversion.baseQuantity),
+            })),
+          },
+        }).unwrap();
+      }
       setEditingProduct(null);
       resetEdit();
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      alert(err.data?.message || "Gagal mengubah produk");
     }
   };
 
@@ -367,7 +327,10 @@ export default function ProductsPage() {
         title={TEXT.products.title}
         description={TEXT.products.subtitle}
         actionButton={
-          <Button onClick={() => setIsAddModalOpen(true)}>{TEXT.products.addBtn}</Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setIsAddMaterialOpen(true)}>+ Tambah Bahan Baku</Button>
+            <Button onClick={() => setIsAddFinishedProductOpen(true)}>+ Tambah Produk Jadi</Button>
+          </div>
         }
       />
 
@@ -379,36 +342,37 @@ export default function ProductsPage() {
             setPage(1);
           }}
         />
+        <div className="flex flex-row gap-4">
+          <select
+            value={selectedCategoryFilter}
+            onChange={(e) => {
+              setSelectedCategoryFilter(e.target.value);
+              setPage(1);
+            }}
+            className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm w-full md:w-48"
+          >
+            <option value="">Semua Kategori</option>
+            {categories.map((cat: Category) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
 
-        <select
-          value={selectedCategoryFilter}
-          onChange={(e) => {
-            setSelectedCategoryFilter(e.target.value);
-            setPage(1);
-          }}
-          className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm w-full md:w-48"
-        >
-          <option value="">Semua Kategori</option>
-          {categories.map((cat: Category) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.name}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={selectedInventoryTypeFilter}
-          onChange={(e) => {
-            setSelectedInventoryTypeFilter(e.target.value);
-            setPage(1);
-          }}
-          className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm w-full md:w-48"
-        >
-          <option value="">Semua Tipe</option>
-          <option value="FINISHED_GOOD">Finished Good (Produk Jadi)</option>
-          <option value="RAW_MATERIAL">Raw Material (Bahan Baku)</option>
-          <option value="PACKAGING">Packaging (Kemasan)</option>
-        </select>
+          <select
+            value={selectedInventoryTypeFilter}
+            onChange={(e) => {
+              setSelectedInventoryTypeFilter(e.target.value);
+              setPage(1);
+            }}
+            className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm w-full md:w-48"
+          >
+            <option value="">Semua Tipe</option>
+            <option value="FINISHED_GOOD">Finished Good (Produk Jadi)</option>
+            <option value="RAW_MATERIAL">Raw Material (Bahan Baku)</option>
+            <option value="PACKAGING">Packaging (Kemasan)</option>
+          </select>
+        </div>
       </div>
 
       {!isLoading && filteredProducts.length === 0 ? (
@@ -417,7 +381,13 @@ export default function ProductsPage() {
         <div className="flex flex-col gap-4">
           <DataTable headers={["SKU", TEXT.products.nameCol, "Kategori", "Harga Jual", "Harga Beli", TEXT.common.status, TEXT.common.actions]} isLoading={isLoading}>
             {paginatedProducts.map((p: Product) => (
-              <tr key={p.id} className="border-b border-border/50 hover:bg-surface/20 transition">
+              <tr
+                key={p.id}
+                className="group/row border-b border-border/50 hover:bg-surface-secondary/40 cursor-pointer transition"
+                onClick={() => {
+                  router.push(p.inventoryType === "FINISHED_GOOD" ? `/products/sellable/${p.id}` : `/products/materials/${p.id}`);
+                }}
+              >
                 <td className="px-6 py-4 text-sm font-semibold text-text-secondary">{p.sku || "-"}</td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
@@ -429,10 +399,10 @@ export default function ProductsPage() {
                       </div>
                     )}
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium text-text-primary">{p.name}</span>
-                      {p.trackInventory && p.unit && (
+                      <span className="text-sm font-medium text-text-primary group-hover/row:underline">{p.name}</span>
+                      {(p as any).variants && (p as any).variants.length > 0 && (
                         <span className="text-[10px] text-indigo-400 font-semibold mt-0.5">
-                          Satuan: {p.unit.name} ({p.unit.symbol})
+                          Varian: {(p as any).variants.map((v: any) => v.name).join(" · ")}
                         </span>
                       )}
                     </div>
@@ -443,18 +413,28 @@ export default function ProductsPage() {
                   {p.price !== null && p.price !== undefined ? `Rp ${Number(p.price).toLocaleString()}` : "-"}
                 </td>
                 <td className="px-6 py-4 text-sm font-medium text-text-primary">
-                  {p.cost !== null && p.cost !== undefined ? `Rp ${Number(p.cost).toLocaleString()}` : "-"}
+                  {p.inventoryType === "FINISHED_GOOD"
+                    ? (p.cost !== null && p.cost !== undefined ? `Rp ${Number(p.cost).toLocaleString()}` : "-")
+                    : ((p as any).variants && (p as any).variants[0]?.cost
+                      ? `Rp ${Number((p as any).variants[0].cost).toLocaleString()} / ${(p as any).variants[0].baseUnit}`
+                      : "-")
+                  }
                 </td>
                 <td className="px-6 py-4">
                   <StatusBadge isActive={p.isActive} />
                 </td>
-                 <td className="px-6 py-4 text-sm">
+                <td className="px-6 py-4 text-sm">
                   <ProductActionMenu
                     product={p}
                     onEdit={openEditModal}
-                    onRecipe={setSelectedRecipeProductId}
+                    onRecipe={(productId) => {
+                      router.push(`/products/sellable/${productId}`);
+                    }}
                     onToggleActive={handleToggleActive}
                     onDelete={(product) => setDeletingProductId(product.id)}
+                    onDetail={(product) => {
+                      router.push(product.inventoryType === "FINISHED_GOOD" ? `/products/sellable/${product.id}` : `/products/materials/${product.id}`);
+                    }}
                   />
                 </td>
               </tr>
@@ -479,197 +459,8 @@ export default function ProductsPage() {
         </div>
       )}
 
-      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title={TEXT.products.addTitle} maxWidth="max-w-2xl">
-        <form onSubmit={handleSubmitAdd(handleAdd)} className="flex flex-col gap-6">
-          <div className={`grid gap-6 ${trackInventoryAdd ? "lg:grid-cols-[1.45fr_0.95fr]" : ""}`}>
-            <div className="space-y-6">
-              {/* Product Information Section */}
-              <div>
-                <h4 className="text-sm font-semibold text-text-primary border-b border-border pb-2 mb-4">
-                  Product Information
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    id="addName"
-                    label="Product Name"
-                    placeholder="e.g. Salted Popcorn XL"
-                    error={errorsAdd.name?.message}
-                    {...registerAdd("name")}
-                  />
-                  <Input
-                    id="addSku"
-                    label="SKU"
-                    placeholder="e.g. POP-SLT-XL"
-                    helperText="Leave empty to generate later or manage manually."
-                    error={errorsAdd.sku?.message}
-                    {...registerAdd("sku")}
-                  />
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="addCategoryId" className="text-sm font-medium text-text-primary">
-                      Category
-                    </label>
-                    <select
-                      id="addCategoryId"
-                      {...registerAdd("categoryId")}
-                      className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
-                    >
-                      <option value="">Select category...</option>
-                      {categories.map((cat: Category) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </option>
-                      ))}
-                    </select>
-                    {errorsAdd.categoryId ? <p className="text-xs text-rose-500 mt-0.5">{errorsAdd.categoryId.message}</p> : null}
-                  </div>
-                  {(!trackInventoryAdd || inventoryTypeAdd === "FINISHED_GOOD") ? (
-                    <Input
-                      id="addPrice"
-                      label="Selling Price *"
-                      type="number"
-                      placeholder="e.g. 35000"
-                      error={errorsAdd.price?.message}
-                      {...registerAdd("price", { valueAsNumber: true })}
-                    />
-                  ) : (
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-sm font-medium text-text-secondary">Selling Price</label>
-                      <input
-                        type="text"
-                        disabled
-                        value="-"
-                        className="px-3 py-2 bg-zinc-800/50 border border-border rounded-lg text-text-muted text-sm cursor-not-allowed outline-none"
-                      />
-                      <p className="text-xs text-text-secondary">Produk ini tidak dijual langsung.</p>
-                    </div>
-                  )}
-                  <Input
-                    id="addCost"
-                    label="Cost / Harga Beli"
-                    type="number"
-                    placeholder="e.g. 20000"
-                    error={errorsAdd.cost?.message}
-                    {...registerAdd("cost", { valueAsNumber: true })}
-                  />
-                  <div className="md:col-span-2">
-                    <Input
-                      id="addImageUrl"
-                      label="Image URL"
-                      placeholder="e.g. https://example.com/popcorn.jpg"
-                      helperText="Optional. Paste an image URL to display a product preview."
-                      error={errorsAdd.imageUrl?.message}
-                      {...registerAdd("imageUrl")}
-                    />
-                    <LiveImagePreview key={imageUrlAdd} url={imageUrlAdd} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Track Stock & Inventory checkbox */}
-              <div className="flex flex-col gap-1 py-4 border-t border-border">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="trackInventoryAdd"
-                    {...registerAdd("trackInventory")}
-                    className="w-4 h-4 rounded border-border text-indigo-600 focus:ring-indigo-500 bg-surface cursor-pointer"
-                  />
-                  <label htmlFor="trackInventoryAdd" className="text-sm font-semibold text-text-primary cursor-pointer">
-                    Track Stock & Inventory
-                  </label>
-                </div>
-                <p className="text-xs text-text-secondary ml-7">
-                  Enable this if this product has physical stock that must be monitored.
-                </p>
-              </div>
-            </div>
-
-            {trackInventoryAdd && (
-              <div className="animate-in fade-in slide-in-from-top-2 duration-200 rounded-2xl border border-border bg-surface-secondary p-4">
-                <h4 className="text-sm font-semibold text-text-primary border-b border-border pb-2 mb-4">
-                  Inventory Settings
-                </h4>
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="addInventoryType" className="text-sm font-medium text-text-primary">
-                      Product Type *
-                    </label>
-                    <select
-                      id="addInventoryType"
-                      {...registerAdd("inventoryType")}
-                      className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
-                    >
-                      <option value="">Choose a type...</option>
-                      <option value="FINISHED_GOOD">Produk Jadi</option>
-                      <option value="RAW_MATERIAL">Bahan Baku</option>
-                      <option value="PACKAGING">Material Kemasan</option>
-                    </select>
-                    {errorsAdd.inventoryType ? <p className="text-xs text-rose-500 mt-0.5">{errorsAdd.inventoryType.message}</p> : null}
-                    {inventoryTypeAdd === "FINISHED_GOOD" && (
-                      <p className="text-xs text-text-secondary mt-1">
-                        <strong>Produk Jadi:</strong> Finished products sold directly to customers. Examples: Popcorn, Coca Cola, Nachos
-                      </p>
-                    )}
-                    {inventoryTypeAdd === "RAW_MATERIAL" && (
-                      <p className="text-xs text-text-secondary mt-1">
-                        <strong>Bahan Baku:</strong> Ingredients used for recipes. Examples: Corn, Salt, Butter
-                      </p>
-                    )}
-                    {inventoryTypeAdd === "PACKAGING" && (
-                      <p className="text-xs text-text-secondary mt-1">
-                        <strong>Material Kemasan:</strong> Packaging materials. Examples: Popcorn Bucket, Paper Cup, Plastic Lid
-                      </p>
-                    )}
-                  </div>
-
-                  {/* unitId field is deprecated and hidden for UX clarity - kept in schema for compatibility */}
-
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="addBaseUnit" className="text-sm font-medium text-text-primary">
-                      Base Unit *
-                    </label>
-                    <p className="text-xs text-text-secondary mb-2">
-                      The canonical unit used for recipes and inventory calculations.
-                    </p>
-                    <select
-                      id="addBaseUnit"
-                      {...registerAdd("baseUnit")}
-                      className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
-                    >
-                      <option value="">Select a base unit...</option>
-                      <option value="G">Gram (G) - for weight</option>
-                      <option value="ML">Milliliter (ML) - for volume</option>
-                      <option value="PCS">Piece (PCS) - for count</option>
-                    </select>
-                    {errorsAdd.baseUnit ? <p className="text-xs text-rose-500 mt-0.5">{errorsAdd.baseUnit.message}</p> : null}
-                  </div>
-
-                  <div>
-                    <Input
-                      id="addMinimumStock"
-                      label="Low Stock Alert"
-                      type="number"
-                      placeholder="e.g. 10"
-                      helperText="Set to 0 to disable low stock alerts."
-                      error={errorsAdd.minimumStock?.message}
-                      {...registerAdd("minimumStock", { valueAsNumber: true })}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <Button variant="ghost" type="button" onClick={() => setIsAddModalOpen(false)}>
-              {TEXT.common.cancel}
-            </Button>
-            <Button type="submit" isLoading={isCreating}>
-              {TEXT.common.add}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+      <CreateMaterialModal isOpen={isAddMaterialOpen} onClose={() => setIsAddMaterialOpen(false)} />
+      <CreateFinishedProductModal isOpen={isAddFinishedProductOpen} onClose={() => setIsAddFinishedProductOpen(false)} />
 
       <Modal isOpen={!!editingProduct} onClose={() => setEditingProduct(null)} title={TEXT.products.editTitle} maxWidth="max-w-2xl">
         <form onSubmit={handleSubmitEdit(handleEdit)} className="flex flex-col gap-6">
@@ -831,27 +622,27 @@ export default function ProductsPage() {
                   {errorsEdit.baseUnit ? <p className="text-xs text-rose-500 mt-0.5">{errorsEdit.baseUnit.message}</p> : null}
                 </div>
 
-                  <div className="md:col-span-2">
-                    <Input
-                      id="editMinimumStock"
-                      label="Low Stock Alert"
-                      type="number"
-                      placeholder="e.g. 10"
-                      helperText="Set to 0 to disable low stock alerts."
-                      error={errorsEdit.minimumStock?.message}
-                      {...registerEdit("minimumStock", { valueAsNumber: true })}
+                <div className="md:col-span-2">
+                  <Input
+                    id="editMinimumStock"
+                    label="Low Stock Alert"
+                    type="number"
+                    placeholder="e.g. 10"
+                    helperText="Set to 0 to disable low stock alerts."
+                    error={errorsEdit.minimumStock?.message}
+                    {...registerEdit("minimumStock", { valueAsNumber: true })}
+                  />
+                </div>
+
+                {trackInventoryEdit && editingProduct && (
+                  <div className="md:col-span-2 border-t border-border pt-4">
+                    <ProductConversions
+                      product={editingProduct as Product}
+                      onSave={setProductConversions}
+                      isLoading={isUpdating}
                     />
                   </div>
-
-                  {trackInventoryEdit && editingProduct && (
-                    <div className="md:col-span-2 border-t border-border pt-4">
-                      <ProductConversions
-                        product={editingProduct as Product}
-                        onSave={setProductConversions}
-                        isLoading={isUpdating}
-                      />
-                    </div>
-                  )}
+                )}
               </div>
             </div>
           )}
