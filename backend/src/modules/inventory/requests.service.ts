@@ -1,6 +1,7 @@
 import { prisma } from "../../utils/prisma";
 import { AppError } from "../../utils/errorHandler";
 import { Prisma, StockRequestStatus, StockTransferStatus, StockMovementType, StockReferenceType } from "@prisma/client";
+import { Decimal } from "@prisma/client-runtime-utils";
 import { createLedgerEntry } from "./stock.service";
 import { convertToBaseUnit } from "../../utils/units";
 
@@ -9,7 +10,7 @@ export const createStockRequest = async (
   userWarehouseId: string | null,
   userRole: string,
   requestingWarehouseId: string,
-  items: Array<{ materialVariantId: string; quantity: number; unit?: string }>,
+  items: Array<{ productId: string; variantId: string; packagingId?: string | null; quantity: number }>,
   notes?: string
 ) => {
   if (userRole === "WAREHOUSE" && userWarehouseId !== requestingWarehouseId) {
@@ -41,29 +42,87 @@ export const createStockRequest = async (
     });
 
     for (const item of items) {
-      const materialVariant = await tx.materialVariant.findUnique({
-        where: { id: item.materialVariantId },
-        include: { material: true }
-      });
-      if (!materialVariant || !materialVariant.isActive) {
-        throw new AppError("BAD_REQUEST", `Material variant ${item.materialVariantId} not found or inactive`);
+      // 1. Validate Product
+      const product = await tx.material.findUnique({ where: { id: item.productId } });
+      if (!product || !product.isActive) {
+        throw new AppError("BAD_REQUEST", `Product ${item.productId} not found or inactive`);
       }
 
-      const inputUnit = item.unit || (materialVariant.material.baseUnit === "G" ? "g" : materialVariant.material.baseUnit === "ML" ? "ml" : "pcs");
-      const normalizedQty = await convertToBaseUnit(materialVariant.id, item.quantity, inputUnit, (materialVariant.material.baseUnit || "PCS") as any, tx);
+      // 2. Validate Variant belongs to Product
+      const variant = await tx.materialVariant.findUnique({
+        where: { id: item.variantId },
+      });
+      if (!variant || !variant.isActive) {
+        throw new AppError("BAD_REQUEST", `Material variant ${item.variantId} not found or inactive`);
+      }
+      if (variant.materialId !== item.productId) {
+        throw new AppError("BAD_REQUEST", `Selected variant ${item.variantId} does not belong to the selected product ${item.productId}`);
+      }
+
+      const variantMultiplier = new Decimal(variant.quantityInBaseUnit);
+      if (variantMultiplier.lte(0)) {
+        throw new AppError("BAD_REQUEST", `Variant ${item.variantId} has an invalid base-unit conversion factor`);
+      }
+
+      // 3. Validate Packaging configuration belongs to variant (if provided)
+      let packagingMultiplier = new Decimal(1);
+      let packagingVersionId: string | null = null;
+
+      if (item.packagingId) {
+        const packaging = await tx.packagingConfiguration.findUnique({
+          where: { id: item.packagingId },
+          include: {
+            versions: {
+              where: { isActive: true, effectiveTo: null },
+              orderBy: [{ effectiveFrom: "desc" }, { versionNumber: "desc" }],
+              take: 1,
+            },
+          },
+        });
+        if (!packaging || packaging.materialVariantId !== variant.id) {
+          throw new AppError("BAD_REQUEST", "Selected packaging does not belong to the selected variant");
+        }
+        if (!packaging.isActive || !packaging.versions[0]) {
+          throw new AppError("BAD_REQUEST", "Selected packaging is inactive or has no active version");
+        }
+        packagingMultiplier = new Decimal(packaging.versions[0].conversionFactor);
+        if (packagingMultiplier.lte(0)) {
+          throw new AppError("BAD_REQUEST", "Selected packaging has an invalid conversion multiplier");
+        }
+        packagingVersionId = packaging.versions[0].id;
+      }
+
+      const normalizedQuantity = new Decimal(item.quantity).mul(packagingMultiplier).mul(variantMultiplier);
 
       await tx.stockRequestItem.create({
         data: {
           stockRequestId: created.id,
-          materialVariantId: item.materialVariantId,
-          quantity: normalizedQty.toNumber(),
+          materialVariantId: variant.id,
+          quantity: normalizedQuantity,
+          packagingVersionId,
+          requestedQuantity: new Decimal(item.quantity),
         },
       });
     }
 
     return tx.stockRequest.findUnique({
       where: { id: created.id },
-      include: { items: { include: { materialVariant: true } } },
+      include: {
+        items: {
+          include: {
+            materialVariant: {
+              include: {
+                material: { select: { name: true } }
+              }
+            },
+            packagingVersion: {
+              include: {
+                packagingConfiguration: { select: { name: true, unitLabel: true } }
+              }
+            }
+          }
+        }
+      },
     });
   });
 };
@@ -192,6 +251,8 @@ export const shipStockRequest = async (userId: string, requestId: string) => {
           create: request.items.map((it) => ({
             materialVariantId: it.materialVariantId,
             quantity: it.quantity,
+            packagingVersionId: it.packagingVersionId,
+            requestedQuantity: it.requestedQuantity,
           })),
         },
       },
@@ -206,6 +267,8 @@ export const shipStockRequest = async (userId: string, requestId: string) => {
         quantity: -Number(item.quantity),
         referenceType: StockReferenceType.TRANSFER,
         referenceId: transfer.id,
+        packagingVersionId: item.packagingVersionId,
+        receivedQuantity: item.requestedQuantity ? Number(item.requestedQuantity) : undefined,
         remarks: `Shipped request ${request.requestNumber}`,
         createdById: userId,
       });
@@ -218,7 +281,22 @@ export const shipStockRequest = async (userId: string, requestId: string) => {
         status: StockRequestStatus.SHIPPED,
         shippedAt: new Date(),
       },
-      include: { items: { include: { materialVariant: true } } },
+      include: {
+        items: {
+          include: {
+            materialVariant: {
+              include: {
+                material: { select: { name: true } }
+              }
+            },
+            packagingVersion: {
+              include: {
+                packagingConfiguration: { select: { name: true, unitLabel: true } }
+              }
+            }
+          }
+        }
+      },
     });
   });
 };
@@ -298,6 +376,8 @@ export const acceptStockRequest = async (
         quantity: Number(item.quantity),
         referenceType: StockReferenceType.TRANSFER,
         referenceId: transfer.id,
+        packagingVersionId: item.packagingVersionId,
+        receivedQuantity: item.requestedQuantity ? Number(item.requestedQuantity) : undefined,
         remarks: `Accepted request ${request.requestNumber}`,
         createdById: userId,
       });
@@ -436,7 +516,20 @@ export const getStockRequests = async (
       sourceUser: { select: { id: true, fullName: true, username: true } },
       requestingWarehouse: true,
       sourceWarehouse: true,
-      items: { include: { materialVariant: true } },
+      items: {
+        include: {
+          materialVariant: {
+            include: {
+              material: { select: { name: true } }
+            }
+          },
+          packagingVersion: {
+            include: {
+              packagingConfiguration: { select: { name: true, unitLabel: true } }
+            }
+          }
+        }
+      },
       stockTransfer: true,
     },
     orderBy: { createdAt: "desc" },

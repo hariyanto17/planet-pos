@@ -1,6 +1,7 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import { PrismaClient, Prisma, StockMovementType, StockReferenceType } from "@prisma/client";
+import { Decimal } from "@prisma/client-runtime-utils";
 import { getInventoryStatus } from "@shared/types";
 import { createLedgerEntry } from "./stock.service";
 import { getCommittedStockMap } from "../products/service";
@@ -125,6 +126,7 @@ export const getProductStockList = async (filters: GetProductStockListFilters) =
         const quantity = stock ? Number(stock.quantity) : 0;
         mapped.push({
           id: variant.id,
+          materialId: variant.materialId,
           sku: variant.sku || "-",
           name: variant.name,
           materialName: variant.material.name,
@@ -166,6 +168,7 @@ export const getProductStockList = async (filters: GetProductStockListFilters) =
       const quantity = stock ? Number(stock.quantity) : 0;
       return {
         id: variant.id,
+        materialId: variant.materialId,
         sku: variant.sku || "-",
         name: variant.name,
         materialName: variant.material.name,
@@ -208,34 +211,85 @@ export const getProductStockList = async (filters: GetProductStockListFilters) =
  * Record stock replenishment (RECEIVE)
  */
 export const createStockReceipt = async (userId: string, params: ReceiveStockParams) => {
-  const materialVariant = await prisma.materialVariant.findUnique({
-    where: { id: params.materialVariantId },
-    include: { material: true }
-  });
-  if (!materialVariant) throw new AppError("NOT_FOUND", "Material variant not found");
+  let normalizedQuantity = 0;
+  let packagingVersionId: string | null = null;
+  let variantQuantityInBaseUnit = 0;
+  let packagingConversionFactor = 1;
 
-  const unit = params.unit || (materialVariant.material.baseUnit === "G" ? "g" : materialVariant.material.baseUnit === "ML" ? "ml" : "pcs");
-
-  let normalizedQuantity: any = null;
   const newBalance = await prisma.$transaction(async (tx) => {
-    normalizedQuantity = await convertToBaseUnit(params.materialVariantId, params.quantity, unit, (materialVariant.material.baseUnit || "PCS") as any, tx);
-    return await createLedgerEntry(tx, {
-      materialVariantId: params.materialVariantId,
+    // The variant is the stockable item. Loading it together with its parent makes
+    // the Product -> Variant validation authoritative rather than UI-dependent.
+    const materialVariant = await tx.materialVariant.findUnique({
+      where: { id: params.variantId },
+      include: { material: true },
+    });
+    if (!materialVariant) throw new AppError("NOT_FOUND", "Material variant not found");
+    if (materialVariant.materialId !== params.productId) {
+      throw new AppError("BAD_REQUEST", "Selected variant does not belong to the selected product");
+    }
+    if (!materialVariant.isActive || !materialVariant.material.isActive) {
+      throw new AppError("BAD_REQUEST", "Selected product or variant is inactive");
+    }
+
+    const variantMultiplier = new Decimal(materialVariant.quantityInBaseUnit);
+    if (variantMultiplier.lte(0)) {
+      throw new AppError("BAD_REQUEST", "Selected variant has an invalid base-unit conversion");
+    }
+    variantQuantityInBaseUnit = variantMultiplier.toNumber();
+
+    let packagingMultiplier = new Decimal(1);
+    let receivedUnit = params.receivedUnit || materialVariant.name;
+    if (params.packagingId) {
+      const packaging = await tx.packagingConfiguration.findUnique({
+        where: { id: params.packagingId },
+        include: {
+          versions: {
+            where: { isActive: true, effectiveTo: null },
+            orderBy: [{ effectiveFrom: "desc" }, { versionNumber: "desc" }],
+            take: 1,
+          },
+        },
+      });
+      if (!packaging || packaging.materialVariantId !== materialVariant.id) {
+        throw new AppError("BAD_REQUEST", "Selected packaging does not belong to the selected variant");
+      }
+      if (!packaging.isActive || !packaging.versions[0]) {
+        throw new AppError("BAD_REQUEST", "Selected packaging is inactive or has no active multiplier");
+      }
+
+      packagingMultiplier = new Decimal(packaging.versions[0].conversionFactor);
+      if (packagingMultiplier.lte(0)) {
+        throw new AppError("BAD_REQUEST", "Selected packaging has an invalid multiplier");
+      }
+      packagingConversionFactor = packagingMultiplier.toNumber();
+      packagingVersionId = packaging.versions[0].id;
+      receivedUnit = params.receivedUnit || packaging.unitLabel || packaging.name;
+    }
+
+    // Stock and ledger quantities use Material.baseUnit. A variant contributes its
+    // configured quantityInBaseUnit; packaging only multiplies variant units.
+    normalizedQuantity = new Decimal(params.quantity).mul(packagingMultiplier).mul(variantMultiplier).toNumber();
+    return createLedgerEntry(tx, {
+      materialVariantId: materialVariant.id,
       warehouseId: params.warehouseId,
       movementType: StockMovementType.RECEIVE,
-      quantity: normalizedQuantity.toNumber(),
+      quantity: normalizedQuantity,
       referenceType: StockReferenceType.RECEIVE,
-      remarks: params.remarks,
+      packagingVersionId,
+      receivedQuantity: params.quantity,
+      receivedUnit,
+      remarks: params.note,
       createdById: userId,
     });
   });
 
   return {
     newBalance: Number(newBalance),
-    quantity: params.quantity,
-    unit: params.unit || (materialVariant.material.baseUnit === "G" ? "g" : materialVariant.material.baseUnit === "ML" ? "ml" : "pcs"),
-    normalizedQuantity: normalizedQuantity?.toNumber() ?? 0,
-    normalizedUnit: materialVariant.material.baseUnit || "PCS"
+    receivedQuantity: params.quantity,
+    packagingId: params.packagingId || null,
+    packagingMultiplier: packagingConversionFactor,
+    variantQuantityInBaseUnit,
+    normalizedQuantity,
   };
 };
 
@@ -492,91 +546,186 @@ export const recordOpeningStock = async (userId: string, payload: RecordOpeningS
   });
 };
 
-export interface CreateStockTransferItem {
-  materialVariantId: string;
-  quantity: number;
-  unit?: string;
-}
-
 export interface CreateStockTransferPayload {
+  productId: string;
+  variantId: string;
+  packagingId?: string | null;
   sourceWarehouseId: string;
   destinationWarehouseId: string;
-  items: CreateStockTransferItem[];
-  remarks?: string;
+  quantity: number;
+  notes?: string | null;
   sourceResponsibleUserId?: string | null;
   destinationResponsibleUserId?: string | null;
 }
 
 export const createStockTransfer = async (userId: string, payload: CreateStockTransferPayload) => {
-  const { sourceWarehouseId, destinationWarehouseId, items, remarks, sourceResponsibleUserId, destinationResponsibleUserId } = payload;
+  const {
+    productId,
+    variantId,
+    packagingId,
+    sourceWarehouseId,
+    destinationWarehouseId,
+    quantity,
+    notes,
+    sourceResponsibleUserId,
+    destinationResponsibleUserId,
+  } = payload;
 
   if (sourceWarehouseId === destinationWarehouseId) {
     throw new AppError("BAD_REQUEST", "Source and destination warehouses must be different");
   }
 
-  const sourceWarehouse = await prisma.warehouse.findUnique({ where: { id: sourceWarehouseId } });
-  const destinationWarehouse = await prisma.warehouse.findUnique({ where: { id: destinationWarehouseId } });
-  if (!sourceWarehouse || !sourceWarehouse.isActive) throw new AppError("BAD_REQUEST", "Source warehouse not found or inactive");
-  if (!destinationWarehouse || !destinationWarehouse.isActive) throw new AppError("BAD_REQUEST", "Destination warehouse not found or inactive");
+  return await prisma.$transaction(async (tx) => {
+    // 1. Validate warehouses
+    const sourceWarehouse = await tx.warehouse.findUnique({ where: { id: sourceWarehouseId } });
+    const destinationWarehouse = await tx.warehouse.findUnique({ where: { id: destinationWarehouseId } });
+    if (!sourceWarehouse || !sourceWarehouse.isActive) throw new AppError("BAD_REQUEST", "Source warehouse not found or inactive");
+    if (!destinationWarehouse || !destinationWarehouse.isActive) throw new AppError("BAD_REQUEST", "Destination warehouse not found or inactive");
 
-  const materialVariantIds = items.map((i) => i.materialVariantId);
-  const materialVariants = await prisma.materialVariant.findMany({
-    where: { id: { in: materialVariantIds } },
-    include: { material: true }
-  });
-  const materialVariantMap = new Map(materialVariants.map((variant) => [variant.id, variant]));
-  for (const it of items) {
-    const variant = materialVariantMap.get(it.materialVariantId);
-    if (!variant || !variant.isActive) {
-      throw new AppError("BAD_REQUEST", `Material variant ${it.materialVariantId} not found or inactive`);
-    }
-    if (it.quantity <= 0) {
-      throw new AppError("BAD_REQUEST", "Quantity must be greater than zero");
-    }
-  }
+    // 2. Validate Product (Material)
+    const product = await tx.material.findUnique({ where: { id: productId } });
+    if (!product || !product.isActive) throw new AppError("BAD_REQUEST", "Product not found or inactive");
 
-  if (sourceResponsibleUserId) {
-    const su = await prisma.user.findUnique({ where: { id: sourceResponsibleUserId } });
-    if (!su) throw new AppError("BAD_REQUEST", "Source responsible user not found");
-    if (!(su.role === "ADMIN" || su.role === "WAREHOUSE")) {
-      throw new AppError("BAD_REQUEST", "Source responsible user must have role ADMIN or WAREHOUSE");
-    }
-  }
-  if (destinationResponsibleUserId) {
-    const du = await prisma.user.findUnique({ where: { id: destinationResponsibleUserId } });
-    if (!du) throw new AppError("BAD_REQUEST", "Destination responsible user not found");
-    if (destinationWarehouse.warehouseType === "KITCHEN_STORAGE" && du.role !== "KITCHEN") {
-      throw new AppError("BAD_REQUEST", "Destination responsible user must have role KITCHEN for kitchen storage warehouse");
-    }
-  }
+    // 3. Validate Variant belongs to Product
+    const variant = await tx.materialVariant.findUnique({ where: { id: variantId } });
+    if (!variant || !variant.isActive) throw new AppError("BAD_REQUEST", "Material variant not found or inactive");
+    if (variant.materialId !== productId) throw new AppError("BAD_REQUEST", "Selected variant does not belong to the selected product");
 
-  const transferNumber = `TRF-${new Date().toISOString().slice(0,10).replace(/-/g,"")}-${Math.floor(Math.random()*900000+100000)}`;
+    const variantMultiplier = new Decimal(variant.quantityInBaseUnit);
+    if (variantMultiplier.lte(0)) {
+      throw new AppError("BAD_REQUEST", "Selected variant has an invalid base-unit conversion");
+    }
 
-  const created = await prisma.stockTransfer.create({
-    data: {
-      transferNumber,
-      sourceWarehouseId,
-      destinationWarehouseId,
-      requestedById: userId,
-      sourceResponsibleUserId: sourceResponsibleUserId || null,
-      destinationResponsibleUserId: destinationResponsibleUserId || null,
-      remarks: remarks || null,
-      items: {
-        create: await Promise.all(items.map(async (it) => {
-          const variant = materialVariantMap.get(it.materialVariantId)!;
-          const inputUnit = it.unit || (variant.material.baseUnit === "G" ? "g" : variant.material.baseUnit === "ML" ? "ml" : "pcs");
-          const normalizedQty = await convertToBaseUnit(variant.id, it.quantity, inputUnit, (variant.material.baseUnit || "PCS") as any, prisma);
-          return {
-            materialVariantId: it.materialVariantId,
-            quantity: normalizedQty.toNumber()
-          };
-        })),
+    // 4. Validate Packaging belongs to Variant (if packagingId is provided)
+    let packagingMultiplier = new Decimal(1);
+    let packagingVersionId: string | null = null;
+    let receivedUnit = variant.name;
+
+    if (packagingId) {
+      const packaging = await tx.packagingConfiguration.findUnique({
+        where: { id: packagingId },
+        include: {
+          versions: {
+            where: { isActive: true, effectiveTo: null },
+            orderBy: [{ effectiveFrom: "desc" }, { versionNumber: "desc" }],
+            take: 1,
+          },
+        },
+      });
+      if (!packaging || packaging.materialVariantId !== variant.id) {
+        throw new AppError("BAD_REQUEST", "Selected packaging does not belong to the selected variant");
+      }
+      if (!packaging.isActive || !packaging.versions[0]) {
+        throw new AppError("BAD_REQUEST", "Selected packaging is inactive or has no active multiplier");
+      }
+      packagingMultiplier = new Decimal(packaging.versions[0].conversionFactor);
+      if (packagingMultiplier.lte(0)) {
+        throw new AppError("BAD_REQUEST", "Selected packaging has an invalid multiplier");
+      }
+      packagingVersionId = packaging.versions[0].id;
+      receivedUnit = packaging.unitLabel || packaging.name;
+    }
+
+    // Calculate normalized quantity in base units
+    const normalizedQuantity = new Decimal(quantity).mul(packagingMultiplier).mul(variantMultiplier);
+    const normalizedQtyNum = normalizedQuantity.toNumber();
+
+    if (normalizedQtyNum <= 0) {
+      throw new AppError("BAD_REQUEST", "Transfer quantity must be greater than zero");
+    }
+
+    // 5. Check available source stock
+    const sourceStock = await tx.inventoryStock.findUnique({
+      where: {
+        warehouseId_materialVariantId: {
+          warehouseId: sourceWarehouseId,
+          materialVariantId: variant.id,
+        },
       },
-    },
-    include: { items: true },
-  });
+    });
 
-  return created;
+    const availableStock = sourceStock ? Number(sourceStock.quantity) : 0;
+    if (availableStock < normalizedQtyNum) {
+      throw new AppError(
+        "BAD_REQUEST",
+        `Insufficient inventory for variant ${variant.name} in warehouse ${sourceWarehouse.name}. Available: ${availableStock}, Requested: ${normalizedQtyNum}`
+      );
+    }
+
+    // 6. Access control validations for responsible users (if provided)
+    if (sourceResponsibleUserId) {
+      const su = await tx.user.findUnique({ where: { id: sourceResponsibleUserId } });
+      if (!su) throw new AppError("BAD_REQUEST", "Source responsible user not found");
+      if (!(su.role === "ADMIN" || su.role === "WAREHOUSE")) {
+        throw new AppError("BAD_REQUEST", "Source responsible user must have role ADMIN or WAREHOUSE");
+      }
+    }
+    if (destinationResponsibleUserId) {
+      const du = await tx.user.findUnique({ where: { id: destinationResponsibleUserId } });
+      if (!du) throw new AppError("BAD_REQUEST", "Destination responsible user not found");
+      if (destinationWarehouse.warehouseType === "KITCHEN_STORAGE" && du.role !== "KITCHEN") {
+        throw new AppError("BAD_REQUEST", "Destination responsible user must have role KITCHEN for kitchen storage warehouse");
+      }
+    }
+
+    const transferNumber = `TRF-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.floor(
+      Math.random() * 900000 + 100000
+    )}`;
+
+    // 7. Create completed StockTransfer record
+    const created = await tx.stockTransfer.create({
+      data: {
+        transferNumber,
+        sourceWarehouseId,
+        destinationWarehouseId,
+        requestedById: userId,
+        sourceResponsibleUserId: sourceResponsibleUserId || null,
+        destinationResponsibleUserId: destinationResponsibleUserId || null,
+        status: "COMPLETED",
+        completedById: userId,
+        completedAt: new Date(),
+        remarks: notes || null,
+        items: {
+          create: [{
+            materialVariantId: variant.id,
+            quantity: normalizedQuantity,
+          }],
+        },
+      },
+      include: { items: true },
+    });
+
+    // 8. Deduct stock from source and add stock to destination with ledger entries
+    await createLedgerEntry(tx, {
+      materialVariantId: variant.id,
+      warehouseId: sourceWarehouseId,
+      movementType: StockMovementType.TRANSFER_OUT,
+      quantity: -normalizedQtyNum,
+      referenceType: StockReferenceType.TRANSFER,
+      referenceId: created.id,
+      packagingVersionId,
+      receivedQuantity: quantity,
+      receivedUnit,
+      remarks: notes || `Transfer ${transferNumber}`,
+      createdById: userId,
+    });
+
+    await createLedgerEntry(tx, {
+      materialVariantId: variant.id,
+      warehouseId: destinationWarehouseId,
+      movementType: StockMovementType.TRANSFER_IN,
+      quantity: normalizedQtyNum,
+      referenceType: StockReferenceType.TRANSFER,
+      referenceId: created.id,
+      packagingVersionId,
+      receivedQuantity: quantity,
+      receivedUnit,
+      remarks: notes || `Transfer ${transferNumber}`,
+      createdById: userId,
+    });
+
+    return created;
+  });
 };
 
 export const completeStockTransfer = async (userId: string, transferId: string) => {
@@ -654,7 +803,17 @@ export const getStockTransfers = async (userId: string, userRole: string, userWa
     include: {
       items: {
         include: {
-          materialVariant: { select: { name: true, sku: true } }
+          materialVariant: {
+            select: {
+              name: true,
+              sku: true,
+              material: {
+                select: {
+                  name: true
+                }
+              }
+            }
+          }
         }
       },
       sourceWarehouse: { select: { name: true } },

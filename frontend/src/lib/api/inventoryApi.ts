@@ -35,7 +35,7 @@ export const inventoryApi = baseApi.injectEndpoints({
       }),
       providesTags: ["Inventory"],
     }),
-    receiveStock: builder.mutation<any, { materialVariantId: string; warehouseId: string; quantity: number; unit?: string; remarks?: string }>({
+    receiveStock: builder.mutation<any, { productId: string; variantId: string; packagingId?: string; warehouseId: string; quantity: number; receivedUnit?: string; note?: string }>({
       query: (body) => ({
         url: "/inventory/receive",
         method: "POST",
@@ -67,9 +67,19 @@ export const inventoryApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Inventory"],
     }),
-    transferStock: builder.mutation<any, { sourceWarehouseId: string; destinationWarehouseId: string; items: Array<{ materialVariantId: string; quantity: number; unit?: string }>; remarks?: string; sourceResponsibleUserId?: string | null; destinationResponsibleUserId?: string | null }>({
+    transferStock: builder.mutation<any, {
+      sourceWarehouseId: string;
+      destinationWarehouseId: string;
+      productId: string;
+      variantId: string;
+      packagingId?: string;
+      quantity: number;
+      notes?: string;
+      sourceResponsibleUserId?: string | null;
+      destinationResponsibleUserId?: string | null;
+    }>({
       query: (body) => ({
-        url: "/inventory/transfer",
+        url: "/inventory/transfers",
         method: "POST",
         body,
       }),
@@ -101,7 +111,7 @@ export const inventoryApi = baseApi.injectEndpoints({
       }),
       providesTags: ["Inventory"],
     }),
-    createStockRequest: builder.mutation<any, { requestingWarehouseId: string; items: Array<{ materialVariantId: string; quantity: number; unit?: string }>; notes?: string }>({
+    createStockRequest: builder.mutation<any, { requestingWarehouseId: string; items: Array<{ productId: string; variantId: string; packagingId?: string; quantity: number }>; notes?: string }>({
       query: (body) => ({
         url: "/inventory/requests",
         method: "POST",

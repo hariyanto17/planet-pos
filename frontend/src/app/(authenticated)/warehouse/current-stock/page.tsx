@@ -8,6 +8,7 @@ import {
   useGetInventoryProductsQuery,
   useGetWarehousesQuery,
 } from "@/lib/api/inventoryApi";
+import { useGetMaterialsQuery } from "@/lib/api/productApi";
 import { Button } from "@/components/Button";
 import { InventoryStats } from "../../inventory/components/InventoryStats";
 import { InventoryFilters } from "../../inventory/components/InventoryFilters";
@@ -38,6 +39,7 @@ export default function WarehouseCurrentStockPage() {
   // Queries
   const { data: summary, isLoading: isSummaryLoading, refetch: refetchSummary } = useGetInventorySummaryQuery();
   const { data: warehouses = [] } = useGetWarehousesQuery();
+  const { data: materials = [] } = useGetMaterialsQuery();
 
   const {
     data: productsData,
@@ -170,7 +172,7 @@ export default function WarehouseCurrentStockPage() {
         <ReceiveStockModal
           isOpen={isReceiveOpen}
           onClose={() => setIsReceiveOpen(false)}
-          products={productsList}
+          products={materials}
           warehouses={warehouses}
           onSuccess={handleRefresh}
         />

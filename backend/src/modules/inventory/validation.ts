@@ -1,11 +1,13 @@
 import Joi from "joi";
 
 export const receiveStockSchema = Joi.object({
-  materialVariantId: Joi.string().required(),
+  productId: Joi.string().required(),
+  variantId: Joi.string().required(),
+  packagingId: Joi.string().allow(null, "").optional(),
   warehouseId: Joi.string().required(),
   quantity: Joi.number().precision(3).positive().required(),
-  unit: Joi.string().allow("", null).optional(),
-  remarks: Joi.string().allow("", null).optional(),
+  receivedUnit: Joi.string().trim().max(100).allow("", null).optional(),
+  note: Joi.string().allow("", null).optional(),
 });
 
 export const adjustStockSchema = Joi.object({
@@ -55,19 +57,16 @@ export const recordOpeningStockSchema = Joi.object({
   items: Joi.array().items(openingStockItemSchema).min(1).required(),
 });
 
-export const stockTransferItemSchema = Joi.object({
-  materialVariantId: Joi.string().required(),
-  quantity: Joi.number().precision(3).positive().required(),
-  unit: Joi.string().allow("", null).optional(),
-});
-
 export const createStockTransferSchema = Joi.object({
+  productId: Joi.string().required(),
+  variantId: Joi.string().required(),
+  packagingId: Joi.string().allow(null, "").optional(),
   sourceWarehouseId: Joi.string().required(),
   destinationWarehouseId: Joi.string().required(),
-  items: Joi.array().items(stockTransferItemSchema).min(1).required(),
-  remarks: Joi.string().allow("", null).optional(),
-  sourceResponsibleUserId: Joi.string().allow(null, ""),
-  destinationResponsibleUserId: Joi.string().allow(null, ""),
+  quantity: Joi.number().precision(3).positive().required(),
+  notes: Joi.string().allow(null, "").optional(),
+  sourceResponsibleUserId: Joi.string().allow(null, "").optional(),
+  destinationResponsibleUserId: Joi.string().allow(null, "").optional(),
 }).custom((value, helpers) => {
   if (value.sourceWarehouseId && value.destinationWarehouseId && value.sourceWarehouseId === value.destinationWarehouseId) {
     return helpers.error("any.invalid");

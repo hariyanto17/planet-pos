@@ -111,7 +111,11 @@ export function InventoryTransferTable({ onSuccess }: Props) {
       >
         {filteredTransfers.map((t: any) => {
           const item = t.items?.[0]; // Get the first item (we usually only transfer one item in the MVP)
-          const productName = item?.product?.name || "-";
+          const productName = item
+            ? item.materialVariant?.material
+              ? `${item.materialVariant.material.name} - ${item.materialVariant.name}`
+              : item.materialVariant?.name || "-"
+            : "-";
           const quantity = item ? Number(item.quantity) : 0;
           const isIncomingDraft =
             t.status === "DRAFT" &&

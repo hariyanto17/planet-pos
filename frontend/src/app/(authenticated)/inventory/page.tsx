@@ -9,6 +9,7 @@ import {
   useGetStockMovementsQuery,
   useGetWarehousesQuery,
 } from "@/lib/api/inventoryApi";
+import { useGetMaterialsQuery } from "@/lib/api/productApi";
 import { Button } from "@/components/Button";
 import { InventoryStats } from "./components/InventoryStats";
 import { InventoryFilters } from "./components/InventoryFilters";
@@ -47,6 +48,7 @@ export default function InventoryPage() {
   // Queries
   const { data: summary, isLoading: isSummaryLoading, refetch: refetchSummary } = useGetInventorySummaryQuery();
   const { data: warehouses = [] } = useGetWarehousesQuery();
+  const { data: materials = [] } = useGetMaterialsQuery();
 
   const {
     data: productsData,
@@ -221,7 +223,7 @@ export default function InventoryPage() {
         <ReceiveStockModal
           isOpen={isReceiveOpen}
           onClose={() => setIsReceiveOpen(false)}
-          products={productsList}
+          products={materials}
           warehouses={warehouses}
           onSuccess={handleRefresh}
         />
@@ -251,7 +253,7 @@ export default function InventoryPage() {
         <TransferStockModal
           isOpen={isTransferOpen}
           onClose={() => setIsTransferOpen(false)}
-          products={productsList}
+          products={materials}
           warehouses={warehouses}
           onSuccess={handleRefresh}
         />
@@ -261,7 +263,7 @@ export default function InventoryPage() {
         <CreateStockRequestModal
           isOpen={isRequestOpen}
           onClose={() => setIsRequestOpen(false)}
-          products={productsList}
+          products={materials}
           warehouses={warehouses}
           onSuccess={handleRefresh}
         />

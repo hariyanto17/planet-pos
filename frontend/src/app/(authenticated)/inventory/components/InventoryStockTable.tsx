@@ -72,7 +72,7 @@ export function InventoryStockTable({
       >
         {productsList.map((p: any) => (
           <tr key={`${p.id}-${p.warehouseId}`} className="border-b border-border/40 hover:bg-zinc-800/10 animate-fade-in">
-            <td className="px-6 py-4 text-xs font-bold text-text-primary">{p.name}</td>
+            <td className="px-6 py-4 text-xs font-bold text-text-primary">{p.materialName ? `${p.materialName} - ${p.name}` : p.name}</td>
             <td className="px-6 py-4 text-xs font-medium text-text-secondary font-mono">{p.sku}</td>
             <td className="px-6 py-4 text-xs font-semibold text-text-primary">{p.warehouseName}</td>
             <td className="px-6 py-4 text-xs font-extrabold text-text-primary font-mono">

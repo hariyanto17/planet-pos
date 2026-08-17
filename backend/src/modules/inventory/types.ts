@@ -7,6 +7,9 @@ export interface CreateLedgerEntryParams {
   quantity: number; // Signed: + for receipt, - for sale/waste/decrement
   referenceType: StockReferenceType;
   referenceId?: string | null;
+  packagingVersionId?: string | null;
+  receivedQuantity?: number | null;
+  receivedUnit?: string | null;
   remarks?: string | null;
   createdById?: string | null;
 }
@@ -31,11 +34,13 @@ export interface GetStockMovementsFilters {
 }
 
 export interface ReceiveStockParams {
-  materialVariantId: string;
+  productId: string;
+  variantId: string;
+  packagingId?: string | null;
   warehouseId: string;
   quantity: number; // positive only
-  unit?: string;
-  remarks?: string;
+  receivedUnit?: string;
+  note?: string;
 }
 
 export interface AdjustStockParams {

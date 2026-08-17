@@ -27,6 +27,7 @@ export const getMaterials = async (req: Request, res: Response) => {
   const formatted = materials.map((m) => ({
     id: m.id,
     name: m.name,
+    baseUnit: m.baseUnit,
     category: m.category,
     brand: m.brand,
     isActive: m.isActive,

@@ -202,7 +202,12 @@ export default function KitchenWarehouseScreen() {
     try {
       const materialVariantId = resolveMaterialVariantId(selectedProductId);
       if (modalType === "RECEIVE") {
-        await receiveStock({ materialVariantId, warehouseId: kitchenWarehouseId, quantity: qtyNum, unit: selectedUnit || undefined, remarks }).unwrap();
+        const selectedProduct = allProducts?.find((product: any) => (product.materialVariantId ?? product.id) === materialVariantId);
+        const productId = selectedProduct?.materialId;
+        if (!productId) {
+          throw new Error("Produk induk untuk varian stok tidak ditemukan.");
+        }
+        await receiveStock({ productId, variantId: materialVariantId, warehouseId: kitchenWarehouseId, quantity: qtyNum, receivedUnit: selectedProduct?.name, note: remarks || undefined }).unwrap();
       } else if (modalType === "ADJUST") {
         await adjustStock({ materialVariantId, warehouseId: kitchenWarehouseId, quantity: qtyNum, unit: selectedUnit || undefined, remarks }).unwrap();
       } else if (modalType === "WASTE") {

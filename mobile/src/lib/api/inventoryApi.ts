@@ -35,7 +35,7 @@ export const inventoryApi = baseApi.injectEndpoints({
       }),
       providesTags: ["Inventory"] as any,
     }),
-    receiveStock: builder.mutation<any, { materialVariantId: string; warehouseId: string; quantity: number; unit?: string; remarks?: string }>({
+    receiveStock: builder.mutation<any, { productId: string; variantId: string; packagingId?: string; warehouseId: string; quantity: number; receivedUnit?: string; note?: string }>({
       query: (body) => ({
         url: "/inventory/receive",
         method: "POST",

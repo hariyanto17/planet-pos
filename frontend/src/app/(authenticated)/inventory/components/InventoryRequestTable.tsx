@@ -178,9 +178,11 @@ export function InventoryRequestTable({ warehouses, onSuccess }: Props) {
       >
         {requests.map((r: any) => {
           const item = r.items?.[0];
-          const productName = item?.product?.name || "-";
-          const quantity = item ? Number(item.quantity) : 0;
-          const displayUnit = item?.unit?.symbol || "pcs";
+          const productName = item?.materialVariant?.material?.name || "-";
+          const quantity = item ? (item.requestedQuantity ? Number(item.requestedQuantity) : Number(item.quantity)) : 0;
+          const displayUnit = item
+            ? item.packagingVersion?.packagingConfiguration?.name || item.materialVariant?.name || "pcs"
+            : "pcs";
 
           // Action flags
           const canClaim = r.status === "PENDING" && (currentUser.role === "ADMIN" || isWarehouseUser);
@@ -210,7 +212,12 @@ export function InventoryRequestTable({ warehouses, onSuccess }: Props) {
               <td className="px-6 py-4 text-xs text-text-primary">{r.requester?.fullName || "-"}</td>
               <td className="px-6 py-4 text-xs text-text-primary">{r.requestingWarehouse?.name}</td>
               <td className="px-6 py-4 text-xs text-text-primary">{r.sourceWarehouse?.name || "Belum Claim"}</td>
-              <td className="px-6 py-4 text-xs font-bold text-text-primary">{productName}</td>
+              <td className="px-6 py-4 text-xs text-text-primary">
+                <div className="font-bold">{productName}</div>
+                <div className="text-text-secondary text-[11px] mt-0.5">
+                  Varian: {item?.materialVariant?.name || "-"} | Packaging: {item?.packagingVersion?.packagingConfiguration?.name || "Tidak ada"}
+                </div>
+              </td>
               <td className="px-6 py-4 text-xs font-mono text-text-primary">
                 {quantity} {displayUnit}
               </td>

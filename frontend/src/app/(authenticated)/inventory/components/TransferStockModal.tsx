@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Modal } from "@/components/Modal";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
-import { useTransferStockMutation } from "@/lib/api/inventoryApi";
+import { useTransferStockMutation, useGetInventoryProductsQuery } from "@/lib/api/inventoryApi";
+import { useGetPackagingByVariantQuery } from "@/lib/api/productApi";
 import { useAppSelector } from "@/lib/store/hooks";
 import { selectCurrentUser } from "@/lib/store/features/auth/selectors";
-import { getAvailableUnits, getDefaultUnit, formatConversionPreview } from "@/lib/utils/unitConversions";
 
 interface Props {
   isOpen: boolean;
@@ -15,25 +15,70 @@ interface Props {
   onSuccess: () => void;
 }
 
+const getCurrentPackagingVersion = (packaging: any) =>
+  packaging.versions?.find((version: any) => version.isActive && !version.effectiveTo) ?? null;
+
+const selectClass = "w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm font-semibold disabled:bg-surface-secondary disabled:text-text-muted disabled:cursor-not-allowed";
+
 export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products = [], warehouses = [], onSuccess }) => {
   const currentUser = useAppSelector(selectCurrentUser);
   const [sourceWarehouseId, setSourceWarehouseId] = useState("");
   const [destinationWarehouseId, setDestinationWarehouseId] = useState("");
-  const [materialVariantId, setMaterialVariantId] = useState("");
+  const [productId, setProductId] = useState("");
+  const [variantId, setVariantId] = useState("");
+  const [packagingId, setPackagingId] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [unit, setUnit] = useState("");
   const [remarks, setRemarks] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
   const [transferStock, { isLoading }] = useTransferStockMutation();
 
-  const selectedProduct = products.find((p) => (p.materialVariantId ?? p.id) === materialVariantId);
-  const availableUnits = getAvailableUnits(selectedProduct);
+  // Load available stock in source warehouse
+  const { data: sourceStocksData } = useGetInventoryProductsQuery(
+    { warehouseId: sourceWarehouseId, limit: 100 },
+    { skip: !sourceWarehouseId || !isOpen }
+  );
+  const sourceStocks = sourceStocksData?.data || [];
 
-  const handleProductChange = (val: string) => {
-    setMaterialVariantId(val);
-    const prod = products.find((p) => (p.materialVariantId ?? p.id) === val);
-    setUnit(getDefaultUnit(prod));
+  const selectedProduct = products.find((product) => product.id === productId);
+  const variants = selectedProduct?.variants?.filter((variant: any) => variant.isActive) ?? [];
+  const selectedVariant = variants.find((variant: any) => variant.id === variantId);
+
+  // Fetch packaging options
+  const { data: packagingConfigurations = [], isLoading: isPackagingLoading } = useGetPackagingByVariantQuery(variantId, { skip: !variantId });
+  const packagingOptions = useMemo(() => packagingConfigurations.filter((packaging: any) => packaging.isActive && getCurrentPackagingVersion(packaging)), [packagingConfigurations]);
+  const selectedPackaging = packagingOptions.find((packaging: any) => packaging.id === packagingId);
+
+  // Conversion calculations
+  const packagingMultiplier = selectedPackaging ? Number(getCurrentPackagingVersion(selectedPackaging).conversionFactor) : 1;
+  const variantMultiplier = selectedVariant ? Number(selectedVariant.quantityInBaseUnit) : 1;
+  const receivedQuantity = Number(quantity);
+  const normalizedQuantity = Number.isFinite(receivedQuantity) && receivedQuantity > 0 ? receivedQuantity * packagingMultiplier * variantMultiplier : 0;
+  const baseUnit = selectedProduct?.baseUnit?.toLowerCase() || "unit";
+
+  // Check available stock in source warehouse for the selected variant
+  const matchingStock = sourceStocks.find((s: any) => s.id === variantId);
+  const availableBaseQty = matchingStock ? Number(matchingStock.quantity) : 0;
+  const availableInContext = availableBaseQty / (packagingMultiplier * variantMultiplier);
+
+  const resetForm = () => {
+    setProductId("");
+    setVariantId("");
+    setPackagingId("");
+    setQuantity("");
+    setRemarks("");
+    setErrorMsg("");
+  };
+
+  const handleProductChange = (nextProductId: string) => {
+    setProductId(nextProductId);
+    setVariantId("");
+    setPackagingId("");
+  };
+
+  const handleVariantChange = (nextVariantId: string) => {
+    setVariantId(nextVariantId);
+    setPackagingId("");
   };
 
   useEffect(() => {
@@ -64,8 +109,8 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
       setErrorMsg("Sumber dan tujuan gudang tidak boleh sama");
       return;
     }
-    if (!materialVariantId) {
-      setErrorMsg("Pilih produk");
+    if (!productId || !variantId) {
+      setErrorMsg("Pilih produk dan varian terlebih dahulu");
       return;
     }
     const qtyNum = parseFloat(quantity);
@@ -73,35 +118,28 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
       setErrorMsg("Jumlah transfer harus positif");
       return;
     }
+    if (qtyNum > availableInContext) {
+      setErrorMsg(`Jumlah transfer melebihi stok tersedia (${availableInContext.toFixed(3)} ${selectedPackaging ? selectedPackaging.name : selectedVariant.name})`);
+      return;
+    }
 
     try {
       await transferStock({
         sourceWarehouseId,
         destinationWarehouseId,
-        items: [{ materialVariantId, quantity: qtyNum, unit: unit || undefined }],
-        remarks: remarks || undefined,
+        productId,
+        variantId,
+        packagingId: packagingId || undefined,
+        quantity: qtyNum,
+        notes: remarks || undefined,
       }).unwrap();
       onSuccess();
-      setSourceWarehouseId("");
-      setDestinationWarehouseId("");
-      setMaterialVariantId("");
-      setQuantity("");
-      setUnit("");
-      setRemarks("");
+      resetForm();
       onClose();
     } catch (err: any) {
       setErrorMsg(err?.data?.message || "Gagal membuat transfer");
     }
   };
-
-  const uniqueProducts = React.useMemo(() => {
-    const seen = new Set();
-    return products.filter((p) => {
-      if (seen.has(p.id)) return false;
-      seen.add(p.id);
-      return true;
-    });
-  }, [products]);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Transfer Stok">
@@ -118,7 +156,7 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
             value={sourceWarehouseId}
             onChange={(e) => setSourceWarehouseId(e.target.value)}
             disabled={currentUser?.role === "WAREHOUSE"}
-            className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm font-semibold disabled:opacity-50"
+            className={selectClass}
             required
           >
             <option value="">Pilih Gudang Asal...</option>
@@ -136,7 +174,7 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
             value={destinationWarehouseId}
             onChange={(e) => setDestinationWarehouseId(e.target.value)}
             disabled={currentUser?.role === "KITCHEN"}
-            className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm font-semibold disabled:opacity-50"
+            className={selectClass}
             required
           >
             <option value="">Pilih Gudang Tujuan...</option>
@@ -151,62 +189,91 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
         <div className="flex flex-col gap-1.5">
           <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Produk</label>
           <select
-            value={materialVariantId}
+            value={productId}
             onChange={(e) => handleProductChange(e.target.value)}
-            className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm font-semibold"
+            className={selectClass}
             required
           >
             <option value="">Pilih Produk...</option>
-            {uniqueProducts.map((p) => (
-              <option key={p.materialVariantId ?? p.id} value={p.materialVariantId ?? p.id}>
-                {p.name} ({p.sku})
+            {products.filter((p) => p.isActive).map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
               </option>
             ))}
           </select>
         </div>
 
-        <div className="flex gap-2">
-          <div className="flex-1 flex flex-col gap-1.5">
-            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Jumlah</label>
-            <Input
-              type="number"
-              step="0.001"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              placeholder="Misal: 20 atau 0.5"
-              required
-            />
-          </div>
-          {materialVariantId && availableUnits.length > 0 && (
-            <div className="w-28 flex flex-col gap-1.5">
-              <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Satuan</label>
-              <select
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm font-semibold h-[42px]"
-                required
-              >
-                {availableUnits.map((u) => (
-                  <option key={u.symbol} value={u.symbol}>
-                    {u.symbol}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Varian</label>
+          <select
+            value={variantId}
+            onChange={(e) => handleVariantChange(e.target.value)}
+            className={selectClass}
+            disabled={!productId}
+            required
+          >
+            <option value="">{productId ? "Pilih Varian..." : "Pilih produk terlebih dahulu"}</option>
+            {variants.map((variant: any) => (
+              <option key={variant.id} value={variant.id}>
+                {variant.name}{variant.sku ? ` (${variant.sku})` : ""}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {(() => {
-          const preview = formatConversionPreview(selectedProduct, quantity ? parseFloat(quantity) : NaN, unit);
-          if (preview) {
-            return (
-              <div className="text-xs text-emerald-500 font-semibold">
-                Setara dengan: {preview}
-              </div>
-            );
-          }
-          return null;
-        })()}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Packaging (opsional)</label>
+          <select
+            value={packagingId}
+            onChange={(e) => setPackagingId(e.target.value)}
+            className={selectClass}
+            disabled={!variantId || isPackagingLoading || packagingOptions.length === 0}
+          >
+            <option value="">
+              {!variantId
+                ? "Pilih varian terlebih dahulu"
+                : packagingOptions.length === 0
+                ? "Tidak ada packaging aktif"
+                : "Tanpa Packaging (per varian)"}
+            </option>
+            {packagingOptions.map((packaging: any) => {
+              const version = getCurrentPackagingVersion(packaging);
+              return (
+                <option key={packaging.id} value={packaging.id}>
+                  {packaging.name}{packaging.unitLabel ? ` - ${packaging.unitLabel}` : ""} × {Number(version.conversionFactor)} varian
+                </option>
+              );
+            })}
+          </select>
+        </div>
+
+        {sourceWarehouseId && variantId && (
+          <div className="text-xs font-semibold text-text-secondary bg-surface-secondary/40 border border-border p-2.5 rounded-lg flex justify-between items-center">
+            <span>Stok Tersedia di Gudang Asal:</span>
+            <span className="text-indigo-400 font-mono font-bold text-sm">
+              {availableInContext.toFixed(3)} {selectedPackaging ? selectedPackaging.name : selectedVariant?.name}
+            </span>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Jumlah</label>
+          <Input
+            type="number"
+            step="0.001"
+            min="0.001"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            placeholder={selectedPackaging ? "Jumlah packaging" : "Jumlah varian"}
+            required
+          />
+        </div>
+
+        {selectedVariant && receivedQuantity > 0 && (
+          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-400">
+            <strong>{receivedQuantity} {selectedPackaging ? selectedPackaging.name : selectedVariant.name}</strong> × {packagingMultiplier} × {variantMultiplier} {baseUnit} = <strong>{normalizedQuantity.toLocaleString()} {baseUnit}</strong>
+          </div>
+        )}
 
         <div className="flex flex-col gap-1.5">
           <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Keterangan</label>
@@ -214,7 +281,7 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
             type="text"
             value={remarks}
             onChange={(e) => setRemarks(e.target.value)}
-            placeholder="Catatan transfer"
+            placeholder="Catatan transfer (opsional)"
           />
         </div>
 

@@ -19,6 +19,7 @@ test("Inventory stock list under the canonical MaterialVariant model", async (t)
     data: {
       name: "Cup Plastic Test",
       categoryId: category.id,
+      baseUnit: "PCS",
     },
   });
 
@@ -26,9 +27,9 @@ test("Inventory stock list under the canonical MaterialVariant model", async (t)
     data: {
       materialId: material.id,
       name: "Cup Plastic Test",
-      baseUnit: "PCS",
       sku: `INV-${Date.now()}`,
       isActive: true,
+      quantityInBaseUnit: new Decimal(1.0),
     },
   });
 

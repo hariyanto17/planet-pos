@@ -12,8 +12,9 @@ const createRequestSchema = Joi.object({
     .items(
       Joi.object({
         productId: Joi.string().required(),
+        variantId: Joi.string().required(),
+        packagingId: Joi.string().allow(null, "").optional(),
         quantity: Joi.number().positive().required(),
-        unit: Joi.string().optional(),
       })
     )
     .min(1)

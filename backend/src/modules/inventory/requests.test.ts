@@ -47,15 +47,15 @@ test("Stock request fulfillment uses materialVariant-based stock tracking", asyn
   });
 
   const material = await prisma.material.create({
-    data: { name: "Sugar Request Test" },
+    data: { name: "Sugar Request Test", baseUnit: "G" },
   });
 
   const variant = await prisma.materialVariant.create({
     data: {
       materialId: material.id,
       name: "Sugar Request Test",
-      baseUnit: "G",
       sku: `REQ-${Date.now()}`,
+      quantityInBaseUnit: new Decimal(1.0),
     },
   });
 
@@ -67,14 +67,14 @@ test("Stock request fulfillment uses materialVariant-based stock tracking", asyn
   });
 
   await t.test("Create -> Claim -> Ship -> Receive -> Accept flow", async () => {
-    const req = await createStockRequest(
+    const req = (await createStockRequest(
       userB!.id,
       whKitchen.id,
       "WAREHOUSE",
       whKitchen.id,
-      [{ materialVariantId: variant.id, quantity: 4, unit: "KG" }],
+      [{ productId: material.id, variantId: variant.id, quantity: 4000 }],
       "Urgent request"
-    );
+    )) as any;
 
     assert.ok(req);
     assert.equal(req.status, "PENDING");
