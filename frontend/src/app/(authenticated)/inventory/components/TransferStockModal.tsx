@@ -6,6 +6,7 @@ import { useTransferStockMutation, useGetInventoryProductsQuery } from "@/lib/ap
 import { useGetPackagingByVariantQuery } from "@/lib/api/productApi";
 import { useAppSelector } from "@/lib/store/hooks";
 import { selectCurrentUser } from "@/lib/store/features/auth/selectors";
+import { SearchableSelect } from "@/components/SearchableSelect";
 
 interface Props {
   isOpen: boolean;
@@ -18,57 +19,72 @@ interface Props {
 const getCurrentPackagingVersion = (packaging: any) =>
   packaging.versions?.find((version: any) => version.isActive && !version.effectiveTo) ?? null;
 
-const selectClass = "w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm font-semibold disabled:bg-surface-secondary disabled:text-text-muted disabled:cursor-not-allowed";
-
-export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products = [], warehouses = [], onSuccess }) => {
+export const TransferStockModal: React.FC<Props> = ({
+  isOpen,
+  onClose,
+  products = [],
+  warehouses = [],
+  onSuccess,
+}) => {
   const currentUser = useAppSelector(selectCurrentUser);
-  const [sourceWarehouseId, setSourceWarehouseId] = useState("");
-  const [destinationWarehouseId, setDestinationWarehouseId] = useState("");
+  const userWhId = currentUser?.warehouseId;
+
   const [productId, setProductId] = useState("");
   const [variantId, setVariantId] = useState("");
   const [packagingId, setPackagingId] = useState("");
+  const [sourceWarehouseId, setSourceWarehouseId] = useState("");
+  const [destinationWarehouseId, setDestinationWarehouseId] = useState("");
   const [quantity, setQuantity] = useState("");
   const [remarks, setRemarks] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
   const [transferStock, { isLoading }] = useTransferStockMutation();
 
-  // Load available stock in source warehouse
-  const { data: sourceStocksData } = useGetInventoryProductsQuery(
-    { warehouseId: sourceWarehouseId, limit: 100 },
-    { skip: !sourceWarehouseId || !isOpen }
-  );
-  const sourceStocks = sourceStocksData?.data || [];
+  // If WAREHOUSE role, fix source warehouse and set default view to MASUK/KELUAR context
+  useEffect(() => {
+    if (currentUser?.role === "WAREHOUSE" && userWhId) {
+      setSourceWarehouseId(userWhId);
+    }
+  }, [currentUser, userWhId]);
 
-  const selectedProduct = products.find((product) => product.id === productId);
-  const variants = selectedProduct?.variants?.filter((variant: any) => variant.isActive) ?? [];
-  const selectedVariant = variants.find((variant: any) => variant.id === variantId);
-
-  // Fetch packaging options
-  const { data: packagingConfigurations = [], isLoading: isPackagingLoading } = useGetPackagingByVariantQuery(variantId, { skip: !variantId });
-  const packagingOptions = useMemo(() => packagingConfigurations.filter((packaging: any) => packaging.isActive && getCurrentPackagingVersion(packaging)), [packagingConfigurations]);
-  const selectedPackaging = packagingOptions.find((packaging: any) => packaging.id === packagingId);
-
-  // Conversion calculations
-  const packagingMultiplier = selectedPackaging ? Number(getCurrentPackagingVersion(selectedPackaging).conversionFactor) : 1;
-  const variantMultiplier = selectedVariant ? Number(selectedVariant.quantityInBaseUnit) : 1;
-  const receivedQuantity = Number(quantity);
-  const normalizedQuantity = Number.isFinite(receivedQuantity) && receivedQuantity > 0 ? receivedQuantity * packagingMultiplier * variantMultiplier : 0;
-  const baseUnit = selectedProduct?.baseUnit?.toLowerCase() || "unit";
-
-  // Check available stock in source warehouse for the selected variant
-  const matchingStock = sourceStocks.find((s: any) => s.id === variantId);
-  const availableBaseQty = matchingStock ? Number(matchingStock.quantity) : 0;
-  const availableInContext = availableBaseQty / (packagingMultiplier * variantMultiplier);
-
+  // Reset form helper
   const resetForm = () => {
     setProductId("");
     setVariantId("");
     setPackagingId("");
+    if (currentUser?.role !== "WAREHOUSE") {
+      setSourceWarehouseId("");
+    }
+    setDestinationWarehouseId("");
     setQuantity("");
     setRemarks("");
     setErrorMsg("");
   };
+
+  const selectedProduct = useMemo(() => products.find((p) => p.id === productId), [productId, products]);
+  const variants = useMemo(() => selectedProduct?.variants ?? [], [selectedProduct]);
+  const selectedVariant = useMemo(() => variants.find((v: any) => v.id === variantId), [variantId, variants]);
+
+  const { data: packagings = [], isLoading: isPackagingLoading } = useGetPackagingByVariantQuery(variantId, { skip: !variantId });
+  const packagingOptions = useMemo(() => packagings.filter((pkg: any) => pkg.isActive), [packagings]);
+  const selectedPackaging = useMemo(() => packagingOptions.find((p: any) => p.id === packagingId), [packagingId, packagingOptions]);
+
+  const packagingMultiplier = selectedPackaging ? Number(getCurrentPackagingVersion(selectedPackaging)?.conversionFactor ?? 1) : 1;
+  const variantMultiplier = selectedVariant ? Number(selectedVariant.quantityInBaseUnit ?? 1) : 1;
+  const baseUnit = selectedProduct?.baseUnit ?? "";
+
+  const receivedQuantity = Number(quantity) || 0;
+  const normalizedQuantity = receivedQuantity * packagingMultiplier * variantMultiplier;
+
+  // Retrieve current stock availability at source warehouse in Context Unit (Varian / Packaging)
+  const availableInContext = useMemo(() => {
+    if (!sourceWarehouseId || !selectedVariant) return 0;
+    const inventoryItem = selectedVariant.inventories?.find((inv: any) => inv.warehouseId === sourceWarehouseId);
+    const stockInBaseUnit = inventoryItem ? Number(inventoryItem.quantity) : 0;
+    // Divide base stock by cumulative multiplier to get packaging/variant count
+    const unitDivisor = packagingMultiplier * variantMultiplier;
+    return stockInBaseUnit / unitDivisor;
+  }, [sourceWarehouseId, selectedVariant, packagingMultiplier, variantMultiplier]);
 
   const handleProductChange = (nextProductId: string) => {
     setProductId(nextProductId);
@@ -81,68 +97,50 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
     setPackagingId("");
   };
 
-  useEffect(() => {
-    if (isOpen) {
-      if (currentUser?.role === "WAREHOUSE" && currentUser.warehouseId) {
-        setSourceWarehouseId(currentUser.warehouseId);
-      }
-      if (currentUser?.role === "KITCHEN") {
-        const defaultKitchen = warehouses.find(
-          (w) => w.warehouseType === "KITCHEN_STORAGE" && w.isDefaultKitchenStorage
-        );
-        if (defaultKitchen) {
-          setDestinationWarehouseId(defaultKitchen.id);
-        }
-      }
-    }
-  }, [isOpen, currentUser, warehouses]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
 
-    if (!sourceWarehouseId || !destinationWarehouseId) {
-      setErrorMsg("Pilih sumber dan tujuan gudang");
+    if (!productId || !variantId || !sourceWarehouseId || !destinationWarehouseId) {
+      setErrorMsg("Harap pilih produk, varian, gudang asal, dan gudang tujuan.");
       return;
     }
+
     if (sourceWarehouseId === destinationWarehouseId) {
-      setErrorMsg("Sumber dan tujuan gudang tidak boleh sama");
+      setErrorMsg("Gudang asal dan gudang tujuan tidak boleh sama.");
       return;
     }
-    if (!productId || !variantId) {
-      setErrorMsg("Pilih produk dan varian terlebih dahulu");
+
+    if (receivedQuantity <= 0) {
+      setErrorMsg("Jumlah transfer harus lebih besar dari 0.");
       return;
     }
-    const qtyNum = parseFloat(quantity);
-    if (isNaN(qtyNum) || qtyNum <= 0) {
-      setErrorMsg("Jumlah transfer harus positif");
-      return;
-    }
-    if (qtyNum > availableInContext) {
-      setErrorMsg(`Jumlah transfer melebihi stok tersedia (${availableInContext.toFixed(3)} ${selectedPackaging ? selectedPackaging.name : selectedVariant.name})`);
+
+    if (receivedQuantity > availableInContext) {
+      setErrorMsg(`Stok tidak mencukupi. Tersedia: ${availableInContext.toFixed(3)}.`);
       return;
     }
 
     try {
       await transferStock({
-        sourceWarehouseId,
-        destinationWarehouseId,
         productId,
         variantId,
         packagingId: packagingId || undefined,
-        quantity: qtyNum,
+        sourceWarehouseId,
+        destinationWarehouseId,
+        quantity: receivedQuantity,
         notes: remarks || undefined,
       }).unwrap();
       onSuccess();
       resetForm();
       onClose();
     } catch (err: any) {
-      setErrorMsg(err?.data?.message || "Gagal membuat transfer");
+      setErrorMsg(err?.data?.message || "Gagal membuat transfer stok.");
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Transfer Stok">
+    <Modal isOpen={isOpen} onClose={onClose} title="Buat Transfer Stok">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {errorMsg && (
           <div className="p-3 bg-red-950/40 border border-red-900/50 rounded-lg text-red-400 text-xs font-semibold">
@@ -150,102 +148,67 @@ export const TransferStockModal: React.FC<Props> = ({ isOpen, onClose, products 
           </div>
         )}
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Gudang Asal</label>
-          <select
-            value={sourceWarehouseId}
-            onChange={(e) => setSourceWarehouseId(e.target.value)}
-            disabled={currentUser?.role === "WAREHOUSE"}
-            className={selectClass}
-            required
-          >
-            <option value="">Pilih Gudang Asal...</option>
-            {warehouses.map((w) => (
-              <option key={w.id} value={w.id}>
-                {w.name} ({w.code})
-              </option>
-            ))}
-          </select>
-        </div>
+        <SearchableSelect
+          label="Gudang Asal"
+          value={sourceWarehouseId}
+          onValueChange={setSourceWarehouseId}
+          disabled={currentUser?.role === "WAREHOUSE"}
+          options={warehouses.map((w) => ({
+            value: w.id,
+            label: `${w.name} (${w.code})`,
+          }))}
+          placeholder="Pilih Gudang Asal..."
+        />
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Gudang Tujuan</label>
-          <select
-            value={destinationWarehouseId}
-            onChange={(e) => setDestinationWarehouseId(e.target.value)}
-            disabled={currentUser?.role === "KITCHEN"}
-            className={selectClass}
-            required
-          >
-            <option value="">Pilih Gudang Tujuan...</option>
-            {warehouses.map((w) => (
-              <option key={w.id} value={w.id}>
-                {w.name} ({w.code})
-              </option>
-            ))}
-          </select>
-        </div>
+        <SearchableSelect
+          label="Gudang Tujuan"
+          value={destinationWarehouseId}
+          onValueChange={setDestinationWarehouseId}
+          disabled={currentUser?.role === "KITCHEN"}
+          options={warehouses.map((w) => ({
+            value: w.id,
+            label: `${w.name} (${w.code})`,
+          }))}
+          placeholder="Pilih Gudang Tujuan..."
+        />
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Produk</label>
-          <select
-            value={productId}
-            onChange={(e) => handleProductChange(e.target.value)}
-            className={selectClass}
-            required
-          >
-            <option value="">Pilih Produk...</option>
-            {products.filter((p) => p.isActive).map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <SearchableSelect
+          label="Produk"
+          value={productId}
+          onValueChange={handleProductChange}
+          options={products.filter((p) => p.isActive).map((p) => ({
+            value: p.id,
+            label: p.name,
+          }))}
+          placeholder="Pilih Produk..."
+        />
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Varian</label>
-          <select
-            value={variantId}
-            onChange={(e) => handleVariantChange(e.target.value)}
-            className={selectClass}
-            disabled={!productId}
-            required
-          >
-            <option value="">{productId ? "Pilih Varian..." : "Pilih produk terlebih dahulu"}</option>
-            {variants.map((variant: any) => (
-              <option key={variant.id} value={variant.id}>
-                {variant.name}{variant.sku ? ` (${variant.sku})` : ""}
-              </option>
-            ))}
-          </select>
-        </div>
+        <SearchableSelect
+          label="Varian"
+          value={variantId}
+          onValueChange={handleVariantChange}
+          disabled={!productId}
+          options={variants.map((variant: any) => ({
+            value: variant.id,
+            label: `${variant.name}${variant.sku ? ` (${variant.sku})` : ""}`,
+          }))}
+          placeholder={productId ? "Pilih Varian..." : "Pilih produk terlebih dahulu"}
+        />
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Packaging (opsional)</label>
-          <select
-            value={packagingId}
-            onChange={(e) => setPackagingId(e.target.value)}
-            className={selectClass}
-            disabled={!variantId || isPackagingLoading || packagingOptions.length === 0}
-          >
-            <option value="">
-              {!variantId
-                ? "Pilih varian terlebih dahulu"
-                : packagingOptions.length === 0
-                ? "Tidak ada packaging aktif"
-                : "Tanpa Packaging (per varian)"}
-            </option>
-            {packagingOptions.map((packaging: any) => {
-              const version = getCurrentPackagingVersion(packaging);
-              return (
-                <option key={packaging.id} value={packaging.id}>
-                  {packaging.name}{packaging.unitLabel ? ` - ${packaging.unitLabel}` : ""} × {Number(version.conversionFactor)} varian
-                </option>
-              );
-            })}
-          </select>
-        </div>
+        <SearchableSelect
+          label="Packaging (opsional)"
+          value={packagingId}
+          onValueChange={setPackagingId}
+          disabled={!variantId || isPackagingLoading || packagingOptions.length === 0}
+          options={packagingOptions.map((packaging: any) => {
+            const version = getCurrentPackagingVersion(packaging);
+            return {
+              value: packaging.id,
+              label: `${packaging.name}${packaging.unitLabel ? ` - ${packaging.unitLabel}` : ""} × ${Number(version.conversionFactor)} varian`,
+            };
+          })}
+          placeholder={!variantId ? "Pilih varian terlebih dahulu" : packagingOptions.length === 0 ? "Tidak ada packaging aktif" : "Tanpa Packaging (per varian)"}
+        />
 
         {sourceWarehouseId && variantId && (
           <div className="text-xs font-semibold text-text-secondary bg-surface-secondary/40 border border-border p-2.5 rounded-lg flex justify-between items-center">
