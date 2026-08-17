@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { MoreVertical, Edit, ClipboardList, ToggleLeft, ToggleRight, Trash2, Eye } from "lucide-react";
+import { MoreHorizontal, Edit, ClipboardList, ToggleLeft, ToggleRight, Trash2, Eye } from "lucide-react";
 import { Product } from "../page";
 
 interface ProductActionMenuProps {
@@ -73,7 +73,7 @@ export const ProductActionMenu: React.FC<ProductActionMenuProps> = ({
         aria-expanded={isOpen}
         className="p-2 hover:bg-zinc-800 rounded-lg text-text-secondary hover:text-text-primary transition duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
       >
-        <MoreVertical className="w-5 h-5" />
+        <MoreHorizontal className="w-5 h-5" />
       </button>
 
       {isOpen && (

@@ -5,6 +5,8 @@ import { useGetStockTransfersQuery, useCompleteStockTransferMutation } from "@/l
 import { useAppSelector } from "@/lib/store/hooks";
 import { selectCurrentUser } from "@/lib/store/features/auth/selectors";
 import { useToast } from "@/components/ToastProvider";
+import { IconButton } from "@/components/IconButton";
+import { ArrowDownToLine } from "lucide-react";
 
 interface Props {
   onSuccess: () => void;
@@ -149,12 +151,12 @@ export function InventoryTransferTable({ onSuccess }: Props) {
               <td className="px-6 py-4">{renderStatusBadge(t.status)}</td>
               <td className="px-6 py-4 text-xs font-medium">
                 {isIncomingDraft ? (
-                  <button
+                  <IconButton
+                    icon={ArrowDownToLine}
+                    label="Terima Transfer"
                     onClick={() => setCompletingTransferItem(t)}
-                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-md font-bold transition text-xs cursor-pointer shadow-md"
-                  >
-                    Terima
-                  </button>
+                    className="text-indigo-400 hover:bg-indigo-400/10 hover:text-indigo-300"
+                  />
                 ) : (
                   <span className="text-text-muted">-</span>
                 )}

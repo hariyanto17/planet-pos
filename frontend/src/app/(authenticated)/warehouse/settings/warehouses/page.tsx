@@ -19,6 +19,8 @@ import { Input } from "@/components/Input";
 import { Button } from "@/components/Button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
+import { IconButton } from "@/components/IconButton";
+import { Pencil, CircleSlash, CheckCircle, Ban } from "lucide-react";
 import { TEXT } from "@/lib/i18n/id";
 import { useToast } from "@/components/ToastProvider";
 
@@ -203,26 +205,28 @@ export default function WarehousesPage() {
                     dateStyle: "medium",
                   })}
                 </td>
-                <td className="px-6 py-4 text-sm flex items-center gap-3">
-                  <button
+                <td className="px-6 py-4 text-sm flex items-center gap-2">
+                  <IconButton
+                    icon={Pencil}
+                    label={TEXT.common.edit}
                     onClick={() => openEditModal(w)}
-                    className="text-indigo-400 hover:text-indigo-300 font-medium transition"
-                  >
-                    {TEXT.common.edit}
-                  </button>
-                  <button
+                    variant="ghost"
+                    className="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-400/10"
+                  />
+                  <IconButton
+                    icon={w.isActive ? CircleSlash : CheckCircle}
+                    label={w.isActive ? "Nonaktifkan" : "Aktifkan"}
                     onClick={() => handleToggleActive(w)}
-                    className="text-amber-400 hover:text-amber-300 font-medium transition"
-                  >
-                    {w.isActive ? "Nonaktifkan" : "Aktifkan"}
-                  </button>
+                    variant="ghost"
+                    className="text-amber-400 hover:text-amber-300 hover:bg-amber-400/10"
+                  />
                   {w.isActive && (
-                    <button
+                    <IconButton
+                      icon={Ban}
+                      label="Nonaktifkan Tetap"
                       onClick={() => setDeactivatingWarehouseId(w.id)}
-                      className="text-rose-400 hover:text-rose-300 font-medium transition"
-                    >
-                      Nonaktifkan Tetap
-                    </button>
+                      variant="danger"
+                    />
                   )}
                 </td>
               </tr>

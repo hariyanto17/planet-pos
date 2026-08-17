@@ -3,6 +3,8 @@ import { DataTable } from "@/components/DataTable";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Modal } from "@/components/Modal";
 import { Button } from "@/components/Button";
+import { IconButton } from "@/components/IconButton";
+import { CheckCircle, Truck, ArrowDownToLine, Check, XCircle } from "lucide-react";
 import {
   useGetStockRequestsQuery,
   useClaimStockRequestMutation,
@@ -222,52 +224,52 @@ export function InventoryRequestTable({ warehouses, onSuccess }: Props) {
                 {quantity} {displayUnit}
               </td>
               <td className="px-6 py-4">{renderStatusBadge(r.status)}</td>
-              <td className="px-6 py-4 text-xs">
+              <td className="px-6 py-4 text-xs font-medium">
                 <div className="flex gap-2">
                   {canClaim && (
-                    <button
+                    <IconButton
+                      icon={CheckCircle}
+                      label="Claim Permintaan"
                       onClick={() => {
                         setClaimItem(r);
                         if (isWarehouseUser && userWhId) {
                           setClaimSourceWarehouseId(userWhId);
                         }
                       }}
-                      className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold transition cursor-pointer"
-                    >
-                      Claim
-                    </button>
+                      className="text-indigo-400 hover:bg-indigo-400/10 hover:text-indigo-300"
+                    />
                   )}
                   {canShip && (
-                    <button
+                    <IconButton
+                      icon={Truck}
+                      label="Kirim Permintaan"
                       onClick={() => setShipItem(r)}
-                      className="px-2.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded font-bold transition cursor-pointer"
-                    >
-                      Kirim
-                    </button>
+                      className="text-purple-400 hover:bg-purple-400/10 hover:text-purple-300"
+                    />
                   )}
                   {canReceive && (
-                    <button
+                    <IconButton
+                      icon={ArrowDownToLine}
+                      label="Terima Permintaan"
                       onClick={() => setReceiveItem(r)}
-                      className="px-2.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded font-bold transition cursor-pointer"
-                    >
-                      Terima
-                    </button>
+                      className="text-teal-400 hover:bg-teal-400/10 hover:text-teal-300"
+                    />
                   )}
                   {canAccept && (
-                    <button
+                    <IconButton
+                      icon={Check}
+                      label="Setujui Permintaan"
                       onClick={() => setAcceptItem(r)}
-                      className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold transition cursor-pointer"
-                    >
-                      Accept
-                    </button>
+                      className="text-emerald-400 hover:bg-emerald-400/10 hover:text-emerald-300"
+                    />
                   )}
                   {canCancel && (
-                    <button
+                    <IconButton
+                      icon={XCircle}
+                      label="Batal"
                       onClick={() => setCancelItem(r)}
-                      className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-rose-500 rounded font-bold border border-rose-500/30 transition cursor-pointer"
-                    >
-                      Batal
-                    </button>
+                      variant="danger"
+                    />
                   )}
                   {!canClaim && !canShip && !canReceive && !canAccept && !canCancel && (
                     <span className="text-text-muted">-</span>

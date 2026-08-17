@@ -22,6 +22,8 @@ import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/Button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
+import { IconButton } from "@/components/IconButton";
+import { Pencil, Key, CircleSlash, CheckCircle } from "lucide-react";
 import { TEXT } from "@/lib/i18n/id";
 import { useToast } from "@/components/ToastProvider";
 
@@ -290,25 +292,28 @@ export default function UsersPage() {
                     dateStyle: "medium",
                   })}
                 </td>
-                <td className="px-6 py-4 text-sm flex items-center gap-3">
-                  <button
+                <td className="px-6 py-4 text-sm flex items-center gap-2">
+                  <IconButton
+                    icon={Pencil}
+                    label="Ubah"
                     onClick={() => openEditModal(u)}
-                    className="text-indigo-400 hover:text-indigo-300 font-medium transition"
-                  >
-                    Ubah
-                  </button>
-                  <button
+                    variant="ghost"
+                    className="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-400/10"
+                  />
+                  <IconButton
+                    icon={Key}
+                    label="Reset Sandi"
                     onClick={() => setPasswordResetUser(u)}
-                    className="text-emerald-400 hover:text-emerald-300 font-medium transition"
-                  >
-                    Sandi
-                  </button>
-                  <button
+                    variant="ghost"
+                    className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10"
+                  />
+                  <IconButton
+                    icon={u.isActive ? CircleSlash : CheckCircle}
+                    label={u.isActive ? "Nonaktifkan" : "Aktifkan"}
                     onClick={() => setStatusConfirmUser(u)}
-                    className="text-amber-400 hover:text-amber-300 font-medium transition"
-                  >
-                    {u.isActive ? "Nonaktifkan" : "Aktifkan"}
-                  </button>
+                    variant="ghost"
+                    className="text-amber-400 hover:text-amber-300 hover:bg-amber-400/10"
+                  />
                 </td>
               </tr>
             ))}

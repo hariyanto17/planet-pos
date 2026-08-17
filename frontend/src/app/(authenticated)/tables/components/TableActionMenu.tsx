@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { MoreVertical, Edit, QrCode, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
+import { MoreHorizontal, Edit, QrCode, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
 import { authCookie } from "@/utils/authCookie";
 
 interface Table {
@@ -117,7 +117,7 @@ export const TableActionMenu: React.FC<TableActionMenuProps> = ({
         disabled={isDownloading}
         className="p-2 hover:bg-zinc-800 rounded-lg text-text-secondary hover:text-text-primary transition duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-50"
       >
-        <MoreVertical className="w-5 h-5" />
+        <MoreHorizontal className="w-5 h-5" />
       </button>
 
       {isOpen && (

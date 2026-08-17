@@ -19,6 +19,8 @@ import { Input } from "@/components/Input";
 import { Button } from "@/components/Button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
+import { IconButton } from "@/components/IconButton";
+import { Pencil, CircleSlash, CheckCircle, Trash2 } from "lucide-react";
 import { TEXT } from "@/lib/i18n/id";
 
 const supplierSchema = zod.object({
@@ -171,25 +173,27 @@ export default function SuppliersPage() {
                     dateStyle: "medium",
                   })}
                 </td>
-                <td className="px-6 py-4 text-sm flex items-center gap-3">
-                  <button
+                <td className="px-6 py-4 text-sm flex items-center gap-2">
+                  <IconButton
+                    icon={Pencil}
+                    label={TEXT.common.edit}
                     onClick={() => openEditModal(s)}
-                    className="text-indigo-400 hover:text-indigo-300 font-medium transition"
-                  >
-                    {TEXT.common.edit}
-                  </button>
-                  <button
+                    variant="ghost"
+                    className="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-400/10"
+                  />
+                  <IconButton
+                    icon={s.isActive ? CircleSlash : CheckCircle}
+                    label={s.isActive ? "Nonaktifkan" : "Aktifkan"}
                     onClick={() => handleToggleActive(s)}
-                    className="text-amber-400 hover:text-amber-300 font-medium transition"
-                  >
-                    {s.isActive ? "Nonaktifkan" : "Aktifkan"}
-                  </button>
-                  <button
+                    variant="ghost"
+                    className="text-amber-400 hover:text-amber-300 hover:bg-amber-400/10"
+                  />
+                  <IconButton
+                    icon={Trash2}
+                    label={TEXT.common.delete}
                     onClick={() => setDeletingSupplierId(s.id)}
-                    className="text-rose-400 hover:text-rose-300 font-medium transition"
-                  >
-                    {TEXT.common.delete}
-                  </button>
+                    variant="danger"
+                  />
                 </td>
               </tr>
             ))}
