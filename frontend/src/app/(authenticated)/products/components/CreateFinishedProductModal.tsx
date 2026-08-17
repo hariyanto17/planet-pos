@@ -5,6 +5,8 @@ import * as zod from "zod";
 import { Modal } from "@/components/Modal";
 import { Input } from "@/components/Input";
 import { Button } from "@/components/Button";
+import { PriceInput } from "@/components/PriceInput";
+import { Controller } from "react-hook-form";
 import {
   useGetBrandsQuery,
   useCreateProductMutation,
@@ -200,12 +202,18 @@ export const CreateFinishedProductModal: React.FC<CreateFinishedProductModalProp
 
         {productType === "DIRECT_SALE" && (
           <div className="space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
-            <Input
-              label="Harga Jual *"
-              type="number"
-              placeholder="e.g. 15000"
-              {...register("price", { valueAsNumber: true })}
-              error={errors.price?.message}
+            <Controller
+              control={control}
+              name="price"
+              render={({ field }) => (
+                <PriceInput
+                  label="Harga Jual *"
+                  placeholder="e.g. 15000"
+                  error={errors.price?.message}
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              )}
             />
 
             <div>

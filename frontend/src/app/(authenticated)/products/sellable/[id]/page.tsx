@@ -18,6 +18,9 @@ import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Modal } from "@/components/Modal";
 import { StatusBadge } from "@/components/StatusBadge";
+import { PriceInput } from "@/components/PriceInput";
+import { Select } from "@/components/Select";
+import { Controller } from "react-hook-form";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { DataTable } from "@/components/DataTable";
 import { IconButton } from "@/components/IconButton";
@@ -58,6 +61,7 @@ export default function SellableDetailPage({ params }: { params: Promise<{ id: s
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<ProductUpdateInput>({
     resolver: zodResolver(productUpdateSchema),
@@ -221,42 +225,45 @@ export default function SellableDetailPage({ params }: { params: Promise<{ id: s
             />
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1">Kategori *</label>
-                <select
-                  {...register("categoryId")}
-                  className="w-full rounded-md border border-border bg-surface p-2 text-sm text-text-primary outline-none focus:border-indigo-500"
-                >
-                  {categories.map((c: any) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                label="Kategori *"
+                error={errors.categoryId?.message}
+                {...register("categoryId")}
+              >
+                {categories.map((c: any) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </Select>
 
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1">Brand</label>
-                <select
-                  {...register("brandId")}
-                  className="w-full rounded-md border border-border bg-surface p-2 text-sm text-text-primary outline-none focus:border-indigo-500"
-                >
-                  <option value="">Tanpa Brand</option>
-                  {brands.map((b: any) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                label="Brand"
+                error={errors.brandId?.message}
+                {...register("brandId")}
+              >
+                <option value="">Tanpa Brand</option>
+                {brands.map((b: any) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </Select>
             </div>
 
-            <Input
-              label="Harga Jual *"
-              type="number"
-              {...register("price", { valueAsNumber: true })}
-              error={errors.price?.message}
-              required
+            <Controller
+              control={control}
+              name="price"
+              render={({ field }) => (
+                <PriceInput
+                  label="Harga Jual *"
+                  placeholder="e.g. 15000"
+                  error={errors.price?.message}
+                  value={field.value}
+                  onChange={field.onChange}
+                  required
+                />
+              )}
             />
 
             <div className="flex items-center gap-2 pt-2">

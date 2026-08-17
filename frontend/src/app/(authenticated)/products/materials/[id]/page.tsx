@@ -23,6 +23,9 @@ import {
 } from "@/lib/api/productApi";
 import { useGetCategoriesQuery } from "@/lib/api/categoryApi";
 import { Button } from "@/components/Button";
+import { PriceInput } from "@/components/PriceInput";
+import { Select } from "@/components/Select";
+import { Controller } from "react-hook-form";
 import { Input } from "@/components/Input";
 import { Modal } from "@/components/Modal";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -119,6 +122,7 @@ export default function MaterialDetailPage({ params }: { params: Promise<{ id: s
     handleSubmit: handleSubmitVariant,
     reset: resetVariant,
     watch: watchVariant,
+    control: controlVariant,
     formState: { errors: variantErrors },
   } = useForm<VariantFormInput>({
     resolver: zodResolver(variantFormSchema),
@@ -340,50 +344,44 @@ export default function MaterialDetailPage({ params }: { params: Promise<{ id: s
             />
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1">Kategori *</label>
-                <select
-                  {...registerMaterial("categoryId")}
-                  className="w-full rounded-md border border-border bg-surface p-2 text-sm text-text-primary outline-none focus:border-indigo-500"
-                >
-                  {categories.map((c: any) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                label="Kategori *"
+                error={materialErrors.categoryId?.message}
+                {...registerMaterial("categoryId")}
+              >
+                {categories.map((c: any) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </Select>
 
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1">Brand</label>
-                <select
-                  {...registerMaterial("brandId")}
-                  className="w-full rounded-md border border-border bg-surface p-2 text-sm text-text-primary outline-none focus:border-indigo-500"
-                >
-                  <option value="">Pilih Brand</option>
-                  {brands.map((b: any) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                label="Brand"
+                error={materialErrors.brandId?.message}
+                {...registerMaterial("brandId")}
+              >
+                <option value="">Pilih Brand</option>
+                {brands.map((b: any) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </Select>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1">Satuan Dasar *</label>
-                <select
-                  {...registerMaterial("baseUnit")}
-                  disabled
-                  className="w-full rounded-md border border-border bg-surface-secondary/40 p-2 text-sm text-text-muted cursor-not-allowed outline-none"
-                >
-                  <option value="G">Gram (G)</option>
-                  <option value="ML">Milliliter (ML)</option>
-                  <option value="PCS">Piece (PCS)</option>
-                </select>
-                <p className="text-[10px] text-text-muted mt-1">Satuan dasar bersifat read-only setelah bahan baku dibuat.</p>
-              </div>
+              <Select
+                label="Satuan Dasar *"
+                error={materialErrors.baseUnit?.message}
+                disabled
+                {...registerMaterial("baseUnit")}
+                helperText="Satuan dasar bersifat read-only setelah bahan baku dibuat."
+              >
+                <option value="G">Gram (G)</option>
+                <option value="ML">Milliliter (ML)</option>
+                <option value="PCS">Piece (PCS)</option>
+              </Select>
 
               <div className="flex flex-col justify-end pb-1.5">
                 <label className="flex items-center gap-2 cursor-pointer text-sm text-text-primary">
@@ -559,29 +557,31 @@ export default function MaterialDetailPage({ params }: { params: Promise<{ id: s
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Harga Beli Paket *"
-              type="number"
-              placeholder="e.g. 50000"
-              {...registerVariant("purchasePrice", { valueAsNumber: true })}
-              error={variantErrors.purchasePrice?.message}
+            <Controller
+              control={controlVariant}
+              name="purchasePrice"
+              render={({ field }) => (
+                <PriceInput
+                  label="Harga Beli Paket *"
+                  placeholder="e.g. 50000"
+                  error={variantErrors.purchasePrice?.message}
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              )}
             />
-            <div>
-              <label className="block text-sm font-medium text-text-primary mb-1">Supplier Utama (Opsional)</label>
-              <select
-                {...registerVariant("supplierId")}
-                className="w-full rounded-md border border-border bg-surface p-2 text-sm text-text-primary outline-none focus:border-indigo-500"
-              >
-                <option value="">Pilih Supplier</option>
-                {suppliers.map((s: any) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+            <Select
+              label="Supplier Utama (Opsional)"
+              error={variantErrors.supplierId?.message}
+              {...registerVariant("supplierId")}
+            >
+              <option value="">Pilih Supplier</option>
+              {suppliers.map((s: any) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </Select>
 
           {estimatedCost !== null && (
             <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-sm text-indigo-400 font-medium">
@@ -643,11 +643,10 @@ export default function MaterialDetailPage({ params }: { params: Promise<{ id: s
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Input
+              <PriceInput
                 label="Harga Beli *"
-                type="number"
                 value={editingVariant.purchasePrice}
-                onChange={(e) => setEditingVariant({ ...editingVariant, purchasePrice: Number(e.target.value) })}
+                onChange={(val) => setEditingVariant({ ...editingVariant, purchasePrice: val })}
                 required
               />
               <div className="flex items-center pt-6 pl-2">
@@ -690,28 +689,24 @@ export default function MaterialDetailPage({ params }: { params: Promise<{ id: s
             <form onSubmit={handleAddOffer} className="border-t border-border pt-4 mt-4 space-y-4">
               <h4 className="text-sm font-bold text-text-primary">Tambah Penawaran Supplier</h4>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-text-primary mb-1">Supplier *</label>
-                  <select
-                    value={offerSupplierId}
-                    onChange={(e) => setOfferSupplierId(e.target.value)}
-                    required
-                    className="w-full rounded-md border border-border bg-surface p-2 text-sm text-text-primary outline-none focus:border-indigo-500"
-                  >
-                    <option value="">Pilih Supplier</option>
-                    {suppliers.map((s: any) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <Input
+                <Select
+                  label="Supplier *"
+                  value={offerSupplierId}
+                  onChange={(e) => setOfferSupplierId(e.target.value)}
+                  required
+                >
+                  <option value="">Pilih Supplier</option>
+                  {suppliers.map((s: any) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </Select>
+                <PriceInput
                   label="Harga Penawaran *"
-                  type="number"
                   placeholder="e.g. 48000"
-                  value={offerPrice}
-                  onChange={(e) => setOfferPrice(e.target.value)}
+                  value={offerPrice ? Number(offerPrice) : undefined}
+                  onChange={(val) => setOfferPrice(val.toString())}
                   required
                 />
               </div>

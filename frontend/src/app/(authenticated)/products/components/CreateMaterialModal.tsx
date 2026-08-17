@@ -13,6 +13,9 @@ import {
   useCreateSupplierMutation
 } from "@/lib/api/productApi";
 import { useGetCategoriesQuery } from "@/lib/api/categoryApi";
+import { PriceInput } from "@/components/PriceInput";
+import { Select } from "@/components/Select";
+import { Controller } from "react-hook-form";
 
 const materialSchema = zod.object({
   name: zod.string().min(1, "Nama bahan baku wajib diisi"),
@@ -82,6 +85,7 @@ export const CreateMaterialModal: React.FC<CreateMaterialModalProps> = ({ isOpen
     reset,
     watch,
     setValue,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<MaterialFormInput>({
     resolver: zodResolver(materialSchema),
@@ -169,52 +173,35 @@ export const CreateMaterialModal: React.FC<CreateMaterialModalProps> = ({ isOpen
           />
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Kategori *
-              </label>
-              <select
-                {...register("categoryId")}
-                className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-2 text-sm text-gray-900 dark:text-gray-100"
-              >
-                <option value="">Pilih Kategori</option>
-                {categories.map((c: any) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-              {errors.categoryId && (
-                <p className="mt-1 text-xs text-red-500">{errors.categoryId.message}</p>
-              )}
-            </div>
+            <Select
+              label="Kategori *"
+              error={errors.categoryId?.message}
+              {...register("categoryId")}
+            >
+              <option value="">Pilih Kategori</option>
+              {categories.map((c: any) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Satuan Dasar *
-              </label>
-              <select
-                {...register("baseUnit")}
-                className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-2 text-sm text-gray-900 dark:text-gray-100"
-              >
-                <option value="">Pilih Satuan</option>
-                <option value="ML">Milliliter (ML)</option>
-                <option value="G">Gram (G)</option>
-                <option value="PCS">Piece (PCS)</option>
-              </select>
-              {errors.baseUnit && (
-                <p className="mt-1 text-xs text-red-500">{errors.baseUnit.message}</p>
-              )}
-            </div>
+            <Select
+              label="Satuan Dasar *"
+              error={errors.baseUnit?.message}
+              {...register("baseUnit")}
+            >
+              <option value="">Pilih Satuan</option>
+              <option value="ML">Milliliter (ML)</option>
+              <option value="G">Gram (G)</option>
+              <option value="PCS">Piece (PCS)</option>
+            </Select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Brand (Opsional)
-            </label>
-            <div className="flex gap-2">
-              <select
+            <div className="flex-1">
+              <Select
+                label="Brand (Opsional)"
+                error={errors.brandId?.message}
                 {...register("brandId")}
-                className="flex-1 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-2 text-sm text-gray-900 dark:text-gray-100"
               >
                 <option value="">Pilih Brand</option>
                 {brands.map((b: any) => (
@@ -222,12 +209,13 @@ export const CreateMaterialModal: React.FC<CreateMaterialModalProps> = ({ isOpen
                     {b.name}
                   </option>
                 ))}
-              </select>
-              <Button type="button" variant="secondary" onClick={() => setIsAddBrandOpen(true)}>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button type="button" variant="secondary" onClick={() => setIsAddBrandOpen(true)} className="h-9 mb-[2px]">
                 +
               </Button>
             </div>
-          </div>
 
 
           <Input
@@ -276,35 +264,39 @@ export const CreateMaterialModal: React.FC<CreateMaterialModalProps> = ({ isOpen
                     error={errors.quantityInBaseUnit?.message}
                   />
 
-                  <Input
-                    label="Harga Paket *"
-                    type="number"
-                    placeholder="e.g. 50000"
-                    {...register("purchasePrice", { valueAsNumber: true })}
-                    error={errors.purchasePrice?.message}
+                  <Controller
+                    control={control}
+                    name="purchasePrice"
+                    render={({ field }) => (
+                      <PriceInput
+                        label="Harga Paket *"
+                        placeholder="e.g. 50000"
+                        error={errors.purchasePrice?.message}
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    )}
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Supplier Utama (Opsional)
-                  </label>
-                  <div className="flex gap-2">
-                    <select
-                      {...register("supplierId")}
-                      className="flex-1 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-2 text-sm text-gray-900 dark:text-gray-100"
-                    >
-                      <option value="">Pilih Supplier</option>
-                      {suppliers.map((s: any) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </select>
-                    <Button type="button" variant="secondary" onClick={() => setIsAddSupplierOpen(true)}>
-                      + Supplier
-                    </Button>
-                  </div>
+                <div className="flex-1">
+                  <Select
+                    label="Supplier Utama (Opsional)"
+                    error={errors.supplierId?.message}
+                    {...register("supplierId")}
+                  >
+                    <option value="">Pilih Supplier...</option>
+                    {suppliers.map((s: any) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="flex items-end">
+                  <Button type="button" variant="secondary" onClick={() => setIsAddSupplierOpen(true)} className="h-9 mb-[2px]">
+                    +
+                  </Button>
                 </div>
               </div>
             )}

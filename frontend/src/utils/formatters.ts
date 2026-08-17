@@ -7,8 +7,23 @@
 export const formatCurrency = (val: number | string | undefined | null): string => {
   if (val === undefined || val === null) return "Rp 0";
   const num = Number(val);
-  return `Rp ${num.toLocaleString("en-US")}`;
+  return `Rp ${num.toLocaleString("id-ID")}`;
 };
+
+export const formatPrice = (val: number | string | undefined | null): string => {
+  if (val === undefined || val === null) return "0";
+  const num = Number(val);
+  return new Intl.NumberFormat("id-ID", {
+    maximumFractionDigits: 0,
+  }).format(num);
+};
+
+export const parseFormattedNumber = (val: string): number => {
+  if (!val) return 0;
+  const clean = val.replace(/\./g, "").replace(/,/g, "");
+  return Number(clean) || 0;
+};
+
 
 /**
  * Strips technical transaction suffixes and prefixes order tags.

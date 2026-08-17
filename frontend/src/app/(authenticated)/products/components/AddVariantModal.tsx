@@ -6,6 +6,9 @@ import { Modal } from "@/components/Modal";
 import { Input } from "@/components/Input";
 import { Button } from "@/components/Button";
 import { useGetSuppliersQuery, useCreateMaterialVariantMutation } from "@/lib/api/productApi";
+import { PriceInput } from "@/components/PriceInput";
+import { Select } from "@/components/Select";
+import { Controller } from "react-hook-form";
 
 const variantSchema = zod.object({
   name: zod.string().min(1, "Nama varian wajib diisi"),
@@ -33,6 +36,7 @@ export const AddVariantModal: React.FC<AddVariantModalProps> = ({ isOpen, onClos
     handleSubmit,
     reset,
     watch,
+    control,
     formState: { errors },
   } = useForm<VariantFormInput>({
     resolver: zodResolver(variantSchema),
@@ -115,13 +119,19 @@ export const AddVariantModal: React.FC<AddVariantModalProps> = ({ isOpen, onClos
             {...register("quantityInBaseUnit", { valueAsNumber: true })}
           />
 
-          <Input
-            id="purchasePrice"
-            label="Harga Beli Paket *"
-            type="number"
-            placeholder="e.g. 50000"
-            error={errors.purchasePrice?.message}
-            {...register("purchasePrice", { valueAsNumber: true })}
+          <Controller
+            control={control}
+            name="purchasePrice"
+            render={({ field }) => (
+              <PriceInput
+                id="purchasePrice"
+                label="Harga Beli Paket *"
+                placeholder="e.g. 50000"
+                error={errors.purchasePrice?.message}
+                value={field.value}
+                onChange={field.onChange}
+              />
+            )}
           />
         </div>
 
@@ -131,23 +141,19 @@ export const AddVariantModal: React.FC<AddVariantModalProps> = ({ isOpen, onClos
           </div>
         )}
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="supplierId" className="text-sm font-medium text-text-primary">
-            Supplier (Opsional)
-          </label>
-          <select
-            id="supplierId"
-            {...register("supplierId")}
-            className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
-          >
-            <option value="">Pilih Supplier...</option>
-            {suppliers.map((supplier: any) => (
-              <option key={supplier.id} value={supplier.id}>
-                {supplier.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <Select
+          id="supplierId"
+          label="Supplier (Opsional)"
+          error={errors.supplierId?.message}
+          {...register("supplierId")}
+        >
+          <option value="">Pilih Supplier...</option>
+          {suppliers.map((supplier: any) => (
+            <option key={supplier.id} value={supplier.id}>
+              {supplier.name}
+            </option>
+          ))}
+        </Select>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input

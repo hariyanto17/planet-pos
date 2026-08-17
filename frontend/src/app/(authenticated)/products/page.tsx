@@ -23,6 +23,9 @@ import { Modal } from "@/components/Modal";
 import { Input } from "@/components/Input";
 import { Button } from "@/components/Button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { PriceInput } from "@/components/PriceInput";
+import { Select } from "@/components/Select";
+import { Controller } from "react-hook-form";
 import { EmptyState } from "@/components/EmptyState";
 import { TEXT } from "@/lib/i18n/id";
 import { RecipeModal } from "./components/RecipeModal";
@@ -185,6 +188,7 @@ export default function ProductsPage() {
     formState: { errors: errorsEdit },
     watch: watchEdit,
     setValue: setValueEdit,
+    control: controlEdit,
   } = useForm<ProductSchemaInput>({
     resolver: zodResolver(productSchema),
     defaultValues: {
@@ -331,13 +335,13 @@ export default function ProductsPage() {
           }}
         />
         <div className="flex flex-row gap-4">
-          <select
+          <Select
             value={selectedCategoryFilter}
             onChange={(e) => {
               setSelectedCategoryFilter(e.target.value);
               setPage(1);
             }}
-            className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm w-full md:w-48"
+            className="w-full md:w-48"
           >
             <option value="">Semua Kategori</option>
             {categories.map((cat: Category) => (
@@ -345,21 +349,21 @@ export default function ProductsPage() {
                 {cat.name}
               </option>
             ))}
-          </select>
+          </Select>
 
-          <select
+          <Select
             value={selectedInventoryTypeFilter}
             onChange={(e) => {
               setSelectedInventoryTypeFilter(e.target.value);
               setPage(1);
             }}
-            className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm w-full md:w-48"
+            className="w-full md:w-48"
           >
             <option value="">Semua Tipe</option>
             <option value="FINISHED_GOOD">Finished Good (Produk Jadi)</option>
             <option value="RAW_MATERIAL">Raw Material (Bahan Baku)</option>
             <option value="PACKAGING">Packaging (Kemasan)</option>
-          </select>
+          </Select>
         </div>
       </div>
 
@@ -472,30 +476,31 @@ export default function ProductsPage() {
                 error={errorsEdit.sku?.message}
                 {...registerEdit("sku")}
               />
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="editCategoryId" className="text-sm font-medium text-text-primary">
-                  Category
-                </label>
-                <select
-                  id="editCategoryId"
-                  {...registerEdit("categoryId")}
-                  className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition duration-200 text-sm"
-                >
-                  {categories.map((cat: Category) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-                {errorsEdit.categoryId ? <p className="text-xs text-rose-500 mt-0.5">{errorsEdit.categoryId.message}</p> : null}
-              </div>
+              <Select
+                id="editCategoryId"
+                label="Category"
+                error={errorsEdit.categoryId?.message}
+                {...registerEdit("categoryId")}
+              >
+                {categories.map((cat: Category) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </Select>
               {(!trackInventoryEdit || inventoryTypeEdit === "FINISHED_GOOD") ? (
-                <Input
-                  id="editPrice"
-                  label="Selling Price *"
-                  type="number"
-                  error={errorsEdit.price?.message}
-                  {...registerEdit("price", { valueAsNumber: true })}
+                <Controller
+                  control={controlEdit}
+                  name="price"
+                  render={({ field }) => (
+                    <PriceInput
+                      id="editPrice"
+                      label="Selling Price *"
+                      error={errorsEdit.price?.message}
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  )}
                 />
               ) : (
                 <div className="flex flex-col gap-1.5">
@@ -509,13 +514,19 @@ export default function ProductsPage() {
                   <p className="text-xs text-text-secondary">Produk ini tidak dijual langsung.</p>
                 </div>
               )}
-              <Input
-                id="editCost"
-                label="Cost / Harga Beli"
-                type="number"
-                placeholder="e.g. 20000"
-                error={errorsEdit.cost?.message}
-                {...registerEdit("cost", { valueAsNumber: true })}
+              <Controller
+                control={controlEdit}
+                name="cost"
+                render={({ field }) => (
+                  <PriceInput
+                    id="editCost"
+                    label="Cost / Harga Beli"
+                    placeholder="e.g. 20000"
+                    error={errorsEdit.cost?.message}
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
               />
               <div className="md:col-span-2">
                 <Input
