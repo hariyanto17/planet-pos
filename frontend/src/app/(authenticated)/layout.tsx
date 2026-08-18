@@ -315,10 +315,17 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
           <button
             onClick={() => dispatch(toggleSidebar())}
             className="p-1.5 rounded-lg bg-surface-secondary hover:bg-surface border border-border text-text-secondary hover:text-text-primary transition duration-200"
+            aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+            {sidebarOpen ? (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            )}
           </button>
 
           <div className="flex items-center gap-4">
