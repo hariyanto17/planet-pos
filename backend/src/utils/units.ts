@@ -47,6 +47,11 @@ export async function convertToBaseUnit(
     throw new AppError("NOT_FOUND", "Material variant not found");
   }
 
+  // If the input unit is the variant name itself, it is compatible and converts using variant's capacity
+  if (normalized === materialVariant.name.toLowerCase()) {
+    return qty.mul(new Decimal(materialVariant.quantityInBaseUnit));
+  }
+
   if (!validateUnitCompatibility(inputUnit, baseUnit)) {
     throw new AppError(
       "BAD_REQUEST",

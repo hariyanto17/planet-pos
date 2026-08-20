@@ -54,11 +54,28 @@ export const checkout = async (cashierId: string | null, input: CheckoutInput) =
       tx
     );
 
+    let orderStatus = order.status;
+    if (cashierId && payment.status === "PAID") {
+      orderStatus = "PREPARING" as any;
+      await tx.order.update({
+        where: { id: order.id },
+        data: { status: orderStatus },
+      });
+      await tx.orderTimeline.create({
+        data: {
+          orderId: order.id,
+          status: "PREPARING" as any,
+          description: "Order checkout completed by cashier and paid. Transitioned to PREPARING.",
+          createdById: cashierId,
+        },
+      });
+    }
+
     return {
       orderId: order.id,
       displayNumber: order.displayNumber,
       customerName: order.customerName,
-      orderStatus: order.status,
+      orderStatus,
       paymentStatus: payment.status,
       grandTotal,
       changeAmount: payment.changeAmount ? Number(payment.changeAmount) : 0,

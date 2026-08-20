@@ -19,6 +19,7 @@ export interface LoginResult {
     fullName: string;
     username: string;
     role: UserRole;
+    warehouseId?: string | null;
   };
 }
 

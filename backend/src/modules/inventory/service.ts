@@ -546,6 +546,7 @@ export interface CreateStockTransferPayload {
   sourceWarehouseId: string;
   destinationWarehouseId: string;
   quantity: number;
+  unit?: string | null;
   notes?: string | null;
   sourceResponsibleUserId?: string | null;
   destinationResponsibleUserId?: string | null;
@@ -559,6 +560,7 @@ export const createStockTransfer = async (userId: string, payload: CreateStockTr
     sourceWarehouseId,
     destinationWarehouseId,
     quantity,
+    unit,
     notes,
     sourceResponsibleUserId,
     destinationResponsibleUserId,
@@ -619,7 +621,7 @@ export const createStockTransfer = async (userId: string, payload: CreateStockTr
       receivedUnit = packaging.unitLabel || packaging.name;
     }
 
-    // Calculate normalized quantity in base units
+    // Calculate normalized quantity in base units strictly based on packaging and variant multipliers
     const normalizedQuantity = new Decimal(quantity).mul(packagingMultiplier).mul(variantMultiplier);
     const normalizedQtyNum = normalizedQuantity.toNumber();
 
@@ -698,7 +700,7 @@ export const createStockTransfer = async (userId: string, payload: CreateStockTr
       referenceId: created.id,
       packagingVersionId,
       receivedQuantity: quantity,
-      receivedUnit,
+      receivedUnit: unit || receivedUnit,
       remarks: notes || `Transfer ${transferNumber}`,
       createdById: userId,
     });
@@ -712,7 +714,7 @@ export const createStockTransfer = async (userId: string, payload: CreateStockTr
       referenceId: created.id,
       packagingVersionId,
       receivedQuantity: quantity,
-      receivedUnit,
+      receivedUnit: unit || receivedUnit,
       remarks: notes || `Transfer ${transferNumber}`,
       createdById: userId,
     });

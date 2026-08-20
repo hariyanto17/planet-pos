@@ -64,6 +64,7 @@ export const createStockTransferSchema = Joi.object({
   sourceWarehouseId: Joi.string().required(),
   destinationWarehouseId: Joi.string().required(),
   quantity: Joi.number().precision(3).positive().required(),
+  unit: Joi.string().allow(null, "").optional(),
   notes: Joi.string().allow(null, "").optional(),
   sourceResponsibleUserId: Joi.string().allow(null, "").optional(),
   destinationResponsibleUserId: Joi.string().allow(null, "").optional(),

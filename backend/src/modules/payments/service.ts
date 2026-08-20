@@ -65,7 +65,30 @@ export const createPayment = async (
       }
     }
 
-    if (cashierId) {
+    let status: PaymentStatus = PaymentStatus.PENDING;
+    let confirmedAt: Date | null = null;
+    let confirmedById: string | null = null;
+    let cashierShiftId: string | null = null;
+    let receivedCash: Decimal | null = null;
+
+    if (cashierId && (input.method === "CASH" || input.method === "QRIS")) {
+      const activeShift = await tx.cashierShift.findFirst({
+        where: { userId: cashierId, status: "OPEN" },
+      });
+      if (!activeShift) {
+        throw new AppError("BAD_REQUEST", "Active cashier shift is required for cashier payments");
+      }
+      status = PaymentStatus.PAID;
+      confirmedAt = new Date();
+      confirmedById = cashierId;
+      cashierShiftId = activeShift.id;
+      if (input.method === "CASH") {
+        const cashInput = input.receivedCash || input.estimatedCash;
+        if (cashInput) {
+          receivedCash = new Decimal(cashInput);
+        }
+      }
+    } else if (cashierId) {
       const activeShift = await tx.cashierShift.findFirst({
         where: { userId: cashierId, status: "OPEN" },
       });
@@ -78,15 +101,15 @@ export const createPayment = async (
       data: {
         orderId: input.orderId,
         method: input.method,
-        status: PaymentStatus.PENDING,
+        status,
         amount: paymentAmount,
         estimatedCash,
-        receivedCash: null,
+        receivedCash,
         changeAmount,
         referenceNumber: input.referenceNumber || null,
-        confirmedAt: null,
-        confirmedById: null,
-        cashierShiftId: null,
+        confirmedAt,
+        confirmedById,
+        cashierShiftId,
       },
     });
 

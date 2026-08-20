@@ -1,21 +1,13 @@
 import { baseApi } from "./baseApi";
+import { inventoryEndpointsConfig } from "../../../../shared/api/inventoryApi";
 
 export const inventoryApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getInventorySummary: builder.query<any, void>({
-      query: () => "/inventory/summary",
-      providesTags: ["Inventory"] as any,
-    }),
+    getInventorySummary: builder.query<any, void>(inventoryEndpointsConfig.getInventorySummary),
     getInventoryProducts: builder.query<
       any,
       { search?: string; warehouseId?: string; stockStatus?: string; page?: number; limit?: number }
-    >({
-      query: (params) => ({
-        url: "/inventory/products",
-        params,
-      }),
-      providesTags: ["Inventory"] as any,
-    }),
+    >(inventoryEndpointsConfig.getInventoryProducts),
     getStockMovements: builder.query<
       any,
       {
@@ -28,123 +20,60 @@ export const inventoryApi = baseApi.injectEndpoints({
         page?: number;
         limit?: number;
       }
-    >({
-      query: (params) => ({
-        url: "/inventory/movements",
-        params,
-      }),
-      providesTags: ["Inventory"] as any,
-    }),
-    receiveStock: builder.mutation<any, { productId: string; variantId: string; packagingId?: string; warehouseId: string; quantity: number; receivedUnit?: string; note?: string }>({
-      query: (body) => ({
-        url: "/inventory/receive",
-        method: "POST",
-        body,
-      }),
-      invalidatesTags: ["Inventory"] as any,
-    }),
-    adjustStock: builder.mutation<any, { materialVariantId: string; warehouseId: string; quantity: number; unit?: string; remarks?: string }>({
-      query: (body) => ({
-        url: "/inventory/adjust",
-        method: "POST",
-        body,
-      }),
-      invalidatesTags: ["Inventory"] as any,
-    }),
-    removeWaste: builder.mutation<any, { materialVariantId: string; warehouseId: string; quantity: number; unit?: string; remarks?: string }>({
-      query: (body) => ({
-        url: "/inventory/waste",
-        method: "POST",
-        body,
-      }),
-      invalidatesTags: ["Inventory"] as any,
-    }),
-    recordOpeningStock: builder.mutation<any, { warehouseId: string; items: Array<{ materialVariantId: string; quantity: number; unit?: string; remarks?: string }> }>({
-      query: (body) => ({
-        url: "/inventory/opening",
-        method: "POST",
-        body,
-      }),
-      invalidatesTags: ["Inventory"] as any,
-    }),
-    transferStock: builder.mutation<any, { sourceWarehouseId: string; destinationWarehouseId: string; items: Array<{ materialVariantId: string; quantity: number; unit?: string }>; remarks?: string; sourceResponsibleUserId?: string | null; destinationResponsibleUserId?: string | null }>({
-      query: (body) => ({
-        url: "/inventory/transfer",
-        method: "POST",
-        body,
-      }),
-      invalidatesTags: ["Inventory"] as any,
-    }),
-    getStockTransfers: builder.query<any[], void>({
-      query: () => "/inventory/transfer",
-      providesTags: ["Inventory"] as any,
-    }),
-    completeStockTransfer: builder.mutation<any, string>({
-      query: (id) => ({
-        url: `/inventory/transfer/${id}/complete`,
-        method: "POST",
-      }),
-      invalidatesTags: ["Inventory"] as any,
-    }),
-    getWarehouses: builder.query<any[], void>({
-      query: () => "/inventory/warehouses",
-      providesTags: ["Inventory"] as any,
-    }),
-    getUnits: builder.query<any[], void>({
-      query: () => "/inventory/units",
-      providesTags: ["Inventory"] as any,
-    }),
-    getStockRequests: builder.query<any[], { scope?: string; status?: string }>({
-      query: (params) => ({
-        url: "/inventory/requests",
-        params,
-      }),
-      providesTags: ["Inventory"] as any,
-    }),
-    createStockRequest: builder.mutation<any, { requestingWarehouseId: string; items: Array<{ materialVariantId: string; quantity: number; unit?: string }>; notes?: string }>({
-      query: (body) => ({
-        url: "/inventory/requests",
-        method: "POST",
-        body,
-      }),
-      invalidatesTags: ["Inventory"] as any,
-    }),
-    claimStockRequest: builder.mutation<any, { id: string; sourceWarehouseId: string }>({
-      query: ({ id, sourceWarehouseId }) => ({
-        url: `/inventory/requests/${id}/claim`,
-        method: "POST",
-        body: { sourceWarehouseId },
-      }),
-      invalidatesTags: ["Inventory"] as any,
-    }),
-    shipStockRequest: builder.mutation<any, string>({
-      query: (id) => ({
-        url: `/inventory/requests/${id}/ship`,
-        method: "POST",
-      }),
-      invalidatesTags: ["Inventory"] as any,
-    }),
-    receiveStockRequest: builder.mutation<any, string>({
-      query: (id) => ({
-        url: `/inventory/requests/${id}/receive`,
-        method: "POST",
-      }),
-      invalidatesTags: ["Inventory"] as any,
-    }),
-    acceptStockRequest: builder.mutation<any, string>({
-      query: (id) => ({
-        url: `/inventory/requests/${id}/accept`,
-        method: "POST",
-      }),
-      invalidatesTags: ["Inventory"] as any,
-    }),
-    cancelStockRequest: builder.mutation<any, string>({
-      query: (id) => ({
-        url: `/inventory/requests/${id}/cancel`,
-        method: "POST",
-      }),
-      invalidatesTags: ["Inventory"] as any,
-    }),
+    >(inventoryEndpointsConfig.getStockMovements),
+    receiveStock: builder.mutation<
+      any,
+      { productId: string; variantId: string; packagingId?: string; warehouseId: string; quantity: number; receivedUnit?: string; note?: string }
+    >(inventoryEndpointsConfig.receiveStock),
+    adjustStock: builder.mutation<
+      any,
+      { materialVariantId: string; warehouseId: string; quantity: number; unit?: string; remarks?: string }
+    >(inventoryEndpointsConfig.adjustStock),
+    removeWaste: builder.mutation<
+      any,
+      { materialVariantId: string; warehouseId: string; quantity: number; unit?: string; remarks?: string }
+    >(inventoryEndpointsConfig.removeWaste),
+    recordOpeningStock: builder.mutation<
+      any,
+      { warehouseId: string; items: Array<{ materialVariantId: string; quantity: number; unit?: string; remarks?: string }> }
+    >(inventoryEndpointsConfig.recordOpeningStock),
+    transferStock: builder.mutation<
+      any,
+      {
+        productId: string;
+        variantId: string;
+        packagingId?: string;
+        sourceWarehouseId: string;
+        destinationWarehouseId: string;
+        quantity: number;
+        notes?: string;
+        sourceResponsibleUserId?: string | null;
+        destinationResponsibleUserId?: string | null;
+      }
+    >(inventoryEndpointsConfig.transferStock),
+    getStockTransfers: builder.query<any[], void>(inventoryEndpointsConfig.getStockTransfers),
+    completeStockTransfer: builder.mutation<any, string>(inventoryEndpointsConfig.completeStockTransfer),
+    getWarehouses: builder.query<any[], void>(inventoryEndpointsConfig.getWarehouses),
+    getUnits: builder.query<any[], void>(inventoryEndpointsConfig.getUnits),
+    getStockRequests: builder.query<any[], { scope?: string; status?: string }>(inventoryEndpointsConfig.getStockRequests),
+    createStockRequest: builder.mutation<
+      any,
+      {
+        requestingWarehouseId: string;
+        items: Array<{
+          productId: string;
+          variantId: string;
+          packagingId?: string;
+          quantity: number;
+        }>;
+        notes?: string;
+      }
+    >(inventoryEndpointsConfig.createStockRequest),
+    claimStockRequest: builder.mutation<any, { id: string; sourceWarehouseId: string }>(inventoryEndpointsConfig.claimStockRequest),
+    shipStockRequest: builder.mutation<any, string>(inventoryEndpointsConfig.shipStockRequest),
+    receiveStockRequest: builder.mutation<any, string>(inventoryEndpointsConfig.receiveStockRequest),
+    acceptStockRequest: builder.mutation<any, string>(inventoryEndpointsConfig.acceptStockRequest),
+    cancelStockRequest: builder.mutation<any, string>(inventoryEndpointsConfig.cancelStockRequest),
   }),
 });
 
@@ -169,4 +98,5 @@ export const {
   useAcceptStockRequestMutation,
   useCancelStockRequestMutation,
 } = inventoryApi;
+
 export default inventoryApi;

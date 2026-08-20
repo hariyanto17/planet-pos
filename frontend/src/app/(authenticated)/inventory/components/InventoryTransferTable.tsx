@@ -145,8 +145,11 @@ export function InventoryTransferTable({ onSuccess }: Props) {
               <td className="px-6 py-4 text-xs font-bold text-text-primary font-sans">
                 {productName}
               </td>
-              <td className="px-6 py-4 text-xs font-extrabold text-text-primary font-mono">
-                {quantity}
+              <td className="px-6 py-4 text-xs font-semibold text-text-primary font-mono">
+                {Number(quantity.toFixed(3)).toLocaleString("id-ID", {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 3,
+                })}
               </td>
               <td className="px-6 py-4">{renderStatusBadge(t.status)}</td>
               <td className="px-6 py-4 text-xs font-medium">

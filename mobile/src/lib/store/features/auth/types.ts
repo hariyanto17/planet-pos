@@ -7,5 +7,6 @@ export interface AuthState {
     fullName: string;
     username: string;
     role: UserRole;
+    warehouseId?: string | null;
   } | null;
 }

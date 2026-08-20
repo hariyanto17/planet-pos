@@ -8,7 +8,7 @@ class SocketService {
 
   connect(token: string, url?: string) {
     const defaultUrl = url || (__DEV__
-      ? (Platform.OS === "android" ? "https://be-concession.168billiard.online" : "http://localhost:5001")
+      ? (Platform.OS === "android" ? "http://10.0.2.2:5050" : "http://localhost:5050")
       : "https://be-concession.168billiard.online");
 
     if (this.socket && this.currentToken === token && this.currentUrl === defaultUrl) {

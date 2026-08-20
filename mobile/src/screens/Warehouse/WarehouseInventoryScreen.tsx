@@ -11,137 +11,97 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
-  Alert,
   RefreshControl,
   TouchableWithoutFeedback,
 } from "react-native";
 import {
   useGetInventoryProductsQuery,
   useGetStockMovementsQuery,
-  useGetStockTransfersQuery,
   useGetWarehousesQuery,
   useReceiveStockMutation,
   useAdjustStockMutation,
   useRemoveWasteMutation,
   useRecordOpeningStockMutation,
-  useTransferStockMutation,
-  useCompleteStockTransferMutation,
-  useGetStockRequestsQuery,
-  useCreateStockRequestMutation,
-  useClaimStockRequestMutation,
-  useShipStockRequestMutation,
-  useReceiveStockRequestMutation,
-  useAcceptStockRequestMutation,
-  useCancelStockRequestMutation,
 } from "../../lib/api/inventoryApi";
 import { useGetProductsQuery } from "../../lib/api/productApi";
 import { useToast } from "../../hooks/useToast";
-import { useConfirmation } from "../../hooks/useConfirmation";
 import { useTheme, Theme } from "../../theme";
 import { useAppSelector } from "../../lib/store/hooks";
 import { selectCurrentUser } from "../../lib/store/features/auth/selectors";
 import { getAvailableUnits, getDefaultUnit, formatConversionPreview } from "../../lib/utils/unitConversions";
 
-type TabType = "Stok" | "Riwayat" | "Transfer" | "Aktivitas" | "Permintaan";
+type SubTab = "Stok" | "Riwayat" | "Aktivitas";
 
-export default function KitchenWarehouseScreen() {
+export default function WarehouseInventoryScreen() {
   const currentUser = useAppSelector(selectCurrentUser);
-  const [activeTab, setActiveTab] = useState<TabType>("Stok");
   const { showToast } = useToast();
-  const { showConfirmation } = useConfirmation();
   const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
+  // States
+  const [activeTab, setActiveTab] = useState<SubTab>("Stok");
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState("");
+  const [stockStatus, setStockStatus] = useState<string>(""); // "", "LOW_STOCK", "OUT_OF_STOCK", "IN_STOCK"
+  const [searchStock, setSearchStock] = useState("");
+  const [movementType, setMovementType] = useState("");
+
+  // Modals state
+  const [modalType, setModalType] = useState<"RECEIVE" | "ADJUST" | "WASTE" | "OPENING" | null>(null);
+  const [selectedProductId, setSelectedProductId] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [selectedUnit, setSelectedUnit] = useState("");
+  const [remarks, setRemarks] = useState("");
+  const [openingItems, setOpeningItems] = useState<Array<{ materialVariantId: string; quantity: string; unit: string; remarks: string }>>([
+    { materialVariantId: "", quantity: "", unit: "", remarks: "" },
+  ]);
+
   // Queries
-  const { data: warehouses, isLoading: isLoadingWh } = useGetWarehousesQuery();
+  const { data: warehouses, isLoading: isLoadingWh, refetch: refetchWh } = useGetWarehousesQuery();
   const { data: allProducts } = useGetProductsQuery();
 
-  // Find Kitchen Storage
-  const kitchenStorage = warehouses?.find(
-    (w) => w.warehouseType === "KITCHEN_STORAGE" && w.isDefaultKitchenStorage
-  );
-  const kitchenWarehouseId = kitchenStorage?.id;
+  // Set default warehouse based on user role
+  React.useEffect(() => {
+    if (warehouses && warehouses.length > 0 && !selectedWarehouseId) {
+      if (currentUser?.role === "WAREHOUSE" && currentUser.warehouseId) {
+        setSelectedWarehouseId(currentUser.warehouseId);
+      } else {
+        setSelectedWarehouseId(warehouses[0].id);
+      }
+    }
+  }, [warehouses, currentUser, selectedWarehouseId]);
 
-  // Tab 1: Stok Query
-  const [searchStock, setSearchStock] = useState("");
   const {
     data: stockData,
     isLoading: isLoadingStock,
     isFetching: isFetchingStock,
     refetch: refetchStock,
   } = useGetInventoryProductsQuery(
-    { warehouseId: kitchenWarehouseId, search: searchStock },
-    { skip: !kitchenWarehouseId }
+    {
+      warehouseId: selectedWarehouseId || undefined,
+      search: searchStock || undefined,
+      stockStatus: stockStatus || undefined,
+    },
+    { skip: !selectedWarehouseId }
   );
 
-  // Tab 2: Riwayat Query
   const {
     data: movementData,
     isLoading: isLoadingMovements,
     isFetching: isFetchingMovements,
     refetch: refetchMovements,
   } = useGetStockMovementsQuery(
-    { warehouseId: kitchenWarehouseId },
-    { skip: !kitchenWarehouseId }
+    {
+      warehouseId: selectedWarehouseId || undefined,
+      movementType: movementType || undefined,
+    },
+    { skip: !selectedWarehouseId }
   );
-
-  // Tab 3: Transfer Query
-  const {
-    data: transfersData,
-    isLoading: isLoadingTransfers,
-    isFetching: isFetchingTransfers,
-    refetch: refetchTransfers,
-  } = useGetStockTransfersQuery();
-
-  // Filter transfers intended for Kitchen Storage
-  const kitchenTransfers = transfersData?.filter(
-    (t) => t.destinationWarehouseId === kitchenWarehouseId
-  ) || [];
-
-  // Tab 5: Requests Query
-  const [activeRequestScope, setActiveRequestScope] = useState<"my-requests" | "available" | "my-fulfillments" | "incoming" | "completed">("my-requests");
-  const {
-    data: requestsData,
-    isLoading: isLoadingRequests,
-    isFetching: isFetchingRequests,
-    refetch: refetchRequests,
-  } = useGetStockRequestsQuery({ scope: activeRequestScope });
 
   // Mutations
   const [receiveStock, { isLoading: isMutatingReceive }] = useReceiveStockMutation();
   const [adjustStock, { isLoading: isMutatingAdjust }] = useAdjustStockMutation();
   const [removeWaste, { isLoading: isMutatingWaste }] = useRemoveWasteMutation();
   const [recordOpeningStock, { isLoading: isMutatingOpening }] = useRecordOpeningStockMutation();
-  const [transferStock, { isLoading: isMutatingTransfer }] = useTransferStockMutation();
-  const [completeStockTransfer, { isLoading: isCompletingTransfer }] = useCompleteStockTransferMutation();
-  const [createStockRequest, { isLoading: isMutatingCreateRequest }] = useCreateStockRequestMutation();
-  const [claimStockRequest, { isLoading: isMutatingClaim }] = useClaimStockRequestMutation();
-  const [shipStockRequest, { isLoading: isMutatingShip }] = useShipStockRequestMutation();
-  const [receiveStockRequest, { isLoading: isMutatingReceiveReq }] = useReceiveStockRequestMutation();
-  const [acceptStockRequest, { isLoading: isMutatingAccept }] = useAcceptStockRequestMutation();
-  const [cancelStockRequest, { isLoading: isMutatingCancel }] = useCancelStockRequestMutation();
-
-  // Modals state
-  const [modalType, setModalType] = useState<"RECEIVE" | "ADJUST" | "WASTE" | "OPENING" | "TRANSFER" | "REQUEST" | null>(null);
-  const [selectedProductId, setSelectedProductId] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [selectedUnit, setSelectedUnit] = useState("");
-  const [remarks, setRemarks] = useState("");
-  const [sourceWarehouseId, setSourceWarehouseId] = useState("");
-  const [openingItems, setOpeningItems] = useState<Array<{ materialVariantId: string; quantity: string; unit: string; remarks: string }>>([
-    { materialVariantId: "", quantity: "", unit: "", remarks: "" },
-  ]);
-
-  const resolveMaterialVariantId = (productId: string) => {
-    const product = allProducts?.find((p: any) => p.id === productId);
-    return product?.materialVariantId ?? productId;
-  };
-
-  const getCompatibleUnits = (baseUnit?: string) => {
-    if (baseUnit === "G") return ["g", "kg"];
-    if (baseUnit === "ML") return ["ml", "L"];
-    return ["pcs"];
-  };
 
   const handleProductSelect = (id: string) => {
     setSelectedProductId(id);
@@ -154,38 +114,14 @@ export default function KitchenWarehouseScreen() {
     }
   };
 
-  const handleCompleteTransfer = async (transferId: string) => {
-    const confirmed = await showConfirmation({
-      title: "Terima Transfer",
-      message: "Apakah Anda yakin ingin menerima transfer stok ini?",
-      confirmText: "Terima",
-      cancelText: "Batal",
-      variant: "info",
-    });
-
-    if (confirmed) {
-      try {
-        await completeStockTransfer(transferId).unwrap();
-        showToast({
-          type: "success",
-          title: "Berhasil",
-          message: "Transfer stok berhasil diselesaikan.",
-        });
-        refetchTransfers();
-        refetchStock();
-      } catch (err: any) {
-        showToast({
-          type: "error",
-          title: "Gagal",
-          message: err?.data?.message || "Terjadi kesalahan.",
-        });
-      }
-    }
+  const resolveMaterialVariantId = (productId: string) => {
+    const product = allProducts?.find((p: any) => p.id === productId);
+    return product?.materialVariantId ?? productId;
   };
 
   const handleOperationSubmit = async () => {
-    if (!kitchenWarehouseId) {
-      showToast({ type: "error", title: "Error", message: "Gudang dapur tidak terdeteksi." });
+    if (!selectedWarehouseId) {
+      showToast({ type: "error", title: "Error", message: "Gudang belum dipilih." });
       return;
     }
     if (!selectedProductId || !quantity) {
@@ -194,37 +130,55 @@ export default function KitchenWarehouseScreen() {
     }
 
     const qtyNum = parseFloat(quantity);
-    if (isNaN(qtyNum) || qtyNum <= 0) {
-      showToast({ type: "warning", title: "Peringatan", message: "Jumlah harus berupa angka positif." });
+    if (isNaN(qtyNum) || qtyNum === 0) {
+      showToast({ type: "warning", title: "Peringatan", message: "Jumlah tidak valid." });
       return;
     }
 
     try {
       const materialVariantId = resolveMaterialVariantId(selectedProductId);
       if (modalType === "RECEIVE") {
-        const selectedProduct = allProducts?.find((product: any) => (product.materialVariantId ?? product.id) === materialVariantId);
-        const productId = selectedProduct?.materialId;
-        if (!productId) {
-          throw new Error("Produk induk untuk varian stok tidak ditemukan.");
-        }
-        await receiveStock({ productId, variantId: materialVariantId, warehouseId: kitchenWarehouseId, quantity: qtyNum, receivedUnit: selectedProduct?.name, note: remarks || undefined }).unwrap();
+        if (qtyNum <= 0) throw new Error("Jumlah penerimaan harus lebih dari 0");
+        const selectedProduct = allProducts?.find((p: any) => p.id === selectedProductId);
+        const parentId = selectedProduct?.materialId ?? selectedProductId;
+        await receiveStock({
+          productId: parentId,
+          variantId: materialVariantId,
+          warehouseId: selectedWarehouseId,
+          quantity: qtyNum,
+          receivedUnit: selectedUnit || undefined,
+          note: remarks || undefined,
+        }).unwrap();
       } else if (modalType === "ADJUST") {
-        await adjustStock({ materialVariantId, warehouseId: kitchenWarehouseId, quantity: qtyNum, unit: selectedUnit || undefined, remarks }).unwrap();
+        await adjustStock({
+          materialVariantId,
+          warehouseId: selectedWarehouseId,
+          quantity: qtyNum,
+          unit: selectedUnit || undefined,
+          remarks,
+        }).unwrap();
       } else if (modalType === "WASTE") {
-        await removeWaste({ materialVariantId, warehouseId: kitchenWarehouseId, quantity: qtyNum, unit: selectedUnit || undefined, remarks }).unwrap();
+        if (qtyNum <= 0) throw new Error("Jumlah waste harus lebih dari 0");
+        await removeWaste({
+          materialVariantId,
+          warehouseId: selectedWarehouseId,
+          quantity: qtyNum,
+          unit: selectedUnit || undefined,
+          remarks,
+        }).unwrap();
       }
-      showToast({ type: "success", title: "Berhasil", message: "Operasi stok berhasil disimpan." });
+      showToast({ type: "success", title: "Berhasil", message: "Transaksi stok berhasil diproses." });
       setModalType(null);
       resetFormFields();
       refetchStock();
       refetchMovements();
     } catch (err: any) {
-      showToast({ type: "error", title: "Gagal", message: err?.data?.message || "Gagal memproses operasi." });
+      showToast({ type: "error", title: "Gagal", message: err?.data?.message || err?.message || "Terjadi kesalahan." });
     }
   };
 
   const handleOpeningSubmit = async () => {
-    if (!kitchenWarehouseId) return;
+    if (!selectedWarehouseId) return;
     const validItems = openingItems.filter(item => item.materialVariantId !== "" && item.quantity !== "");
     if (validItems.length === 0) {
       showToast({ type: "warning", title: "Peringatan", message: "Harap tambahkan minimal satu produk." });
@@ -242,7 +196,7 @@ export default function KitchenWarehouseScreen() {
     });
 
     try {
-      await recordOpeningStock({ warehouseId: kitchenWarehouseId, items: itemsPayload }).unwrap();
+      await recordOpeningStock({ warehouseId: selectedWarehouseId, items: itemsPayload }).unwrap();
       showToast({ type: "success", title: "Berhasil", message: "Stok awal berhasil disimpan." });
       setModalType(null);
       setOpeningItems([{ materialVariantId: "", quantity: "", unit: "", remarks: "" }]);
@@ -253,194 +207,17 @@ export default function KitchenWarehouseScreen() {
     }
   };
 
-  const handleTransferSubmit = async () => {
-    if (!kitchenWarehouseId) return;
-    if (!sourceWarehouseId || !selectedProductId || !quantity) {
-      showToast({ type: "warning", title: "Peringatan", message: "Harap isi semua kolom wajib." });
-      return;
-    }
-    const qtyNum = parseFloat(quantity);
-    if (isNaN(qtyNum) || qtyNum <= 0) {
-      showToast({ type: "warning", title: "Peringatan", message: "Jumlah harus positif." });
-      return;
-    }
-
-    try {
-      const materialVariantId = resolveMaterialVariantId(selectedProductId);
-      await transferStock({
-        productId: selectedProductId,
-        variantId: materialVariantId,
-        sourceWarehouseId,
-        destinationWarehouseId: kitchenWarehouseId,
-        quantity: qtyNum,
-        notes: remarks || undefined,
-      }).unwrap();
-      showToast({ type: "success", title: "Berhasil", message: "Permintaan transfer berhasil dibuat." });
-      setModalType(null);
-      resetFormFields();
-      refetchTransfers();
-    } catch (err: any) {
-      showToast({ type: "error", title: "Gagal", message: err?.data?.message || "Gagal membuat transfer." });
-    }
-  };
-
-  const handleRequestSubmit = async () => {
-    if (!kitchenWarehouseId) {
-      showToast({ type: "error", title: "Error", message: "Gudang peminta tidak terdeteksi." });
-      return;
-    }
-    if (!selectedProductId || !quantity) {
-      showToast({ type: "warning", title: "Peringatan", message: "Harap isi semua kolom wajib." });
-      return;
-    }
-
-    const qtyNum = parseFloat(quantity);
-    if (isNaN(qtyNum) || qtyNum <= 0) {
-      showToast({ type: "warning", title: "Peringatan", message: "Jumlah harus berupa angka positif." });
-      return;
-    }
-
-    try {
-      const materialVariantId = resolveMaterialVariantId(selectedProductId);
-      await createStockRequest({
-        requestingWarehouseId: kitchenWarehouseId,
-        items: [
-          {
-            productId: selectedProductId,
-            variantId: materialVariantId,
-            quantity: qtyNum,
-          },
-        ],
-        notes: remarks || undefined,
-      }).unwrap();
-
-      showToast({
-        type: "success",
-        title: "Berhasil",
-        message: "Permintaan stok berhasil diajukan.",
-      });
-      setModalType(null);
-      resetFormFields();
-      refetchRequests();
-    } catch (err: any) {
-      showToast({
-        type: "error",
-        title: "Gagal",
-        message: err?.data?.message || "Gagal mengajukan permintaan.",
-      });
-    }
-  };
-
-  const handleClaimRequest = async (requestId: string) => {
-    if (!kitchenWarehouseId) return;
-    const confirmed = await showConfirmation({
-      title: "Claim Permintaan",
-      message: "Apakah Anda yakin ingin memproses permintaan stok ini dari gudang Anda?",
-      confirmText: "Claim",
-      cancelText: "Batal",
-      variant: "info",
-    });
-
-    if (confirmed) {
-      try {
-        await claimStockRequest({ id: requestId, sourceWarehouseId: kitchenWarehouseId }).unwrap();
-        showToast({ type: "success", title: "Berhasil", message: "Permintaan berhasil diklaim." });
-        refetchRequests();
-        refetchStock();
-      } catch (err: any) {
-        showToast({ type: "error", title: "Gagal", message: err?.data?.message || "Gagal mengklaim." });
-      }
-    }
-  };
-
-  const handleShipRequest = async (requestId: string) => {
-    const confirmed = await showConfirmation({
-      title: "Kirim Barang",
-      message: "Konfirmasi pengiriman fisik barang? Stok gudang asal akan langsung berkurang.",
-      confirmText: "Kirim",
-      cancelText: "Batal",
-      variant: "info",
-    });
-
-    if (confirmed) {
-      try {
-        await shipStockRequest(requestId).unwrap();
-        showToast({ type: "success", title: "Berhasil", message: "Barang berhasil dikirim." });
-        refetchRequests();
-        refetchStock();
-      } catch (err: any) {
-        showToast({ type: "error", title: "Gagal", message: err?.data?.message || "Gagal mengirim." });
-      }
-    }
-  };
-
-  const handleReceiveRequest = async (requestId: string) => {
-    const confirmed = await showConfirmation({
-      title: "Terima Barang",
-      message: "Konfirmasi barang telah sampai di lokasi secara fisik?",
-      confirmText: "Terima",
-      cancelText: "Batal",
-      variant: "info",
-    });
-
-    if (confirmed) {
-      try {
-        await receiveStockRequest(requestId).unwrap();
-        showToast({ type: "success", title: "Berhasil", message: "Fisik barang diterima." });
-        refetchRequests();
-      } catch (err: any) {
-        showToast({ type: "error", title: "Gagal", message: err?.data?.message || "Gagal menerima." });
-      }
-    }
-  };
-
-  const handleAcceptRequest = async (requestId: string) => {
-    const confirmed = await showConfirmation({
-      title: "Accept Stok",
-      message: "Verifikasi dan tambahkan barang ke stok sistem?",
-      confirmText: "Accept",
-      cancelText: "Batal",
-      variant: "info",
-    });
-
-    if (confirmed) {
-      try {
-        await acceptStockRequest(requestId).unwrap();
-        showToast({ type: "success", title: "Berhasil", message: "Barang ditambahkan ke stok." });
-        refetchRequests();
-        refetchStock();
-      } catch (err: any) {
-        showToast({ type: "error", title: "Gagal", message: err?.data?.message || "Gagal memproses." });
-      }
-    }
-  };
-
-  const handleCancelRequest = async (requestId: string) => {
-    const confirmed = await showConfirmation({
-      title: "Batalkan Permintaan",
-      message: "Apakah Anda yakin ingin membatalkan permintaan ini?",
-      confirmText: "Batalkan",
-      cancelText: "Kembali",
-      variant: "danger",
-    });
-
-    if (confirmed) {
-      try {
-        await cancelStockRequest(requestId).unwrap();
-        showToast({ type: "success", title: "Berhasil", message: "Permintaan dibatalkan." });
-        refetchRequests();
-      } catch (err: any) {
-        showToast({ type: "error", title: "Gagal", message: err?.data?.message || "Gagal membatalkan." });
-      }
-    }
-  };
-
   const resetFormFields = () => {
     setSelectedProductId("");
     setQuantity("");
     setSelectedUnit("");
     setRemarks("");
-    setSourceWarehouseId("");
+  };
+
+  const handleRefresh = () => {
+    refetchWh();
+    refetchStock();
+    refetchMovements();
   };
 
   const getStockStatusStyle = (stock: any) => {
@@ -464,108 +241,39 @@ export default function KitchenWarehouseScreen() {
     }
   };
 
-  const renderStockItem = ({ item }: { item: any }) => {
-    const status = getStockStatusStyle(item);
-    return (
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.productName}>{item.product?.name || "Produk Tidak Dikenal"}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
-            <Text style={[styles.statusBadgeText, { color: status.color }]}>{status.label}</Text>
-          </View>
-        </View>
-        <View style={styles.cardBody}>
-          <Text style={styles.cardLabel}>Jumlah Stok</Text>
-          <Text style={styles.cardValue}>
-            {Number(item.quantity).toLocaleString()} {item.product?.unit?.symbol || "PCS"}
-          </Text>
-        </View>
-        <View style={styles.cardFooter}>
-          <Text style={styles.cardSubText}>Min. Stok: {Number(item.product?.minimumStock || 0).toLocaleString()}</Text>
-        </View>
-      </View>
-    );
-  };
-
-  const renderMovementItem = ({ item }: { item: any }) => {
-    return (
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.productName}>{item.product?.name}</Text>
-          <Text style={styles.movementTypeBadge}>{formatMovementType(item.movementType)}</Text>
-        </View>
-        <View style={styles.cardBodyRow}>
-          <View>
-            <Text style={styles.cardLabel}>Mutasi</Text>
-            <Text style={[styles.cardValue, { color: Number(item.quantity) >= 0 ? "#10b981" : "#ef4444" }]}>
-              {Number(item.quantity) >= 0 ? "+" : ""}{Number(item.quantity).toLocaleString()}
-            </Text>
-          </View>
-          <View style={{ alignItems: "flex-end" }}>
-            <Text style={styles.cardLabel}>Saldo Akhir</Text>
-            <Text style={styles.cardValue}>{Number(item.quantityAfter).toLocaleString()}</Text>
-          </View>
-        </View>
-        {item.remarks ? <Text style={styles.remarksText}>Catatan: {item.remarks}</Text> : null}
-        <View style={styles.cardFooter}>
-          <Text style={styles.cardSubText}>
-            Oleh: {item.createdBy?.fullName || "Sistem"} • {new Date(item.createdAt).toLocaleString("id-ID")}
-          </Text>
-        </View>
-      </View>
-    );
-  };
-
-  const renderTransferItem = ({ item }: { item: any }) => {
-    const isPending = item.status === "DRAFT";
-    return (
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.transferCode}>{item.code}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: isPending ? "#3b82f620" : "#10b98120" }]}>
-            <Text style={[styles.statusBadgeText, { color: isPending ? "#3b82f6" : "#10b981" }]}>
-              {item.status}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.cardBody}>
-          <Text style={styles.transferPath}>
-            {item.sourceWarehouse?.name} ➔ {item.destinationWarehouse?.name}
-          </Text>
-          <Text style={styles.cardLabel}>Daftar Item:</Text>
-          {item.items?.map((it: any, index: number) => (
-            <Text key={index} style={styles.transferItemText}>
-              • {it.product?.name} ({Number(it.quantity).toLocaleString()} {it.product?.unit?.symbol || "PCS"})
-            </Text>
-          ))}
-        </View>
-        {isPending ? (
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => handleCompleteTransfer(item.id)}
-            disabled={isCompletingTransfer}
-          >
-            {isCompletingTransfer ? (
-              <ActivityIndicator color="#ffffff" size="small" />
-            ) : (
-              <Text style={styles.actionBtnText}>Terima Transfer</Text>
-            )}
-          </TouchableOpacity>
-        ) : null}
-      </View>
-    );
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#09090b" />
+      
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Gudang Dapur</Text>
+        <Text style={styles.headerTitle}>Manajemen Stok</Text>
+        
+        {/* Warehouse Selector (Only visible to non-locked WAREHOUSE users, or ADMIN) */}
+        {currentUser?.role !== "WAREHOUSE" || !currentUser.warehouseId ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.whSelectorContainer}>
+            {warehouses?.map((w) => (
+              <TouchableOpacity
+                key={w.id}
+                style={[styles.whTab, selectedWarehouseId === w.id && styles.whTabActive]}
+                onPress={() => setSelectedWarehouseId(w.id)}
+              >
+                <Text style={[styles.whTabText, selectedWarehouseId === w.id && styles.whTabTextActive]}>
+                  {w.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        ) : (
+          <Text style={styles.whLockedText}>
+            Gudang: {warehouses?.find(w => w.id === selectedWarehouseId)?.name || "Loading..."}
+          </Text>
+        )}
       </View>
 
-      {/* Tabs */}
+      {/* Sub Tabs */}
       <View style={styles.tabContainer}>
-        {(["Stok", "Riwayat", "Transfer", "Aktivitas"] as TabType[]).map((tab) => (
+        {(["Stok", "Riwayat", "Aktivitas"] as SubTab[]).map((tab) => (
           <TouchableOpacity
             key={tab}
             style={[styles.tabButton, activeTab === tab && styles.tabButtonActive]}
@@ -578,27 +286,72 @@ export default function KitchenWarehouseScreen() {
         ))}
       </View>
 
-      {/* Content */}
+      {/* Tab Contents */}
       <View style={styles.content}>
         {activeTab === "Stok" && (
           <View style={{ flex: 1 }}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Cari produk..."
-              placeholderTextColor="#71717a"
-              value={searchStock}
-              onChangeText={setSearchStock}
-            />
+            <View style={styles.filterRow}>
+              <TextInput
+                style={[styles.searchInput, { flex: 1, marginBottom: 0 }]}
+                placeholder="Cari produk..."
+                placeholderTextColor="#71717a"
+                value={searchStock}
+                onChangeText={setSearchStock}
+              />
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                {[
+                  { label: "Semua", value: "" },
+                  { label: "Menipis", value: "LOW_STOCK" },
+                  { label: "Kosong", value: "OUT_OF_STOCK" },
+                  { label: "Cukup", value: "IN_STOCK" },
+                ].map((st) => (
+                  <TouchableOpacity
+                    key={st.value}
+                    style={[styles.statusFilterBtn, stockStatus === st.value && styles.statusFilterBtnActive]}
+                    onPress={() => setStockStatus(st.value)}
+                  >
+                    <Text style={[styles.statusFilterText, stockStatus === st.value && styles.statusFilterTextActive]}>
+                      {st.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
             {isLoadingStock ? (
               <ActivityIndicator color="#818cf8" style={{ marginTop: 40 }} />
             ) : (
               <FlatList
                 data={stockData}
                 keyExtractor={(item) => item.id}
-                renderItem={renderStockItem}
+                renderItem={({ item }) => {
+                  const statusStyle = getStockStatusStyle(item);
+                  return (
+                    <View style={styles.card}>
+                      <View style={styles.cardHeader}>
+                        <Text style={styles.productName}>{item.product?.name || "Produk Tidak Dikenal"}</Text>
+                        <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+                          <Text style={[styles.statusBadgeText, { color: statusStyle.color }]}>{statusStyle.label}</Text>
+                        </View>
+                      </View>
+                      <View style={styles.cardBodyRow}>
+                        <View>
+                          <Text style={styles.cardLabel}>Stok Aktif</Text>
+                          <Text style={styles.cardValue}>
+                            {Number(item.quantity).toLocaleString()} {item.product?.unit?.symbol || "PCS"}
+                          </Text>
+                        </View>
+                        <View style={{ alignItems: "flex-end" }}>
+                          <Text style={styles.cardLabel}>Batas Minimum</Text>
+                          <Text style={styles.cardValue}>{Number(item.product?.minimumStock || 0).toLocaleString()}</Text>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                }}
                 contentContainerStyle={styles.listContent}
                 refreshControl={
-                  <RefreshControl refreshing={isFetchingStock} onRefresh={refetchStock} tintColor="#818cf8" />
+                  <RefreshControl refreshing={isFetchingStock} onRefresh={handleRefresh} tintColor="#818cf8" />
                 }
               />
             )}
@@ -613,31 +366,35 @@ export default function KitchenWarehouseScreen() {
               <FlatList
                 data={movementData}
                 keyExtractor={(item) => item.id}
-                renderItem={renderMovementItem}
+                renderItem={({ item }) => (
+                  <View style={styles.card}>
+                    <View style={styles.cardHeader}>
+                      <Text style={styles.productName}>{item.product?.name}</Text>
+                      <Text style={styles.movementTypeBadge}>{formatMovementType(item.movementType)}</Text>
+                    </View>
+                    <View style={styles.cardBodyRow}>
+                      <View>
+                        <Text style={styles.cardLabel}>Mutasi</Text>
+                        <Text style={[styles.cardValue, { color: Number(item.quantity) >= 0 ? "#10b981" : "#ef4444" }]}>
+                          {Number(item.quantity) >= 0 ? "+" : ""}{Number(item.quantity).toLocaleString()}
+                        </Text>
+                      </View>
+                      <View style={{ alignItems: "flex-end" }}>
+                        <Text style={styles.cardLabel}>Saldo Akhir</Text>
+                        <Text style={styles.cardValue}>{Number(item.quantityAfter).toLocaleString()}</Text>
+                      </View>
+                    </View>
+                    {item.remarks ? <Text style={styles.remarksText}>Catatan: {item.remarks}</Text> : null}
+                    <View style={styles.cardFooter}>
+                      <Text style={styles.cardSubText}>
+                        Oleh: {item.createdBy?.fullName || "Sistem"} • {new Date(item.createdAt).toLocaleString("id-ID")}
+                      </Text>
+                    </View>
+                  </View>
+                )}
                 contentContainerStyle={styles.listContent}
                 refreshControl={
-                  <RefreshControl refreshing={isFetchingMovements} onRefresh={refetchMovements} tintColor="#818cf8" />
-                }
-              />
-            )}
-          </View>
-        )}
-
-        {activeTab === "Transfer" && (
-          <View style={{ flex: 1 }}>
-            <TouchableOpacity style={styles.primaryBtn} onPress={() => setModalType("TRANSFER")}>
-              <Text style={styles.primaryBtnText}>+ Buat Transfer</Text>
-            </TouchableOpacity>
-            {isLoadingTransfers ? (
-              <ActivityIndicator color="#818cf8" style={{ marginTop: 40 }} />
-            ) : (
-              <FlatList
-                data={kitchenTransfers}
-                keyExtractor={(item) => item.id}
-                renderItem={renderTransferItem}
-                contentContainerStyle={styles.listContent}
-                refreshControl={
-                  <RefreshControl refreshing={isFetchingTransfers} onRefresh={refetchTransfers} tintColor="#818cf8" />
+                  <RefreshControl refreshing={isFetchingMovements} onRefresh={handleRefresh} tintColor="#818cf8" />
                 }
               />
             )}
@@ -646,15 +403,15 @@ export default function KitchenWarehouseScreen() {
 
         {activeTab === "Aktivitas" && (
           <ScrollView contentContainerStyle={styles.activityContainer}>
-            <Text style={styles.sectionTitle}>Operasi Mandiri (Target: Kitchen Storage)</Text>
+            <Text style={styles.sectionTitle}>Operasi Gudang</Text>
             <TouchableOpacity style={styles.activityBtn} onPress={() => setModalType("RECEIVE")}>
-              <Text style={styles.activityBtnText}>+ Terima Stok</Text>
+              <Text style={styles.activityBtnText}>+ Terima Stok (Barang Masuk)</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.activityBtn} onPress={() => setModalType("ADJUST")}>
-              <Text style={styles.activityBtnText}>+ Penyesuaian Stok</Text>
+              <Text style={styles.activityBtnText}>+ Penyesuaian Stok (Koreksi)</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.activityBtn} onPress={() => setModalType("WASTE")}>
-              <Text style={styles.activityBtnText}>+ Waste</Text>
+              <Text style={styles.activityBtnText}>+ Pencatatan Waste</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.activityBtn} onPress={() => setModalType("OPENING")}>
               <Text style={styles.activityBtnText}>+ Stok Awal</Text>
@@ -663,7 +420,7 @@ export default function KitchenWarehouseScreen() {
         )}
       </View>
 
-      {/* Modals for Stock Operations */}
+      {/* Modals */}
       <Modal
         visible={modalType !== null}
         animationType="slide"
@@ -679,27 +436,9 @@ export default function KitchenWarehouseScreen() {
                   {modalType === "ADJUST" && "Penyesuaian Stok"}
                   {modalType === "WASTE" && "Pencatatan Waste"}
                   {modalType === "OPENING" && "Stok Awal"}
-                  {modalType === "TRANSFER" && "Buat Permintaan Transfer"}
                 </Text>
 
                 <ScrollView contentContainerStyle={{ gap: 12 }}>
-                  {modalType === "TRANSFER" && (
-                    <View>
-                      <Text style={styles.label}>Gudang Asal *</Text>
-                      <View style={styles.pickerWrapper}>
-                        {warehouses?.filter(w => w.id !== kitchenWarehouseId && w.isActive).map(w => (
-                          <TouchableOpacity
-                            key={w.id}
-                            style={[styles.pickerItem, sourceWarehouseId === w.id && styles.pickerItemActive]}
-                            onPress={() => setSourceWarehouseId(w.id)}
-                          >
-                            <Text style={styles.pickerItemText}>{w.name}</Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    </View>
-                  )}
-
                   {modalType !== "OPENING" ? (
                     <>
                       <Text style={styles.label}>Pilih Produk *</Text>
@@ -823,19 +562,6 @@ export default function KitchenWarehouseScreen() {
                               ))}
                             </View>
                           </View>
-                          {(() => {
-                            const selectedProduct = allProducts?.find((p: any) => (p.materialVariantId ?? p.id) === item.materialVariantId);
-                            const qtyNum = parseFloat(item.quantity);
-                            const preview = formatConversionPreview(selectedProduct, !isNaN(qtyNum) ? qtyNum : NaN, item.unit);
-                            if (preview) {
-                              return (
-                                <Text style={{ fontSize: 11, color: "#10b981", fontWeight: "bold", marginTop: -6, marginBottom: 8 }}>
-                                  {preview}
-                                </Text>
-                              );
-                            }
-                            return null;
-                          })()}
                           <TextInput
                             style={styles.modalInput}
                             placeholder="Catatan"
@@ -875,16 +601,9 @@ export default function KitchenWarehouseScreen() {
                     style={styles.confirmBtn}
                     onPress={() => {
                       if (modalType === "OPENING") handleOpeningSubmit();
-                      else if (modalType === "TRANSFER") handleTransferSubmit();
                       else handleOperationSubmit();
                     }}
-                    disabled={
-                      isMutatingReceive ||
-                      isMutatingAdjust ||
-                      isMutatingWaste ||
-                      isMutatingOpening ||
-                      isMutatingTransfer
-                    }
+                    disabled={isMutatingReceive || isMutatingAdjust || isMutatingWaste || isMutatingOpening}
                   >
                     <Text style={styles.confirmBtnText}>Simpan</Text>
                   </TouchableOpacity>
@@ -904,17 +623,47 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.background,
   },
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: theme.border,
     backgroundColor: theme.background,
+    gap: 8,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: "900",
     color: theme.textPrimary,
     letterSpacing: -0.5,
+  },
+  whSelectorContainer: {
+    gap: 8,
+    paddingVertical: 4,
+  },
+  whTab: {
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  whTabActive: {
+    borderColor: theme.primary,
+    backgroundColor: theme.primarySoft,
+  },
+  whTabText: {
+    fontSize: 12,
+    color: theme.textSecondary,
+    fontWeight: "600",
+  },
+  whTabTextActive: {
+    color: theme.primary,
+  },
+  whLockedText: {
+    fontSize: 13,
+    fontWeight: "bold",
+    color: theme.textSecondary,
   },
   tabContainer: {
     flexDirection: "row",
@@ -942,6 +691,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
     padding: 16,
   },
+  filterRow: {
+    flexDirection: "column",
+    gap: 8,
+    marginBottom: 12,
+  },
   searchInput: {
     backgroundColor: theme.surface,
     borderWidth: 1,
@@ -950,7 +704,26 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     paddingHorizontal: 12,
     height: 40,
     color: theme.textPrimary,
-    marginBottom: 12,
+  },
+  statusFilterBtn: {
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  statusFilterBtnActive: {
+    borderColor: theme.primary,
+    backgroundColor: theme.primarySoft,
+  },
+  statusFilterText: {
+    fontSize: 11,
+    color: theme.textSecondary,
+    fontWeight: "600",
+  },
+  statusFilterTextActive: {
+    color: theme.primary,
   },
   listContent: {
     paddingBottom: 24,
@@ -984,12 +757,10 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontSize: 10,
     fontWeight: "bold",
   },
-  cardBody: {
-    gap: 4,
-  },
   cardBodyRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    marginTop: 4,
   },
   cardLabel: {
     color: theme.textSecondary,
@@ -1025,47 +796,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.surfaceSecondary,
     padding: 6,
     borderRadius: 4,
-  },
-  transferCode: {
-    color: theme.primary,
-    fontWeight: "bold",
-    fontSize: 13,
-  },
-  transferPath: {
-    color: theme.textPrimary,
-    fontSize: 12,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  transferItemText: {
-    color: theme.textSecondary,
-    fontSize: 12,
-  },
-  actionBtn: {
-    backgroundColor: theme.primary,
-    borderRadius: 6,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 10,
-  },
-  actionBtnText: {
-    color: "#ffffff",
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  primaryBtn: {
-    backgroundColor: theme.primary,
-    borderRadius: 8,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-  },
-  primaryBtnText: {
-    color: "#ffffff",
-    fontWeight: "bold",
-    fontSize: 13,
   },
   secondaryBtn: {
     borderWidth: 1,
@@ -1162,13 +892,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   pickerItemText: {
     color: theme.textPrimary,
     fontSize: 11,
-  },
-  openingItemRow: {
-    borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 10,
   },
   modalActions: {
     flexDirection: "row",

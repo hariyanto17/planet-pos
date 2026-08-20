@@ -8,6 +8,7 @@ import { useAppSelector } from "@/lib/store/hooks";
 import { selectCurrentUser } from "@/lib/store/features/auth/selectors";
 import { useToast } from "@/components/ToastProvider";
 import { SearchableSelect } from "@/components/SearchableSelect";
+import { getAvailableUnits, getConversionForUnit } from "@/lib/utils/unitConversions";
 
 interface Props {
   isOpen: boolean;
@@ -34,6 +35,7 @@ export const CreateStockRequestModal: React.FC<Props> = ({
   const [productId, setProductId] = useState("");
   const [variantId, setVariantId] = useState("");
   const [packagingId, setPackagingId] = useState("");
+  const [unit, setUnit] = useState("");
   const [requestingWarehouseId, setRequestingWarehouseId] = useState("");
   const [quantity, setQuantity] = useState("");
   const [notes, setNotes] = useState("");
@@ -41,25 +43,23 @@ export const CreateStockRequestModal: React.FC<Props> = ({
 
   const [createStockRequest, { isLoading }] = useCreateStockRequestMutation();
 
-  // Load available stock in the requesting warehouse
   const { data: requestingStocksData } = useGetInventoryProductsQuery(
     { warehouseId: requestingWarehouseId, limit: 100 },
     { skip: !requestingWarehouseId || !isOpen }
   );
   const requestingStocks = requestingStocksData?.data || [];
 
-  // If WAREHOUSE role, default requesting warehouse to their warehouseId
   useEffect(() => {
     if (currentUser?.role === "WAREHOUSE" && userWhId) {
       setRequestingWarehouseId(userWhId);
     }
   }, [currentUser, userWhId]);
 
-  // Reset form helper
   const resetForm = () => {
     setProductId("");
     setVariantId("");
     setPackagingId("");
+    setUnit("");
     if (currentUser?.role !== "WAREHOUSE") {
       setRequestingWarehouseId("");
     }
@@ -80,13 +80,46 @@ export const CreateStockRequestModal: React.FC<Props> = ({
   const variantMultiplier = selectedVariant ? Number(selectedVariant.quantityInBaseUnit ?? 1) : 1;
   const baseUnit = selectedProduct?.baseUnit ?? "";
 
-  const receivedQuantity = Number(quantity) || 0;
-  const normalizedQuantity = receivedQuantity * packagingMultiplier * variantMultiplier;
+  useEffect(() => {
+    if (selectedProduct) {
+      setUnit(selectedProduct.baseUnit || "");
+    } else {
+      setUnit("");
+    }
+  }, [selectedProduct]);
 
-  // Check available stock in requesting warehouse for the selected variant
+  const availableUnits = useMemo(() => {
+    const list = [...getAvailableUnits(selectedProduct)];
+    if (selectedVariant && !list.some((u) => u.symbol.toUpperCase() === selectedVariant.name.toUpperCase())) {
+      list.push({
+        symbol: selectedVariant.name,
+        baseQuantity: String(selectedVariant.quantityInBaseUnit),
+        isDefault: false,
+      });
+    }
+    return list;
+  }, [selectedProduct, selectedVariant]);
+
+  const selectedUnitConversion = useMemo(() => {
+    if (selectedPackaging) {
+      return { baseQuantity: String(packagingMultiplier * variantMultiplier) };
+    }
+    if (!selectedProduct || !unit) return null;
+
+    if (selectedVariant && unit.toUpperCase() === selectedVariant.name.toUpperCase()) {
+      return { baseQuantity: String(selectedVariant.quantityInBaseUnit) };
+    }
+
+    return getConversionForUnit(selectedProduct, unit);
+  }, [selectedProduct, selectedPackaging, selectedVariant, unit, packagingMultiplier, variantMultiplier]);
+
+  const unitMultiplier = selectedUnitConversion ? Number(selectedUnitConversion.baseQuantity) : 1;
   const matchingStock = requestingStocks.find((s: any) => s.id === variantId);
   const availableBaseQty = matchingStock ? Number(matchingStock.quantity) : 0;
-  const availableInContext = availableBaseQty / (packagingMultiplier * variantMultiplier);
+  const availableInContext = availableBaseQty / unitMultiplier;
+
+  const receivedQuantity = Number(quantity) || 0;
+  const normalizedQuantity = receivedQuantity * unitMultiplier;
 
   const handleProductChange = (nextProductId: string) => {
     setProductId(nextProductId);
@@ -126,6 +159,7 @@ export const CreateStockRequestModal: React.FC<Props> = ({
             variantId,
             packagingId: packagingId || undefined,
             quantity: parsedQty,
+            unit: selectedPackaging ? undefined : unit || undefined,
           },
         ],
         notes: notes || undefined,
@@ -136,40 +170,30 @@ export const CreateStockRequestModal: React.FC<Props> = ({
       resetForm();
       onClose();
     } catch (err: any) {
-      setErrorMsg(err?.data?.message || "Gagal membuat permintaan stok");
+      setErrorMsg(err?.data?.message || "Gagal membuat permintaan stok.");
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Buat Permintaan Stok Baru">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-left">
+    <Modal isOpen={isOpen} onClose={onClose} title="Buat Permintaan Stok">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {errorMsg && (
           <div className="p-3 bg-red-950/40 border border-red-900/50 rounded-lg text-red-400 text-xs font-semibold">
             ⚠️ {errorMsg}
           </div>
         )}
 
-        {currentUser?.role === "ADMIN" ? (
-          <SearchableSelect
-            label="Gudang Peminta"
-            value={requestingWarehouseId}
-            onValueChange={setRequestingWarehouseId}
-            options={warehouses.map((w) => ({
-              value: w.id,
-              label: w.name,
-            }))}
-            placeholder="Pilih Gudang..."
-          />
-        ) : (
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-black uppercase tracking-wider text-text-secondary">
-              Gudang Peminta
-            </label>
-            <div className="bg-zinc-800/50 border border-border/40 text-text-muted px-3 py-2 rounded-lg text-sm">
-              {warehouses.find((w) => w.id === requestingWarehouseId)?.name || "Gudang Anda"}
-            </div>
-          </div>
-        )}
+        <SearchableSelect
+          label="Gudang Peminta"
+          value={requestingWarehouseId}
+          onValueChange={setRequestingWarehouseId}
+          disabled={currentUser?.role === "WAREHOUSE"}
+          options={warehouses.map((w) => ({
+            value: w.id,
+            label: `${w.name} (${w.code})`,
+          }))}
+          placeholder="Pilih Gudang Peminta..."
+        />
 
         <SearchableSelect
           label="Produk"
@@ -213,29 +237,61 @@ export const CreateStockRequestModal: React.FC<Props> = ({
           <div className="text-xs font-semibold text-text-secondary bg-surface-secondary/40 border border-border p-2.5 rounded-lg flex justify-between items-center">
             <span>Stok Tersedia di Gudang Peminta:</span>
             <span className="text-indigo-400 font-mono font-bold text-sm">
-              {availableInContext.toFixed(3)} {selectedPackaging ? selectedPackaging.name : selectedVariant?.name}
+              {availableInContext.toFixed(3)} {selectedPackaging ? selectedPackaging.name : unit}
             </span>
           </div>
         )}
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-black uppercase tracking-wider text-text-secondary">
-            Jumlah
-          </label>
-          <Input
-            type="number"
-            step="0.001"
-            min="0.001"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            placeholder={selectedPackaging ? "Jumlah packaging" : "Jumlah varian"}
-            required
-          />
+        <div className="flex gap-2">
+          <div className="flex-1 flex flex-col gap-1.5">
+            <label className="text-xs font-black uppercase tracking-wider text-text-secondary">Jumlah</label>
+            <Input
+              type="number"
+              step="0.001"
+              min="0.001"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              placeholder={selectedPackaging ? "Jumlah packaging" : "Jumlah permintaan"}
+              required
+            />
+          </div>
+          {!selectedPackaging && productId && availableUnits.length > 0 && (
+            <div className="w-28 flex flex-col gap-1.5">
+              <label className="text-xs font-black uppercase tracking-wider text-text-secondary">Satuan</label>
+              <select
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm font-semibold h-[42px]"
+                required
+              >
+                {availableUnits.map((u) => (
+                  <option key={u.symbol} value={u.symbol}>
+                    {u.symbol}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {selectedVariant && receivedQuantity > 0 && (
-          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-400">
-            <strong>{receivedQuantity} {selectedPackaging ? selectedPackaging.name : selectedVariant.name}</strong> × {packagingMultiplier} × {variantMultiplier} {baseUnit} = <strong>{normalizedQuantity.toLocaleString()} {baseUnit}</strong>
+          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-xs text-emerald-400 flex flex-col gap-1 font-semibold">
+            <div className="flex justify-between">
+              <span>Request Quantity:</span>
+              <span>{receivedQuantity} {selectedPackaging ? selectedPackaging.name : unit}</span>
+            </div>
+            <div className="flex justify-between border-t border-emerald-500/20 pt-1">
+              <span>Converted Quantity:</span>
+              <span>{normalizedQuantity.toLocaleString("id-ID")} {baseUnit}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Current Stock:</span>
+              <span>{availableBaseQty.toLocaleString("id-ID")} {baseUnit}</span>
+            </div>
+            <div className="flex justify-between border-t border-emerald-500/20 pt-1">
+              <span>Remaining Stock after Receipt:</span>
+              <span>{(availableBaseQty + normalizedQuantity).toLocaleString("id-ID")} {baseUnit}</span>
+            </div>
           </div>
         )}
 

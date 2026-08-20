@@ -169,7 +169,7 @@ export default function SellableDetailPage({ params }: { params: Promise<{ id: s
   const totalRecipeCost = recipeItems.reduce((sum: number, item: any) => {
     const activeVariants = item.material?.variants || [];
     const unitCosts = activeVariants
-      .map((v: any) => (v.cost && v.quantityInBaseUnit ? Number(v.cost) / Number(v.quantityInBaseUnit) : 0))
+      .map((v: any) => (v.cost ? Number(v.cost) : 0))
       .filter((c: number) => c > 0);
     const unitCost = unitCosts.length > 0 ? Math.min(...unitCosts) : 0;
     return sum + Number(item.quantity) * unitCost;
@@ -308,7 +308,7 @@ export default function SellableDetailPage({ params }: { params: Promise<{ id: s
               const materialInfo = item.material;
               const activeVariants = materialInfo?.variants || [];
               const unitCosts = activeVariants
-                .map((v: any) => (v.cost && v.quantityInBaseUnit ? Number(v.cost) / Number(v.quantityInBaseUnit) : 0))
+                .map((v: any) => (v.cost ? Number(v.cost) : 0))
                 .filter((c: number) => c > 0);
               const unitCost = unitCosts.length > 0 ? Math.min(...unitCosts) : 0;
               const totalCost = Number(item.quantity) * unitCost;
@@ -316,10 +316,10 @@ export default function SellableDetailPage({ params }: { params: Promise<{ id: s
               return (
                 <tr key={item.id} className="hover:bg-surface-secondary/20 transition border-b border-border/50">
                   <td className="px-6 py-4 font-bold">{materialInfo?.name || "-"}</td>
-                  <td className="px-6 py-4">{Number(item.quantity).toLocaleString()}</td>
+                  <td className="px-6 py-4">{Number(item.quantity).toLocaleString("id-ID", { maximumFractionDigits: 3 })}</td>
                   <td className="px-6 py-4">{materialInfo?.baseUnit || "-"}</td>
-                  <td className="px-6 py-4">Rp {unitCost.toLocaleString(undefined, { maximumFractionDigits: 2 })} / {materialInfo?.baseUnit || "-"}</td>
-                  <td className="px-6 py-4 font-semibold text-indigo-400">Rp {totalCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                  <td className="px-6 py-4">Rp {Number(unitCost.toFixed(2)).toLocaleString("id-ID", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} / {materialInfo?.baseUnit || "-"}</td>
+                  <td className="px-6 py-4 font-semibold text-indigo-400">Rp {Number(totalCost.toFixed(2)).toLocaleString("id-ID", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</td>
                   <td className="px-6 py-4 text-right">
                     <IconButton
                       variant="ghost"
@@ -344,20 +344,20 @@ export default function SellableDetailPage({ params }: { params: Promise<{ id: s
             <div className="space-y-3 divide-y divide-border">
               <div className="flex justify-between py-2 text-sm text-text-secondary">
                 <span>Harga Jual</span>
-                <span className="font-bold text-text-primary">Rp {sellingPrice.toLocaleString()}</span>
+                <span className="font-bold text-text-primary">Rp {Number(sellingPrice.toFixed(2)).toLocaleString("id-ID", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
               </div>
               <div className="flex justify-between py-2 text-sm text-text-secondary">
                 <span>Total Biaya Resep</span>
-                <span className="font-bold text-rose-500">Rp {totalRecipeCost.toLocaleString()}</span>
+                <span className="font-bold text-rose-500">Rp {Number(totalRecipeCost.toFixed(2)).toLocaleString("id-ID", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
               </div>
               <div className="flex justify-between py-2 text-sm text-text-secondary">
                 <span>Keuntungan Kotor (Gross Profit)</span>
-                <span className="font-bold text-green-500">Rp {grossProfit.toLocaleString()}</span>
+                <span className="font-bold text-green-500">Rp {Number(grossProfit.toFixed(2)).toLocaleString("id-ID", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
               </div>
               <div className="flex justify-between py-2 text-sm text-text-secondary">
                 <span>Margin Kotor (Gross Margin)</span>
                 <span className={`font-bold ${grossMarginPercent >= 50 ? "text-green-500" : "text-amber-500"}`}>
-                  {grossMarginPercent.toFixed(2)} %
+                  {Number(grossMarginPercent.toFixed(2)).toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %
                 </span>
               </div>
             </div>

@@ -1,36 +1,36 @@
-import React from "react";
-import { Text } from "react-native";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import React from "react";
+import { selectCurrentUser, selectIsAuthenticated } from "../lib/store/features/auth/selectors";
 import { useAppSelector } from "../lib/store/hooks";
-import { selectIsAuthenticated } from "../lib/store/features/auth/selectors";
-import { selectCurrentUser } from "../lib/store/features/auth/selectors";
 
-import LoginScreen from "../screens/LoginScreen";
-import HomeScreen from "../screens/HomeScreen";
-import NewOrderScreen from "../screens/NewOrderScreen";
+import { KitchenOrderProvider } from "../context/KitchenOrderContext";
 import CartScreen from "../screens/CartScreen";
 import CheckoutScreen from "../screens/CheckoutScreen";
+import CloseShiftScreen from "../screens/CloseShiftScreen";
+import KitchenOrderDetailScreen from "../screens/KitchenOrderDetailScreen";
+import LoginScreen from "../screens/LoginScreen";
+import NewOrderScreen from "../screens/NewOrderScreen";
+import OpenShiftScreen from "../screens/OpenShiftScreen";
+import OrderDetailScreen from "../screens/OrderDetailScreen";
 import OrderSuccessScreen from "../screens/OrderSuccessScreen";
 import OrdersScreen from "../screens/OrdersScreen";
-import OrderDetailScreen from "../screens/OrderDetailScreen";
-import ProfileScreen from "../screens/ProfileScreen";
-import OpenShiftScreen from "../screens/OpenShiftScreen";
-import CloseShiftScreen from "../screens/CloseShiftScreen";
 import PrinterSettingsScreen from "../screens/PrinterSettingsScreen";
+import ProfileScreen from "../screens/ProfileScreen";
+import WarehouseRequestDetailScreen from "../screens/Warehouse/WarehouseRequestDetailScreen";
 import KitchenBottomTabNavigator from "./KitchenBottomTabNavigator";
-import KitchenOrderDetailScreen from "../screens/KitchenOrderDetailScreen";
-import { KitchenOrderProvider } from "../context/KitchenOrderContext";
+import WarehouseBottomTabNavigator from "./WarehouseBottomTabNavigator";
 
 import { DefaultTheme } from "@react-navigation/native";
-import { socketService } from "../services/socket";
 import { HomeIcon, ListIcon, UserIcon } from "../components/CustomIcons";
+import { socketService } from "../services/socket";
 import { useTheme } from "../theme";
 
 export type RootStackParamList = {
   Login: undefined;
   CashierTabs: undefined;
+  WarehouseTabs: undefined;
   Home: undefined;
   Orders: undefined;
   Profile: undefined;
@@ -49,6 +49,7 @@ export type RootStackParamList = {
   OrderDetail: { orderId: string; mode: "CASHIER" | "HISTORY" };
   KitchenHome: undefined;
   KitchenOrderDetail: { orderId: string };
+  WarehouseRequestDetail: { requestId: string };
   PrinterSettings: undefined;
 };
 
@@ -142,6 +143,11 @@ export default function AppNavigator() {
               )}
             </Stack.Screen>
             <Stack.Screen name="KitchenOrderDetail" component={KitchenOrderDetailScreen} />
+          </>
+        ) : currentUser?.role === "WAREHOUSE" ? (
+          <>
+            <Stack.Screen name="WarehouseTabs" component={WarehouseBottomTabNavigator} />
+            <Stack.Screen name="WarehouseRequestDetail" component={WarehouseRequestDetailScreen} />
           </>
         ) : (
           <>

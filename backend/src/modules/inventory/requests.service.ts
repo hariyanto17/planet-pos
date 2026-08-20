@@ -10,7 +10,7 @@ export const createStockRequest = async (
   userWarehouseId: string | null,
   userRole: string,
   requestingWarehouseId: string,
-  items: Array<{ productId: string; variantId: string; packagingId?: string | null; quantity: number }>,
+  items: Array<{ productId: string; variantId: string; packagingId?: string | null; quantity: number; unit?: string | null }>,
   notes?: string
 ) => {
   if (userRole === "WAREHOUSE" && userWarehouseId !== requestingWarehouseId) {
@@ -92,7 +92,12 @@ export const createStockRequest = async (
         packagingVersionId = packaging.versions[0].id;
       }
 
-      const normalizedQuantity = new Decimal(item.quantity).mul(packagingMultiplier).mul(variantMultiplier);
+      let normalizedQuantity: Decimal;
+      if (item.unit) {
+        normalizedQuantity = await convertToBaseUnit(variant.id, item.quantity, item.unit, product.baseUnit, tx);
+      } else {
+        normalizedQuantity = new Decimal(item.quantity).mul(packagingMultiplier).mul(variantMultiplier);
+      }
 
       await tx.stockRequestItem.create({
         data: {

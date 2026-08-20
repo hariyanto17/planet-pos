@@ -40,7 +40,7 @@ export const TransferStockModal: React.FC<Props> = ({
 
   const [transferStock, { isLoading }] = useTransferStockMutation();
 
-  // If WAREHOUSE role, fix source warehouse and set default view to MASUK/KELUAR context
+  // If WAREHOUSE role, fix source warehouse
   useEffect(() => {
     if (currentUser?.role === "WAREHOUSE" && userWhId) {
       setSourceWarehouseId(userWhId);
@@ -73,18 +73,31 @@ export const TransferStockModal: React.FC<Props> = ({
   const variantMultiplier = selectedVariant ? Number(selectedVariant.quantityInBaseUnit ?? 1) : 1;
   const baseUnit = selectedProduct?.baseUnit ?? "";
 
-  const receivedQuantity = Number(quantity) || 0;
-  const normalizedQuantity = receivedQuantity * packagingMultiplier * variantMultiplier;
+  // Load available stock in the source warehouse
+  const { data: sourceWarehouseStocksData } = useGetInventoryProductsQuery(
+    { warehouseId: sourceWarehouseId, limit: 100 },
+    { skip: !sourceWarehouseId || !isOpen }
+  );
+  const sourceWarehouseStocks = sourceWarehouseStocksData?.data || [];
 
-  // Retrieve current stock availability at source warehouse in Context Unit (Varian / Packaging)
-  const availableInContext = useMemo(() => {
-    if (!sourceWarehouseId || !selectedVariant) return 0;
-    const inventoryItem = selectedVariant.inventories?.find((inv: any) => inv.warehouseId === sourceWarehouseId);
-    const stockInBaseUnit = inventoryItem ? Number(inventoryItem.quantity) : 0;
-    // Divide base stock by cumulative multiplier to get packaging/variant count
-    const unitDivisor = packagingMultiplier * variantMultiplier;
-    return stockInBaseUnit / unitDivisor;
-  }, [sourceWarehouseId, selectedVariant, packagingMultiplier, variantMultiplier]);
+  const matchingStock = useMemo(() => {
+    if (!variantId || !sourceWarehouseStocks.length) return null;
+    return sourceWarehouseStocks.find((s: any) => s.id === variantId);
+  }, [variantId, sourceWarehouseStocks]);
+
+  const availableBaseQty = matchingStock ? Number(matchingStock.quantity) : 0;
+
+  const unitMultiplier = selectedPackaging ? (packagingMultiplier * variantMultiplier) : variantMultiplier;
+  const availableInContext = availableBaseQty / unitMultiplier;
+
+  const receivedQuantity = Number(quantity) || 0;
+  const normalizedQuantity = receivedQuantity * unitMultiplier;
+
+  const displayUnitLabel = useMemo(() => {
+    if (selectedPackaging) return selectedPackaging.name;
+    if (selectedVariant) return selectedVariant.name;
+    return "";
+  }, [selectedPackaging, selectedVariant]);
 
   const handleProductChange = (nextProductId: string) => {
     setProductId(nextProductId);
@@ -95,6 +108,13 @@ export const TransferStockModal: React.FC<Props> = ({
   const handleVariantChange = (nextVariantId: string) => {
     setVariantId(nextVariantId);
     setPackagingId("");
+  };
+
+  const formatNumberIndonesian = (num: number) => {
+    return Number(num.toFixed(3)).toLocaleString("id-ID", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 3,
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -116,8 +136,8 @@ export const TransferStockModal: React.FC<Props> = ({
       return;
     }
 
-    if (receivedQuantity > availableInContext) {
-      setErrorMsg(`Stok tidak mencukupi. Tersedia: ${availableInContext.toFixed(3)}.`);
+    if (normalizedQuantity > availableBaseQty) {
+      setErrorMsg(`Stok tidak mencukupi. Tersedia: ${formatNumberIndonesian(availableInContext)} ${displayUnitLabel}.`);
       return;
     }
 
@@ -204,7 +224,7 @@ export const TransferStockModal: React.FC<Props> = ({
             const version = getCurrentPackagingVersion(packaging);
             return {
               value: packaging.id,
-              label: `${packaging.name}${packaging.unitLabel ? ` - ${packaging.unitLabel}` : ""} × ${Number(version.conversionFactor)} varian`,
+              label: `${packaging.name}${packaging.unitLabel ? ` - ${packaging.unitLabel}` : ""} × ${formatNumberIndonesian(Number(version.conversionFactor))} varian`,
             };
           })}
           placeholder={!variantId ? "Pilih varian terlebih dahulu" : packagingOptions.length === 0 ? "Tidak ada packaging aktif" : "Tanpa Packaging (per varian)"}
@@ -214,27 +234,52 @@ export const TransferStockModal: React.FC<Props> = ({
           <div className="text-xs font-semibold text-text-secondary bg-surface-secondary/40 border border-border p-2.5 rounded-lg flex justify-between items-center">
             <span>Stok Tersedia di Gudang Asal:</span>
             <span className="text-indigo-400 font-mono font-bold text-sm">
-              {availableInContext.toFixed(3)} {selectedPackaging ? selectedPackaging.name : selectedVariant?.name}
+              {formatNumberIndonesian(availableInContext)} x {displayUnitLabel}
             </span>
           </div>
         )}
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Jumlah</label>
-          <Input
-            type="number"
-            step="0.001"
-            min="0.001"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            placeholder={selectedPackaging ? "Jumlah packaging" : "Jumlah varian"}
-            required
-          />
+        <div className="flex gap-2">
+          <div className="flex-1 flex flex-col gap-1.5">
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Jumlah</label>
+            <div className="relative flex items-center">
+              <Input
+                type="number"
+                step="0.001"
+                min="0.001"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                placeholder={selectedPackaging ? "Jumlah packaging" : "Jumlah transfer"}
+                required
+                className="pr-16"
+              />
+              {displayUnitLabel && (
+                <span className="absolute right-3 text-xs font-bold text-text-muted select-none">
+                  {displayUnitLabel}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
         {selectedVariant && receivedQuantity > 0 && (
-          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-400">
-            <strong>{receivedQuantity} {selectedPackaging ? selectedPackaging.name : selectedVariant.name}</strong> × {packagingMultiplier} × {variantMultiplier} {baseUnit} = <strong>{normalizedQuantity.toLocaleString()} {baseUnit}</strong>
+          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-xs text-emerald-400 flex flex-col gap-1 font-semibold">
+            <div className="flex justify-between">
+              <span>Transfer Quantity:</span>
+              <span>{formatNumberIndonesian(receivedQuantity)} {displayUnitLabel}</span>
+            </div>
+            <div className="flex justify-between border-t border-emerald-500/20 pt-1">
+              <span>Converted Quantity:</span>
+              <span>{formatNumberIndonesian(normalizedQuantity)} {baseUnit}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Available Stock:</span>
+              <span>{formatNumberIndonesian(availableBaseQty)} {baseUnit}</span>
+            </div>
+            <div className="flex justify-between border-t border-emerald-500/20 pt-1">
+              <span>Remaining Stock:</span>
+              <span>{formatNumberIndonesian(availableBaseQty - normalizedQuantity)} {baseUnit}</span>
+            </div>
           </div>
         )}
 
