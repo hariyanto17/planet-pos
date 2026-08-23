@@ -24,8 +24,10 @@ import usersRouter from "./modules/users/router";
 import brandsRouter from "./modules/brands/router";
 import materialsRouter from "./modules/materials/router";
 import suppliersRouter from "./modules/suppliers/router";
+import settingsRouter from "./modules/settings/router";
 
 const app = express();
+
 
 // Global Middlewares
 const allowedOrigins = [
@@ -64,6 +66,8 @@ app.use("/api/users", usersRouter);
 app.use("/api/brands", brandsRouter);
 app.use("/api/materials", materialsRouter);
 app.use("/api/suppliers", suppliersRouter);
+app.use("/api/settings/application", settingsRouter);
+
 
 import { createServer } from "http";
 import { initSocket } from "./utils/socket";

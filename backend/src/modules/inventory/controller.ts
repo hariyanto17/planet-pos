@@ -14,6 +14,20 @@ import {
 } from "./validation";
 import { AppError } from "../../utils/errorHandler";
 import { prisma } from "../../utils/prisma";
+import { getSettings } from "../settings/service";
+
+const resolveKitchenWarehouse = async () => {
+  const settings = await getSettings();
+  if (settings.kitchenWarehouseId) {
+    const wh = await prisma.warehouse.findUnique({
+      where: { id: settings.kitchenWarehouseId, isActive: true }
+    });
+    if (wh) return wh;
+  }
+  return prisma.warehouse.findFirst({
+    where: { warehouseType: "KITCHEN_STORAGE", isDefaultKitchenStorage: true, isActive: true }
+  });
+};
 
 export const getSummary = catchAsync(async (req: Request, res: Response) => {
   const summary = await inventoryService.getInventorySummary();
@@ -37,10 +51,8 @@ export const getProducts = catchAsync(async (req: Request, res: Response) => {
     } else if (value.warehouseId !== assignedWhId) {
       throw new AppError("FORBIDDEN", "Akses ditolak: Anda tidak memiliki izin untuk mengakses gudang ini.");
     }
-  } else if (req.user?.role === "KITCHEN") {
-    const defaultKitchenWh = await prisma.warehouse.findFirst({
-      where: { warehouseType: "KITCHEN_STORAGE", isDefaultKitchenStorage: true, isActive: true }
-    });
+  } else if (req.user?.role === "KITCHEN" || (req.user?.role === "CASHIER" && (await getSettings()).appType === "CASHIER_ONLY")) {
+    const defaultKitchenWh = await resolveKitchenWarehouse();
     if (!defaultKitchenWh) {
       throw new AppError("BAD_REQUEST", "Penyimpanan dapur default tidak terkonfigurasi.");
     }
@@ -72,10 +84,8 @@ export const getMovements = catchAsync(async (req: Request, res: Response) => {
     } else if (value.warehouseId !== assignedWhId) {
       throw new AppError("FORBIDDEN", "Akses ditolak: Anda tidak memiliki izin untuk mengakses gudang ini.");
     }
-  } else if (req.user?.role === "KITCHEN") {
-    const defaultKitchenWh = await prisma.warehouse.findFirst({
-      where: { warehouseType: "KITCHEN_STORAGE", isDefaultKitchenStorage: true, isActive: true }
-    });
+  } else if (req.user?.role === "KITCHEN" || (req.user?.role === "CASHIER" && (await getSettings()).appType === "CASHIER_ONLY")) {
+    const defaultKitchenWh = await resolveKitchenWarehouse();
     if (!defaultKitchenWh) {
       throw new AppError("BAD_REQUEST", "Penyimpanan dapur default tidak terkonfigurasi.");
     }
@@ -106,10 +116,8 @@ export const receiveStock = catchAsync(async (req: Request, res: Response) => {
     if (!assignedWhId || value.warehouseId !== assignedWhId) {
       throw new AppError("FORBIDDEN", "Akses ditolak: Anda tidak memiliki izin untuk mengoperasikan gudang ini.");
     }
-  } else if (req.user?.role === "KITCHEN") {
-    const defaultKitchenWh = await prisma.warehouse.findFirst({
-      where: { warehouseType: "KITCHEN_STORAGE", isDefaultKitchenStorage: true, isActive: true }
-    });
+  } else if (req.user?.role === "KITCHEN" || (req.user?.role === "CASHIER" && (await getSettings()).appType === "CASHIER_ONLY")) {
+    const defaultKitchenWh = await resolveKitchenWarehouse();
     if (!defaultKitchenWh || value.warehouseId !== defaultKitchenWh.id) {
       throw new AppError("FORBIDDEN", "Akses ditolak: Staf dapur hanya dapat mengubah stok Penyimpanan Dapur.");
     }
@@ -135,10 +143,8 @@ export const adjustStock = catchAsync(async (req: Request, res: Response) => {
     if (!assignedWhId || value.warehouseId !== assignedWhId) {
       throw new AppError("FORBIDDEN", "Akses ditolak: Anda tidak memiliki izin untuk mengoperasikan gudang ini.");
     }
-  } else if (req.user?.role === "KITCHEN") {
-    const defaultKitchenWh = await prisma.warehouse.findFirst({
-      where: { warehouseType: "KITCHEN_STORAGE", isDefaultKitchenStorage: true, isActive: true }
-    });
+  } else if (req.user?.role === "KITCHEN" || (req.user?.role === "CASHIER" && (await getSettings()).appType === "CASHIER_ONLY")) {
+    const defaultKitchenWh = await resolveKitchenWarehouse();
     if (!defaultKitchenWh || value.warehouseId !== defaultKitchenWh.id) {
       throw new AppError("FORBIDDEN", "Akses ditolak: Staf dapur hanya dapat mengubah stok Penyimpanan Dapur.");
     }
@@ -164,10 +170,8 @@ export const removeWaste = catchAsync(async (req: Request, res: Response) => {
     if (!assignedWhId || value.warehouseId !== assignedWhId) {
       throw new AppError("FORBIDDEN", "Akses ditolak: Anda tidak memiliki izin untuk mengoperasikan gudang ini.");
     }
-  } else if (req.user?.role === "KITCHEN") {
-    const defaultKitchenWh = await prisma.warehouse.findFirst({
-      where: { warehouseType: "KITCHEN_STORAGE", isDefaultKitchenStorage: true, isActive: true }
-    });
+  } else if (req.user?.role === "KITCHEN" || (req.user?.role === "CASHIER" && (await getSettings()).appType === "CASHIER_ONLY")) {
+    const defaultKitchenWh = await resolveKitchenWarehouse();
     if (!defaultKitchenWh || value.warehouseId !== defaultKitchenWh.id) {
       throw new AppError("FORBIDDEN", "Akses ditolak: Staf dapur hanya dapat mengubah stok Penyimpanan Dapur.");
     }
@@ -198,10 +202,8 @@ export const recordOpening = catchAsync(async (req: Request, res: Response) => {
     if (!assignedWhId || value.warehouseId !== assignedWhId) {
       throw new AppError("FORBIDDEN", "Akses ditolak: Anda tidak memiliki izin untuk mengoperasikan gudang ini.");
     }
-  } else if (req.user?.role === "KITCHEN") {
-    const defaultKitchenWh = await prisma.warehouse.findFirst({
-      where: { warehouseType: "KITCHEN_STORAGE", isDefaultKitchenStorage: true, isActive: true }
-    });
+  } else if (req.user?.role === "KITCHEN" || (req.user?.role === "CASHIER" && (await getSettings()).appType === "CASHIER_ONLY")) {
+    const defaultKitchenWh = await resolveKitchenWarehouse();
     if (!defaultKitchenWh || value.warehouseId !== defaultKitchenWh.id) {
       throw new AppError("FORBIDDEN", "Akses ditolak: Staf dapur hanya dapat mengubah stok Penyimpanan Dapur.");
     }
@@ -225,10 +227,8 @@ export const createStockTransferHandler = catchAsync(async (req: Request, res: R
     if (!assignedWhId || value.sourceWarehouseId !== assignedWhId) {
       throw new AppError("FORBIDDEN", "Akses ditolak: Anda hanya dapat membuat transfer dari gudang penugasan Anda.");
     }
-  } else if (req.user?.role === "KITCHEN") {
-    const defaultKitchenWh = await prisma.warehouse.findFirst({
-      where: { warehouseType: "KITCHEN_STORAGE", isDefaultKitchenStorage: true, isActive: true }
-    });
+  } else if (req.user?.role === "KITCHEN" || (req.user?.role === "CASHIER" && (await getSettings()).appType === "CASHIER_ONLY")) {
+    const defaultKitchenWh = await resolveKitchenWarehouse();
     if (!defaultKitchenWh) {
       throw new AppError("BAD_REQUEST", "Penyimpanan dapur default tidak terkonfigurasi.");
     }
@@ -251,7 +251,11 @@ export const completeStockTransferHandler = catchAsync(async (req: Request, res:
   if (!userId) throw new AppError("UNAUTHORIZED", "Not authenticated");
 
   // Access Control
-  if (req.user?.role === "WAREHOUSE" || req.user?.role === "KITCHEN") {
+  const isWarehouse = req.user?.role === "WAREHOUSE";
+  const isKitchen = req.user?.role === "KITCHEN";
+  const isCashierInCashierOnly = req.user?.role === "CASHIER" && (await getSettings()).appType === "CASHIER_ONLY";
+
+  if (isWarehouse || isKitchen || isCashierInCashierOnly) {
     const transfer = await prisma.stockTransfer.findUnique({
       where: { id },
       include: { destinationWarehouse: true }
@@ -260,18 +264,16 @@ export const completeStockTransferHandler = catchAsync(async (req: Request, res:
       throw new AppError("NOT_FOUND", "Stock transfer not found");
     }
 
-    if (req.user?.role === "WAREHOUSE") {
-      const assignedWhId = req.user.warehouseId;
+    if (isWarehouse) {
+      const assignedWhId = req.user?.warehouseId;
       if (!assignedWhId || transfer.destinationWarehouseId !== assignedWhId) {
         throw new AppError("FORBIDDEN", "Akses ditolak: Anda hanya dapat menyelesaikan transfer ke gudang penugasan Anda.");
       }
-    } else if (req.user?.role === "KITCHEN") {
+    } else if (isKitchen || isCashierInCashierOnly) {
       if (transfer.destinationWarehouse.warehouseType !== "KITCHEN_STORAGE") {
         throw new AppError("FORBIDDEN", "Akses ditolak: Anda hanya dapat menyelesaikan transfer ke Penyimpanan Dapur.");
       }
-      const defaultKitchenWh = await prisma.warehouse.findFirst({
-        where: { warehouseType: "KITCHEN_STORAGE", isDefaultKitchenStorage: true, isActive: true }
-      });
+      const defaultKitchenWh = await resolveKitchenWarehouse();
       if (!defaultKitchenWh || transfer.destinationWarehouseId !== defaultKitchenWh.id) {
         throw new AppError("FORBIDDEN", "Akses ditolak: Anda hanya dapat menyelesaikan transfer ke Penyimpanan Dapur default.");
       }

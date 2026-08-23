@@ -7,6 +7,8 @@ import { queryProductSalesReport } from "./queries/products.sql";
 import { auditPaymentsReport } from "./validation/payment.validation";
 import { auditOrdersReport } from "./validation/order.validation";
 import { prisma } from "../../utils/prisma";
+import { getSettings } from "../settings/service";
+
 
 const validateDateRange = (startDateStr: string, endDateStr: string) => {
   const startDate = new Date(startDateStr);
@@ -36,15 +38,16 @@ const validateDateRange = (startDateStr: string, endDateStr: string) => {
   return { startDate: adjustedStart, endDate: adjustedEnd };
 };
 
-const getMetaEnvelope = (startDateStr: string, endDateStr: string, warning?: string) => {
+const getMetaEnvelope = async (startDateStr: string, endDateStr: string, warning?: string) => {
+  const settings = await getSettings();
   return {
     generatedAt: new Date().toISOString(),
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+    timezone: settings.timezone || "Asia/Makassar",
     range: {
       startDate: startDateStr,
       endDate: endDateStr,
     },
-    currency: "Rp",
+    currency: settings.currency || "IDR",
     ...(warning ? { warning } : {}),
   };
 };
@@ -118,7 +121,7 @@ export const getSummaryReport = async (startDateStr: string, endDateStr: string)
         unbalanced: unbalancedShiftsCount,
       },
     },
-    meta: getMetaEnvelope(startDateStr, endDateStr, warning),
+    meta: await getMetaEnvelope(startDateStr, endDateStr, warning),
   };
 };
 
@@ -127,7 +130,7 @@ export const getSalesReport = async (startDateStr: string, endDateStr: string) =
   const data = await querySalesReport(startDate, endDate);
   return {
     data,
-    meta: getMetaEnvelope(startDateStr, endDateStr),
+    meta: await getMetaEnvelope(startDateStr, endDateStr),
   };
 };
 
@@ -136,7 +139,7 @@ export const getPaymentReport = async (startDateStr: string, endDateStr: string)
   const data = await queryPaymentReport(startDate, endDate);
   return {
     data,
-    meta: getMetaEnvelope(startDateStr, endDateStr),
+    meta: await getMetaEnvelope(startDateStr, endDateStr),
   };
 };
 
@@ -151,7 +154,7 @@ export const getReconciliationReport = async (startDateStr: string, endDateStr: 
 
   return {
     data,
-    meta: getMetaEnvelope(startDateStr, endDateStr, warning),
+    meta: await getMetaEnvelope(startDateStr, endDateStr, warning),
   };
 };
 
@@ -172,7 +175,7 @@ export const getProductSalesReport = async (
   return {
     data: result.data,
     pagination: result.pagination,
-    meta: getMetaEnvelope(startDateStr, endDateStr),
+    meta: await getMetaEnvelope(startDateStr, endDateStr),
   };
 };
 
@@ -181,7 +184,7 @@ export const getPaymentAudit = async (startDateStr: string, endDateStr: string) 
   const data = await auditPaymentsReport(startDate, endDate);
   return {
     data,
-    meta: getMetaEnvelope(startDateStr, endDateStr),
+    meta: await getMetaEnvelope(startDateStr, endDateStr),
   };
 };
 
@@ -190,7 +193,7 @@ export const getOrderAudit = async (startDateStr: string, endDateStr: string) =>
   const data = await auditOrdersReport(startDate, endDate);
   return {
     data,
-    meta: getMetaEnvelope(startDateStr, endDateStr),
+    meta: await getMetaEnvelope(startDateStr, endDateStr),
   };
 };
 
@@ -247,7 +250,7 @@ export const getAccountingSnapshot = async (businessDateStr: string) => {
       qrisRevenue: Number(paymentsQuery[0]?.qris || 0),
       generatedAt: new Date().toISOString(),
     },
-    meta: getMetaEnvelope(businessDateStr, businessDateStr),
+    meta: await getMetaEnvelope(businessDateStr, businessDateStr),
   };
 };
 
@@ -475,7 +478,7 @@ export const getCashierShiftReport = async (userId: string) => {
 
 export const getDailyAnalysis = async (dateStr: string) => {
   const { startDate, endDate } = validateDateRange(dateStr, dateStr);
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Jakarta";
+  const timezone = (await getSettings()).timezone || "Asia/Makassar";
 
   // 1. Summary (Filtered by o.businessDate instead of p.confirmedAt)
   const payments = await prisma.payment.findMany({
@@ -592,7 +595,7 @@ export const getDailyAnalysis = async (dateStr: string) => {
 export const getMonthlyAnalysis = async (month: number, year: number) => {
   const startDate = new Date(year, month - 1, 1, 0, 0, 0, 0);
   const endDate = new Date(year, month, 0, 23, 59, 59, 999);
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Jakarta";
+  const timezone = (await getSettings()).timezone || "Asia/Makassar";
 
   // 1. Summary (Filtered by o.businessDate instead of p.confirmedAt)
   const payments = await prisma.payment.findMany({

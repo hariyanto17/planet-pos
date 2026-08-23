@@ -50,5 +50,22 @@ export async function seedCanonical(prisma: PrismaClient) {
     catPackaging = await prisma.category.create({ data: { name: "Kemasan", isActive: true } });
   }
 
+  // 3. Ensure Default AppSettings
+  await prisma.appSettings.upsert({
+    where: { id: "default-settings" },
+    update: {},
+    create: {
+      id: "default-settings",
+      appName: "Planet Cinema",
+      appType: "SELF_ORDER",
+      timezone: "Asia/Makassar",
+      locale: "id-ID",
+      currency: "IDR",
+      businessDayStartTime: "00:00",
+      defaultWarehouseId: mainWarehouse.id,
+      kitchenWarehouseId: kitchenWarehouse.id,
+    },
+  });
+
   console.log("✅ Canonical seed completed successfully with empty products/materials!");
 }

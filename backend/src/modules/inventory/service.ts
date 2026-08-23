@@ -14,6 +14,8 @@ import {
   RemoveAsWasteParams,
 } from "./types";
 import { AppError } from "../../utils/errorHandler";
+import { getSettings } from "../settings/service";
+
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
@@ -658,7 +660,8 @@ export const createStockTransfer = async (userId: string, payload: CreateStockTr
     if (destinationResponsibleUserId) {
       const du = await tx.user.findUnique({ where: { id: destinationResponsibleUserId } });
       if (!du) throw new AppError("BAD_REQUEST", "Destination responsible user not found");
-      if (destinationWarehouse.warehouseType === "KITCHEN_STORAGE" && du.role !== "KITCHEN") {
+      const isAllowedRole = du.role === "KITCHEN" || (du.role === "CASHIER" && (await getSettings()).appType === "CASHIER_ONLY");
+      if (destinationWarehouse.warehouseType === "KITCHEN_STORAGE" && !isAllowedRole) {
         throw new AppError("BAD_REQUEST", "Destination responsible user must have role KITCHEN for kitchen storage warehouse");
       }
     }
@@ -735,7 +738,8 @@ export const completeStockTransfer = async (userId: string, transferId: string) 
     const completingUser = await tx.user.findUnique({ where: { id: userId } });
     if (!completingUser) throw new AppError("UNAUTHORIZED", "User not found");
     if (transfer.destinationWarehouse.warehouseType === "KITCHEN_STORAGE") {
-      if (!(completingUser.role === "KITCHEN" || completingUser.role === "ADMIN")) {
+      const isAllowedCompleter = completingUser.role === "KITCHEN" || completingUser.role === "ADMIN" || (completingUser.role === "CASHIER" && (await getSettings()).appType === "CASHIER_ONLY");
+      if (!isAllowedCompleter) {
         throw new AppError("FORBIDDEN", "Only Kitchen users or Admin may complete transfer to Kitchen Storage");
       }
     }
@@ -787,7 +791,7 @@ export const getStockTransfers = async (userId: string, userRole: string, userWa
       { sourceWarehouseId: userWarehouseId },
       { destinationWarehouseId: userWarehouseId }
     ];
-  } else if (userRole === "KITCHEN") {
+  } else if (userRole === "KITCHEN" || (userRole === "CASHIER" && (await getSettings()).appType === "CASHIER_ONLY")) {
     whereClause.destinationWarehouse = {
       warehouseType: "KITCHEN_STORAGE"
     };

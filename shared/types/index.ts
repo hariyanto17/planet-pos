@@ -6,6 +6,25 @@ export type PaymentMethod = "CASH" | "QRIS";
 export type PaymentStatus = "PENDING" | "PAID" | "CANCELLED";
 export type PromotionType = "PERCENT" | "PACKAGE";
 
+export enum AppType {
+  SELF_ORDER = "SELF_ORDER",
+  CASHIER_ONLY = "CASHIER_ONLY",
+}
+
+export interface AppSettings {
+  id: string;
+  appName: string;
+  appType: AppType;
+  timezone: string;
+  locale: string;
+  currency: string;
+  businessDayStartTime: string;
+  defaultWarehouseId: string | null;
+  kitchenWarehouseId: string | null;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+}
+
 // Auth Types
 export interface LoginInput {
   username: string;
@@ -216,3 +235,6 @@ export function getInventoryStatus(
   if (quantity <= minimumStock) return "LOW_STOCK";
   return "IN_STOCK";
 }
+
+export * from "../utils/capabilities";
+

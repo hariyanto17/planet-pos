@@ -70,14 +70,29 @@ export const optionalAuthenticate = async (req: Request, res: Response, next: Ne
   }
 };
 
+import { getSettings } from "../modules/settings/service";
+
 export const requireRoles = (roles: UserRole[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return next(new AppError("UNAUTHORIZED", "Not authenticated"));
     }
-    if (!roles.includes(req.user.role)) {
-      return next(new AppError("FORBIDDEN", "Access denied for this role"));
+    if (roles.includes(req.user.role)) {
+      return next();
     }
-    next();
+    try {
+      const settings = await getSettings();
+      if (
+        settings.appType === "CASHIER_ONLY" &&
+        roles.includes("KITCHEN") &&
+        req.user.role === "CASHIER"
+      ) {
+        return next();
+      }
+    } catch (e) {
+      // settings check failed, fallback to normal check
+    }
+    return next(new AppError("FORBIDDEN", "Access denied for this role"));
   };
 };
+

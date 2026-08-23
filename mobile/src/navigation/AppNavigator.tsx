@@ -4,6 +4,8 @@ import { createStackNavigator } from "@react-navigation/stack";
 import React from "react";
 import { selectCurrentUser, selectIsAuthenticated } from "../lib/store/features/auth/selectors";
 import { useAppSelector } from "../lib/store/hooks";
+import { useGetAppSettingsQuery } from "../lib/api/settingsApi";
+
 
 import { KitchenOrderProvider } from "../context/KitchenOrderContext";
 import CartScreen from "../screens/CartScreen";
@@ -128,12 +130,15 @@ export default function AppNavigator() {
     },
   };
 
+  const { data: settings } = useGetAppSettingsQuery();
+  const isKitchenEnabled = settings ? settings.appType === "SELF_ORDER" : true;
+
   return (
     <NavigationContainer theme={navigationTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
           <Stack.Screen name="Login" component={LoginScreen} />
-        ) : currentUser?.role === "KITCHEN" ? (
+        ) : currentUser?.role === "KITCHEN" && isKitchenEnabled ? (
           <>
             <Stack.Screen name="KitchenHome">
               {() => (

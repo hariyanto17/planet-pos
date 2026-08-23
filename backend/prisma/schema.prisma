@@ -20,6 +20,11 @@ enum OrderType {
   TAKEAWAY
 }
 
+enum AppType {
+  SELF_ORDER
+  CASHIER_ONLY
+}
+
 enum OrderSource {
   SELF_ORDER
   CASHIER
@@ -582,9 +587,27 @@ model Warehouse {
   wasteRecords                      Waste[]
   adjustmentRecords                 Adjustment[]
   pickingRecords                    Picking[]
+  defaultSettings                   AppSettings[]                      @relation("DefaultWarehouse")
+  kitchenSettings                   AppSettings[]                      @relation("KitchenWarehouse")
 
   @@index([warehouseType])
   @@index([isActive])
+}
+
+model AppSettings {
+  id                   String      @id @default("default-settings")
+  appName              String      @default("Planet Cinema")
+  appType              AppType     @default(SELF_ORDER)
+  timezone             String      @default("Asia/Makassar")
+  locale               String      @default("id-ID")
+  currency             String      @default("IDR")
+  businessDayStartTime String      @default("00:00")
+  defaultWarehouseId   String?
+  kitchenWarehouseId   String?
+  defaultWarehouse     Warehouse?  @relation(name: "DefaultWarehouse", fields: [defaultWarehouseId], references: [id])
+  kitchenWarehouse     Warehouse?  @relation(name: "KitchenWarehouse", fields: [kitchenWarehouseId], references: [id])
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
 }
 
 model InventoryStock {

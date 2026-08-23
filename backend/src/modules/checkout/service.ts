@@ -1,9 +1,11 @@
 import { prisma } from "../../utils/prisma";
-import { createOrder } from "../orders/service";
+import { createOrder, deductInventoryForCompletedOrder } from "../orders/service";
 import { createPayment } from "../payments/service";
 import { AppError } from "../../utils/errorHandler";
 import { CreateOrderInput, PaymentMethod } from "@shared/types";
 import { Prisma } from "@prisma/client";
+import { getSettings } from "../settings/service";
+
 
 interface CheckoutInput {
   customerName: string;
@@ -37,7 +39,11 @@ export const checkout = async (cashierId: string | null, input: CheckoutInput) =
       tableId: input.tableId,
       orderType: input.orderType,
       notes: input.notes,
-      items: input.items,
+      items: input.items.map((item) => ({
+        sellableProductId: (item as any).sellableProductId || item.productId,
+        quantity: item.quantity,
+        note: (item as any).note,
+      })),
     };
     const order = await createOrder(cashierId, orderInput, tx);
 
@@ -54,21 +60,39 @@ export const checkout = async (cashierId: string | null, input: CheckoutInput) =
       tx
     );
 
+    const settings = await getSettings();
     let orderStatus = order.status;
     if (cashierId && payment.status === "PAID") {
-      orderStatus = "PREPARING" as any;
-      await tx.order.update({
-        where: { id: order.id },
-        data: { status: orderStatus },
-      });
-      await tx.orderTimeline.create({
-        data: {
-          orderId: order.id,
-          status: "PREPARING" as any,
-          description: "Order checkout completed by cashier and paid. Transitioned to PREPARING.",
-          createdById: cashierId,
-        },
-      });
+      if (settings.appType === "CASHIER_ONLY") {
+        orderStatus = "COMPLETED" as any;
+        await deductInventoryForCompletedOrder(tx, order.id, cashierId);
+        await tx.order.update({
+          where: { id: order.id },
+          data: { status: orderStatus },
+        });
+        await tx.orderTimeline.create({
+          data: {
+            orderId: order.id,
+            status: orderStatus,
+            description: "Order checkout completed by cashier and paid directly. Transitioned to COMPLETED in CASHIER_ONLY mode.",
+            createdById: cashierId,
+          },
+        });
+      } else {
+        orderStatus = "PREPARING" as any;
+        await tx.order.update({
+          where: { id: order.id },
+          data: { status: orderStatus },
+        });
+        await tx.orderTimeline.create({
+          data: {
+            orderId: order.id,
+            status: orderStatus,
+            description: "Order checkout completed by cashier and paid. Transitioned to PREPARING.",
+            createdById: cashierId,
+          },
+        });
+      }
     }
 
     return {

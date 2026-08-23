@@ -3,6 +3,8 @@ import { responseHandler } from "../../utils/responeHandler";
 import * as orderService from "./service";
 import { getAllOrdersPaginated } from "./pagination.service";
 import { getKitchenQueue } from "./queue.service";
+import { getSettings } from "../settings/service";
+
 import { getPendingPayments } from "./pendingPayment.service";
 import { createOrderSchema, updateOrderStatusSchema } from "./validation";
 import { AppError } from "../../utils/errorHandler";
@@ -31,6 +33,10 @@ export const getOrders = async (req: Request, res: Response) => {
 };
 
 export const getOrdersQueue = async (req: Request, res: Response) => {
+  const settings = await getSettings();
+  if (settings.appType === "CASHIER_ONLY") {
+    throw new AppError("FORBIDDEN", "KDS_DISABLED");
+  }
   const queue = await getKitchenQueue();
   return responseHandler.ok(res, queue);
 };

@@ -1,6 +1,8 @@
 import { prisma } from "../../utils/prisma";
 import { AppError } from "../../utils/errorHandler";
 import { CreateOrderInput } from "./interface";
+import { getSettings } from "../settings/service";
+
 import { OrderStatus, Prisma, StockMovementType, StockReferenceType } from "@prisma/client";
 import { Decimal } from "@prisma/client-runtime-utils";
 import { createLedgerEntry } from "../inventory/stock.service";
@@ -28,7 +30,13 @@ export const createOrder = async (
   input: CreateOrderInput,
   parentTx?: Prisma.TransactionClient
 ) => {
+  const settings = await getSettings();
+  if (settings.appType === "CASHIER_ONLY" && !cashierId) {
+    throw new AppError("BAD_REQUEST", "SELF_ORDER_DISABLED");
+  }
+
   const now = new Date();
+
 
   const execute = async (tx: Prisma.TransactionClient) => {
     const sellableProductIds = [...new Set(
@@ -408,8 +416,11 @@ export const confirmPayment = async (
   const order = await tx.order.findUnique({ where: { id: orderId }, include: { payments: true } });
   if (!order) throw new AppError("NOT_FOUND", "Order not found");
 
+  const settings = await getSettings();
   const totalPaid = order.payments.filter((p) => p.status === "PAID").reduce((sum, p) => sum.add(p.amount), new Decimal(0));
-  if (totalPaid.gte(order.grandTotal) && order.status === OrderStatus.READY) {
+  const isTargetStatus = order.status === OrderStatus.READY || (settings.appType === "CASHIER_ONLY" && order.status === OrderStatus.NEW);
+
+  if (totalPaid.gte(order.grandTotal) && isTargetStatus) {
     await deductInventoryForCompletedOrder(tx, orderId, cashierId);
     await tx.order.update({ where: { id: orderId }, data: { status: OrderStatus.COMPLETED } });
     await tx.orderTimeline.create({
@@ -433,9 +444,18 @@ export const deductInventoryForCompletedOrder = async (
   const order = await tx.order.findUnique({ where: { id: orderId }, include: { items: true } });
   if (!order) return;
 
-  const kitchenWarehouse = await tx.warehouse.findFirst({
-    where: { isDefaultKitchenStorage: true, warehouseType: "KITCHEN_STORAGE" },
-  });
+  const settings = await getSettings();
+  let kitchenWarehouse = null;
+  if (settings.kitchenWarehouseId) {
+    kitchenWarehouse = await tx.warehouse.findUnique({
+      where: { id: settings.kitchenWarehouseId },
+    });
+  }
+  if (!kitchenWarehouse) {
+    kitchenWarehouse = await tx.warehouse.findFirst({
+      where: { isDefaultKitchenStorage: true, warehouseType: "KITCHEN_STORAGE" },
+    });
+  }
 
   const defaultWarehouseCode = process.env.DEFAULT_SALES_WAREHOUSE_CODE || "CONCESSION";
   let fallbackWarehouse = await tx.warehouse.findFirst({ where: { code: defaultWarehouseCode } });
