@@ -118,6 +118,7 @@ enum BaseUnit {
 
 model User {
   id                                   String          @id @default(uuid())
+  platformUserId                       String?         @unique
   fullName                             String
   username                             String          @unique
   passwordHash                         String
