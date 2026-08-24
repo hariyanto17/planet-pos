@@ -103,7 +103,7 @@ test("System Preparation: Validate canonical domain model and workflows", async 
       where: {
         warehouseId_materialVariantId: {
           warehouseId: kitchenWh.id,
-          materialVariantId: ingredient.materialVariantId,
+          materialVariantId: ingredient.materialId,
         },
       },
     });
@@ -128,7 +128,7 @@ test("System Preparation: Validate canonical domain model and workflows", async 
       where: {
         warehouseId_materialVariantId: {
           warehouseId: kitchenWh.id,
-          materialVariantId: ingredient.materialVariantId,
+          materialVariantId: ingredient.materialId,
         },
       },
     });
@@ -221,6 +221,55 @@ test("System Preparation: Validate canonical domain model and workflows", async 
     assert.ok(completedOrders.every((o) => o.status === OrderStatus.COMPLETED), "All orders should be completed");
 
     console.log(`    ✓ 3 sequential orders created and completed successfully`);
+  });
+
+  await t.test("Validate: SSO authentication flow", async () => {
+    // Import auth service dynamically
+    const authService = require("../modules/auth/service");
+    
+    const originalFetch = global.fetch;
+    const mockPlatformUserId = `mock-platform-user-${Date.now()}`;
+    const mockPlatformUserEmail = `sso-test-${Date.now()}@example.com`;
+    
+    global.fetch = async (url: any, options: any) => {
+      if (url.toString().includes("/api/applications/exchange")) {
+        return {
+          ok: true,
+          json: async () => ({
+            status: "success",
+            data: {
+              id: mockPlatformUserId,
+              email: mockPlatformUserEmail,
+              name: "SSO Admin",
+              application: {
+                code: "CONCESSION",
+                role: "CONCESSION_ADMINISTRATOR",
+                permissions: []
+              }
+            }
+          })
+        } as any;
+      }
+      return originalFetch(url, options);
+    };
+
+    try {
+      const result = await authService.ssoLogin("valid-sso-code");
+      assert.ok(result.token, "SSO Login should return token");
+      assert.strictEqual(result.user.fullName, "SSO Admin", "Mapped user name should match Platform name");
+      assert.strictEqual(result.user.role, "ADMIN", "Role should map to local ADMIN");
+
+      const dbUser = await prisma.user.findUnique({
+        where: { platformUserId: mockPlatformUserId }
+      });
+      assert.ok(dbUser, "Local user record with platformUserId should be created");
+      assert.strictEqual(dbUser?.fullName, "SSO Admin");
+      
+      // Clean up test user
+      await prisma.user.delete({ where: { id: dbUser.id } });
+    } finally {
+      global.fetch = originalFetch;
+    }
   });
 
   console.log("\n✅ System preparation complete - canonical domain model validated!");

@@ -21,7 +21,14 @@ export const authApi = baseApi.injectEndpoints({
         body: data,
       }),
     }),
+    ssoLogin: builder.mutation<LoginResult, { code: string }>({
+      query: (body) => ({
+        url: "/auth/sso",
+        method: "POST",
+        body,
+      }),
+    }),
   }),
 });
 
-export const { useLoginMutation, useGetMeQuery, useChangePasswordMutation } = authApi;
+export const { useLoginMutation, useGetMeQuery, useChangePasswordMutation, useSsoLoginMutation } = authApi;

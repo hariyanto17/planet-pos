@@ -42,3 +42,19 @@ export const getMeHandler = async (req: Request, res: Response) => {
   }
   return responseHandler.ok(res, req.user, "Current user context retrieved");
 };
+
+export const ssoCallbackHandler = async (req: Request, res: Response) => {
+  const { code } = req.body;
+  if (!code) {
+    throw new AppError("BAD_REQUEST", "SSO exchange code is required");
+  }
+
+  const result = await authService.ssoLogin(code);
+
+  await logActivity(result.user.id, "LOGIN", "User", result.user.id, {
+    username: result.user.username,
+    method: "SSO",
+  });
+
+  return responseHandler.ok(res, result, "SSO Login successful");
+};

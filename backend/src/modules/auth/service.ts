@@ -61,3 +61,71 @@ export const changePassword = async (userId: string, input: any) => {
     data: { passwordHash: newPasswordHash },
   });
 };
+
+export const ssoLogin = async (code: string): Promise<LoginResult> => {
+  const platformApiUrl = process.env.PLATFORM_API_URL || "http://localhost:5000";
+  
+  const platformRes = await fetch(`${platformApiUrl}/api/applications/exchange`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code, application: "CONCESSION" }),
+  });
+
+  if (!platformRes.ok) {
+    throw new AppError("UNAUTHORIZED", "SSO verification failed with Platform");
+  }
+
+  const envelope = await platformRes.json() as any;
+  const platformUser = envelope.data;
+
+  let user = await prisma.user.findUnique({
+    where: { platformUserId: platformUser.id },
+  });
+
+  const localRole = platformUser.application.role === "CONCESSION_ADMINISTRATOR" ? "ADMIN" : "CASHIER";
+
+  if (!user) {
+    const baseUsername = platformUser.email.split("@")[0];
+    let username = baseUsername;
+    let suffix = 1;
+    while (await prisma.user.findUnique({ where: { username } })) {
+      username = `${baseUsername}${suffix}`;
+      suffix++;
+    }
+
+    user = await prisma.user.create({
+      data: {
+        platformUserId: platformUser.id,
+        fullName: platformUser.name,
+        username,
+        passwordHash: "sso-managed-credentials",
+        role: localRole,
+        isActive: true,
+      },
+    });
+  } else {
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        fullName: platformUser.name,
+        role: localRole,
+      },
+    });
+  }
+
+  const token = jwt.sign(
+    { id: user.id, username: user.username, role: user.role },
+    JWT_SECRET,
+    { expiresIn: "1d" }
+  );
+
+  return {
+    token,
+    user: {
+      id: user.id,
+      fullName: user.fullName,
+      username: user.username,
+      role: user.role,
+    },
+  };
+};
