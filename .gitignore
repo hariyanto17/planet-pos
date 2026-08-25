@@ -26,6 +26,8 @@ yarn-debug.log*
 **/.env.local
 **/.env.*.local
 **/*.env
+!.env.example
+!**/.env.example
 
 # TypeScript build info
 *.tsbuildinfo
