@@ -67,6 +67,8 @@ app.use("/api/brands", brandsRouter);
 app.use("/api/materials", materialsRouter);
 app.use("/api/suppliers", suppliersRouter);
 app.use("/api/settings/application", settingsRouter);
+import internalRouter from "./modules/internal/router";
+app.use("/api/internal", internalRouter);
 
 
 import { createServer } from "http";

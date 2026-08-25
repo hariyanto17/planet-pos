@@ -58,3 +58,29 @@ export const ssoCallbackHandler = async (req: Request, res: Response) => {
 
   return responseHandler.ok(res, result, "SSO Login successful");
 };
+
+export const ssoSyncHandler = async (req: Request, res: Response) => {
+  const { platformUserId, status, role } = req.body;
+  if (!platformUserId) {
+    throw new AppError("BAD_REQUEST", "platformUserId is required");
+  }
+
+  const { prisma } = require("../../utils/prisma");
+  const localUser = await prisma.user.findUnique({
+    where: { platformUserId },
+  });
+
+  if (localUser) {
+    const isActive = status === "ACTIVE" && role !== null;
+    const data: any = { isActive };
+    if (role) {
+      data.role = role === "CONCESSION_ADMINISTRATOR" ? "ADMIN" : "CASHIER";
+    }
+    await prisma.user.update({
+      where: { id: localUser.id },
+      data,
+    });
+  }
+
+  return responseHandler.ok(res, null, "User status and role synced successfully");
+};
