@@ -111,6 +111,114 @@ test("authMiddleware Tests", async (t) => {
     assert.equal(updated?.isActive, false);
   });
 
+  await t.test("should fail with 503 when platform is offline/unreachable", async () => {
+    await prisma.user.update({
+      where: { id: testUser.id },
+      data: { isActive: true },
+    });
+
+    const token = jwt.sign({ id: testUser.id, username: testUser.username, role: "CASHIER" }, JWT_SECRET);
+
+    globalThis.fetch = async () => {
+      throw new Error("Connection refused");
+    };
+
+    const req = {
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    } as unknown as Request;
+    const res = {} as Response;
+    let nextError: any = null;
+    const next = (err?: any) => {
+      nextError = err;
+    };
+
+    await authenticate(req, res, next);
+
+    assert.ok(nextError instanceof AppError);
+    assert.equal(nextError.httpStatus, 503);
+    assert.equal(nextError.code, "SERVICE_UNAVAILABLE");
+  });
+
+  await t.test("should fail with 503 when platform returns 500 server error", async () => {
+    await prisma.user.update({
+      where: { id: testUser.id },
+      data: { isActive: true },
+    });
+
+    const token = jwt.sign({ id: testUser.id, username: testUser.username, role: "CASHIER" }, JWT_SECRET);
+
+    globalThis.fetch = async () => {
+      return {
+        status: 500,
+        ok: false,
+      } as any;
+    };
+
+    const req = {
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    } as unknown as Request;
+    const res = {} as Response;
+    let nextError: any = null;
+    const next = (err?: any) => {
+      nextError = err;
+    };
+
+    await authenticate(req, res, next);
+
+    assert.ok(nextError instanceof AppError);
+    assert.equal(nextError.httpStatus, 503);
+    assert.equal(nextError.code, "SERVICE_UNAVAILABLE");
+  });
+
+  await t.test("should fail with 403 when platform returns unknown/invalid role", async () => {
+    await prisma.user.update({
+      where: { id: testUser.id },
+      data: { isActive: true },
+    });
+
+    const token = jwt.sign({ id: testUser.id, username: testUser.username, role: "CASHIER" }, JWT_SECRET);
+
+    globalThis.fetch = async () => {
+      return {
+        status: 200,
+        ok: true,
+        json: async () => ({
+          status: "success",
+          data: {
+            id: testUser.platformUserId,
+            status: "ACTIVE",
+            application: {
+              code: "CONCESSION",
+              role: "UNKNOWN_ROLE_CODE",
+              permissions: [],
+            },
+          },
+        }),
+      } as any;
+    };
+
+    const req = {
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    } as unknown as Request;
+    const res = {} as Response;
+    let nextError: any = null;
+    const next = (err?: any) => {
+      nextError = err;
+    };
+
+    await authenticate(req, res, next);
+
+    assert.ok(nextError instanceof AppError);
+    assert.equal(nextError.httpStatus, 403);
+    assert.equal(nextError.code, "FORBIDDEN");
+  });
+
   // Cleanup test user
   await prisma.user.deleteMany({
     where: { username: "middleware_test_user" },

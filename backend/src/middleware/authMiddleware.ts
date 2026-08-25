@@ -41,6 +41,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
             headers: {
               "x-platform-internal-key": apiKey,
             },
+            signal: AbortSignal.timeout(2000),
           }
         );
 
@@ -52,6 +53,8 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
           return next(new AppError("UNAUTHORIZED", "Your access to this application is no longer available."));
         } else if (platformRes.status === 404) {
           return next(new AppError("UNAUTHORIZED", "User no longer exists on Platform"));
+        } else if (platformRes.status >= 500) {
+          return next(new AppError("SERVICE_UNAVAILABLE", "Platform identity verification server error"));
         } else if (platformRes.ok) {
           const envelope = await platformRes.json() as any;
           const platformContext = envelope.data;
@@ -64,8 +67,14 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
             return next(new AppError("UNAUTHORIZED", "Your account is disabled on Platform"));
           }
 
+          // Strict Role Validation
+          const roleCode = platformContext.application.role;
+          if (roleCode !== "CONCESSION_ADMINISTRATOR" && roleCode !== "CONCESSION_CASHIER") {
+            return next(new AppError("FORBIDDEN", "Access denied: invalid role configuration"));
+          }
+
           // Sync role changes if any
-          const localRole = platformContext.application.role === "CONCESSION_ADMINISTRATOR" ? "ADMIN" : "CASHIER";
+          const localRole = roleCode === "CONCESSION_ADMINISTRATOR" ? "ADMIN" : "CASHIER";
           if (user.role !== localRole) {
             await prisma.user.update({
               where: { id: user.id },
@@ -73,9 +82,12 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
             });
             user.role = localRole;
           }
+        } else {
+          return next(new AppError("SERVICE_UNAVAILABLE", "Platform identity verification failed"));
         }
       } catch (err) {
         console.error("Platform revalidation temporarily unavailable", err);
+        return next(new AppError("SERVICE_UNAVAILABLE", "Platform identity verification service is unavailable"));
       }
     }
 
