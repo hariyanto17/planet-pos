@@ -11,6 +11,7 @@ import { DashboardSection } from "@/features/dashboard/components/DashboardSecti
 import { Button } from "@/components/Button";
 import { formatCurrency } from "@/utils/formatters";
 import { TEXT } from "@/lib/i18n/id";
+import { AlertTriangle } from "lucide-react";
 
 export default function DashboardPage() {
   const currentUser = useAppSelector(selectCurrentUser);
@@ -27,8 +28,8 @@ export default function DashboardPage() {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center p-12 bg-surface border border-border rounded-2xl text-center shadow-lg max-w-md mx-auto mt-12 gap-4">
-        <div className="w-12 h-12 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center text-xl font-bold">
-          ⚠️
+        <div className="w-12 h-12 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center font-bold">
+          <AlertTriangle className="w-6 h-6" />
         </div>
         <div className="flex flex-col gap-1">
           <h2 className="text-text-primary font-bold text-lg">{TEXT.dashboard.failedLoad}</h2>

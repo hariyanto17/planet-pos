@@ -23,6 +23,8 @@ import {
 } from "@/lib/routes";
 import { TEXT } from "@/lib/i18n/id";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageToggle } from "@/components/LanguageToggle";
+import { Briefcase, AlertTriangle } from "lucide-react";
 
 // High-end Animated Splash Screen displayed during session restoration
 const SplashRestoration = () => (
@@ -99,8 +101,8 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
   if (isProfileError) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background text-center px-4 gap-4 animate-fade-in">
-        <div className="w-12 h-12 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center text-xl font-bold">
-          ⚠️
+        <div className="w-12 h-12 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center font-bold">
+          <AlertTriangle className="w-6 h-6" />
         </div>
         <div className="flex flex-col gap-1">
           <h2 className="text-text-primary font-bold text-lg">{TEXT.auth.profileFailed}</h2>
@@ -259,7 +261,7 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
                         : "text-text-secondary hover:text-text-primary hover:bg-surface-secondary/40"
                     }`}
                   >
-                    <span>💼</span>
+                    <Briefcase className="w-4 h-4" />
                     {sidebarOpen ? (
                       <span>
                         {ws === "ADMIN" ? TEXT.auth.panelAdmin : ws === "WAREHOUSE" ? TEXT.auth.panelWarehouse : `${ws} Panel`}
@@ -328,7 +330,8 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
             )}
           </button>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <LanguageToggle />
             <ThemeToggle />
             <button
               onClick={handleLogout}

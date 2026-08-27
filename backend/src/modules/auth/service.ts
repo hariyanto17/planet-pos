@@ -63,7 +63,7 @@ export const changePassword = async (userId: string, input: any) => {
 };
 
 export const ssoLogin = async (code: string): Promise<LoginResult> => {
-  const platformApiUrl = process.env.PLATFORM_API_URL || "http://localhost:5000";
+  const platformApiUrl = process.env.PLATFORM_API_URL || process.env.PLATFORM_URL || "http://localhost:4000";
   
   const platformRes = await fetch(`${platformApiUrl}/api/applications/exchange`, {
     method: "POST",

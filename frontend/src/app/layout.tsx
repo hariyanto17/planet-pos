@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { StoreProvider } from "../providers/StoreProvider";
 import { ThemeProvider } from "../providers/ThemeProvider";
+import { LanguageProvider } from "../lib/i18n";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased" suppressHydrationWarning>
+    <html lang="id" className="h-full antialiased" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -47,9 +48,11 @@ export default function RootLayout({
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} min-h-full flex flex-col bg-background text-text-primary`}>
-        <ThemeProvider>
-          <StoreProvider>{children}</StoreProvider>
-        </ThemeProvider>
+        <LanguageProvider>
+          <ThemeProvider>
+            <StoreProvider>{children}</StoreProvider>
+          </ThemeProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

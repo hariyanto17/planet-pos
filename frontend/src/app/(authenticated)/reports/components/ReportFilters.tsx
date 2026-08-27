@@ -1,5 +1,6 @@
 import React from "react";
 import { ReportFilterState } from "../types";
+import { DatePicker } from "@/components/DatePicker";
 
 interface ReportFiltersProps {
   filters: ReportFilterState;
@@ -58,24 +59,16 @@ export const ReportFilters: React.FC<ReportFiltersProps> = ({
 
       {filters.preset === "CUSTOM" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-border/50 pt-4 animate-fade-in">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Start Date</label>
-            <input
-              type="date"
-              value={filters.startDate}
-              onChange={(e) => onCustomRangeChange(e.target.value, filters.endDate)}
-              className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm"
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">End Date</label>
-            <input
-              type="date"
-              value={filters.endDate}
-              onChange={(e) => onCustomRangeChange(filters.startDate, e.target.value)}
-              className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm"
-            />
-          </div>
+          <DatePicker
+            label="Start Date"
+            value={filters.startDate}
+            onChange={(val) => onCustomRangeChange(val, filters.endDate)}
+          />
+          <DatePicker
+            label="End Date"
+            value={filters.endDate}
+            onChange={(val) => onCustomRangeChange(filters.startDate, val)}
+          />
         </div>
       )}
 

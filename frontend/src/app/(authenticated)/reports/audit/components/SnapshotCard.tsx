@@ -1,5 +1,6 @@
 import React from "react";
 import { formatCurrency } from "@/utils/formatters";
+import { DatePicker } from "@/components/DatePicker";
 
 interface SnapshotCardProps {
   data?: {
@@ -35,11 +36,11 @@ export const SnapshotCard: React.FC<SnapshotCardProps> = ({
           </p>
         </div>
 
-        <input
-          type="date"
+        <DatePicker
           value={selectedDate}
-          onChange={(e) => onDateChange(e.target.value)}
-          className="px-3.5 py-1.5 bg-surface-secondary border border-border rounded-xl text-text-primary outline-none text-xs font-bold uppercase focus:border-indigo-500"
+          onChange={(val) => onDateChange(val)}
+          size="sm"
+          className="w-44"
         />
       </div>
 

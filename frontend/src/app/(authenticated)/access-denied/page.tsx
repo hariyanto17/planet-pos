@@ -6,6 +6,7 @@ import { useAppSelector } from "@/lib/store/hooks";
 import { selectCurrentUser } from "@/lib/store/features/auth/selectors";
 import { getDefaultRouteByRole } from "@/lib/routes";
 import { TEXT } from "@/lib/i18n/id";
+import { AlertTriangle } from "lucide-react";
 
 export default function AccessDeniedPage() {
   const currentUser = useAppSelector(selectCurrentUser);
@@ -18,8 +19,8 @@ export default function AccessDeniedPage() {
   return (
     <div className="min-h-[70vh] flex flex-col items-center justify-center text-center px-4 animate-fade-in">
       <div className="max-w-md w-full bg-surface border border-border rounded-2xl p-8 shadow-xl flex flex-col items-center gap-6">
-        <div className="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500 text-3xl font-bold animate-pulse">
-          ⚠️
+        <div className="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500 font-bold">
+          <AlertTriangle className="w-8 h-8" />
         </div>
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-black tracking-tight text-text-primary">{TEXT.auth.accessDeniedTitle}</h1>

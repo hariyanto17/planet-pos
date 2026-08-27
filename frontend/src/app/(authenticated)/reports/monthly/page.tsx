@@ -6,6 +6,7 @@ import { useAppSelector } from "@/lib/store/hooks";
 import { selectCurrentUser } from "@/lib/store/features/auth/selectors";
 import { useGetMonthlyAnalysisQuery } from "@/lib/api/reportsApi";
 import { formatCurrency } from "@/utils/formatters";
+import { Trophy } from "lucide-react";
 
 const monthsList = [
   { value: 1, label: "Januari" },
@@ -172,7 +173,10 @@ export default function MonthlyAnalysisPage() {
 
         {/* Top Products */}
         <div className="p-6 bg-surface border border-border rounded-2xl flex flex-col gap-4 shadow-sm lg:col-span-3">
-          <h2 className="text-lg font-bold tracking-tight text-text-primary">🏆 Top 10 Produk Terlaris Bulanan</h2>
+          <h2 className="text-lg font-bold tracking-tight text-text-primary flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-amber-500" />
+            Top 10 Produk Terlaris Bulanan
+          </h2>
           {isLoading ? (
             <div className="h-48 bg-surface-secondary/50 animate-pulse rounded-xl" />
           ) : topProducts.length === 0 ? (

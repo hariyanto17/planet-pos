@@ -6,6 +6,8 @@ import { useAppSelector } from "@/lib/store/hooks";
 import { selectCurrentUser } from "@/lib/store/features/auth/selectors";
 import { useGetDailyAnalysisQuery } from "@/lib/api/reportsApi";
 import { formatCurrency } from "@/utils/formatters";
+import { DatePicker } from "@/components/DatePicker";
+import { Trophy, Clock } from "lucide-react";
 
 export default function DailyAnalysisPage() {
   const router = useRouter();
@@ -52,11 +54,11 @@ export default function DailyAnalysisPage() {
       <div className="flex justify-end">
         <div className="flex items-center gap-3 bg-surface border border-border rounded-xl p-2 shadow-sm">
           <span className="text-text-secondary text-xs font-bold uppercase pl-2">Tanggal Bisnis</span>
-          <input
-            type="date"
+          <DatePicker
             value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="bg-surface-secondary text-text-primary rounded-lg p-2 border border-border focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+            onChange={(val) => val && setSelectedDate(val)}
+            size="sm"
+            className="w-44"
           />
         </div>
       </div>
@@ -133,7 +135,10 @@ export default function DailyAnalysisPage() {
 
         {/* Top Products */}
         <div className="p-6 bg-surface border border-border rounded-2xl flex flex-col gap-4 shadow-sm lg:col-span-2">
-          <h2 className="text-lg font-bold tracking-tight text-text-primary">🏆 Produk Terlaris</h2>
+          <h2 className="text-lg font-bold tracking-tight text-text-primary flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-amber-500" />
+            Produk Terlaris
+          </h2>
           {isLoading ? (
             <div className="h-48 bg-surface-secondary/50 animate-pulse rounded-xl" />
           ) : topProducts.length === 0 ? (
@@ -166,7 +171,10 @@ export default function DailyAnalysisPage() {
 
         {/* Low Products */}
         <div className="p-6 bg-surface border border-border rounded-2xl flex flex-col gap-4 shadow-sm">
-          <h2 className="text-lg font-bold tracking-tight text-text-primary">💤 Slow Moving Products</h2>
+          <h2 className="text-lg font-bold tracking-tight text-text-primary flex items-center gap-2">
+            <Clock className="w-5 h-5 text-indigo-400" />
+            Slow Moving Products
+          </h2>
           {isLoading ? (
             <div className="h-48 bg-surface-secondary/50 animate-pulse rounded-xl" />
           ) : lowProducts.length === 0 ? (

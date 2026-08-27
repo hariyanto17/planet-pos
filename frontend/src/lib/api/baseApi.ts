@@ -6,7 +6,7 @@ import { authCookie } from "../../utils/authCookie";
 const baseQuery = fetchBaseQuery({
   baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050/api",
   prepareHeaders: (headers, { getState }) => {
-    const token = (getState() as RootState).auth.token;
+    const token = (getState() as RootState).auth.token || authCookie.getToken();
     if (token) {
       headers.set("authorization", `Bearer ${token}`);
     }

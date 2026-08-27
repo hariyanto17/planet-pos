@@ -26,16 +26,18 @@ export const DashboardStatCard: React.FC<DashboardStatCardProps> = ({
   }
 
   return (
-    <div className="p-6 bg-surface border border-border/80 rounded-2xl flex items-center justify-between shadow-md hover:border-border hover:shadow-lg transition-all duration-200">
-      <div className="flex flex-col gap-1.5">
-        <span className="text-text-muted text-xs font-bold uppercase tracking-wider">{title}</span>
-        <span className={`text-3xl font-black tracking-tight ${color}`}>{value}</span>
-      </div>
-      {icon ? (
-        <div className="w-12 h-12 bg-surface-secondary rounded-xl flex items-center justify-center border border-border text-text-secondary">
-          {icon}
+    <div className="p-6 border border-border/80 rounded-2xl bg-surface shadow-md hover:border-border hover:shadow-lg transition-all duration-200">
+      <span className="text-text-muted text-xs font-bold uppercase tracking-wider">{title}</span>
+      <div className="flex items-center justify-between ">
+        <div className="flex flex-col gap-1.5">
+          <span className={`text-xl font-black tracking-tight ${color}`}>{value}</span>
         </div>
-      ) : null}
+        {icon ? (
+          <div className="w-12 h-12 bg-surface-secondary rounded-xl flex items-center justify-center border border-border text-text-secondary">
+            {icon}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 };

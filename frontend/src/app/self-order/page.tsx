@@ -9,6 +9,7 @@ import { useCheckoutMutation } from "@/lib/api/checkoutApi";
 import { useGetAppSettingsQuery } from "@/lib/api/settingsApi";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { CartItem } from "@/lib/store/features/cart/types";
+import { Ban } from "lucide-react";
 
 import {
   addItem,
@@ -84,8 +85,8 @@ function SelfOrderContent() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background text-center px-4 animate-fade-in">
         <div className="flex flex-col items-center gap-6 max-w-sm">
-          <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center text-3xl font-bold">
-            🚫
+          <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center font-bold">
+            <Ban className="w-8 h-8" />
           </div>
           <div className="flex flex-col gap-2">
             <h2 className="text-xl font-bold tracking-tight text-text-primary">Self-Order Dinonaktifkan</h2>

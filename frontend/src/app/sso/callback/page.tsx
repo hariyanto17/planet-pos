@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, Suspense } from "react";
+import React, { useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useSsoLoginMutation } from "@/lib/api/authApi";
 import { useAppDispatch } from "@/lib/store/hooks";
@@ -13,6 +13,7 @@ function SsoCallbackInner() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const [ssoLogin] = useSsoLoginMutation();
+  const executedRef = useRef(false);
 
   const code = searchParams.get("code");
 
@@ -22,6 +23,9 @@ function SsoCallbackInner() {
       return;
     }
 
+    if (executedRef.current) return;
+    executedRef.current = true;
+
     const performSso = async () => {
       try {
         const result = await ssoLogin({ code }).unwrap();
@@ -29,13 +33,16 @@ function SsoCallbackInner() {
         dispatch(setCredentials(result));
         authCookie.setToken(result.token);
 
+        const targetRoute = getDefaultRouteByRole(result.user.role);
         if (typeof window !== "undefined") {
           window.history.replaceState({}, document.title, window.location.pathname);
+          window.location.href = targetRoute;
+        } else {
+          router.replace(targetRoute);
         }
-
-        const targetRoute = getDefaultRouteByRole(result.user.role);
-        router.replace(targetRoute);
-      } catch (err) {
+      } catch (err: unknown) {
+        const errorObj = err as { name?: string };
+        if (errorObj?.name === "AbortError") return;
         console.error("SSO Exchange failed", err);
         router.replace("/login");
       }

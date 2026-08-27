@@ -5,6 +5,7 @@ import { Input } from "@/components/Input";
 import { useAdjustStockMutation } from "@/lib/api/inventoryApi";
 import { TEXT } from "@/lib/i18n/id";
 import { getAvailableUnits, getDefaultUnit, formatConversionPreview } from "@/lib/utils/unitConversions";
+import { Plus, Minus } from "lucide-react";
 
 interface Props {
   isOpen: boolean;
@@ -139,24 +140,26 @@ export const AdjustStockModal: React.FC<Props> = ({
             <button
               type="button"
               onClick={() => setAdjustType("INCREASE")}
-              className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg border transition ${
+              className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg border transition flex items-center justify-center gap-1.5 cursor-pointer ${
                 adjustType === "INCREASE"
                   ? "bg-emerald-600 text-white border-emerald-600 shadow-md"
                   : "bg-surface-secondary text-text-secondary border-border hover:text-text-primary"
               }`}
             >
-              ➕ Tambah (+Jml)
+              <Plus className="w-3.5 h-3.5" />
+              Tambah (+Jml)
             </button>
             <button
               type="button"
               onClick={() => setAdjustType("DECREASE")}
-              className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg border transition ${
+              className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg border transition flex items-center justify-center gap-1.5 cursor-pointer ${
                 adjustType === "DECREASE"
                   ? "bg-amber-600 text-white border-amber-600 shadow-md"
                   : "bg-surface-secondary text-text-secondary border-border hover:text-text-primary"
               }`}
             >
-              ➖ Kurang (-Jml)
+              <Minus className="w-3.5 h-3.5" />
+              Kurang (-Jml)
             </button>
           </div>
         </div>

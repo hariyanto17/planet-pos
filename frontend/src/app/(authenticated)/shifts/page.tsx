@@ -16,6 +16,7 @@ import { CashReconciliation } from "./components/CashReconciliation";
 import { CloseShiftModal } from "./components/CloseShiftModal";
 import { Button } from "@/components/Button";
 import { TEXT } from "@/lib/i18n/id";
+import { Lock } from "lucide-react";
 
 export default function ShiftsPage() {
   const currentUser = useAppSelector(selectCurrentUser);
@@ -76,7 +77,9 @@ export default function ShiftsPage() {
 
       {!isOpen && !isShiftLoading ? (
         <div className="p-8 border border-border bg-surface/30 text-center rounded-2xl flex flex-col items-center justify-center gap-4 max-w-md mx-auto mt-6 shadow-md">
-          <span className="text-3xl">🔒</span>
+          <div className="w-12 h-12 rounded-full bg-surface-secondary border border-border flex items-center justify-center text-text-muted">
+            <Lock className="w-6 h-6" />
+          </div>
           <div className="flex flex-col gap-1">
             <h3 className="text-text-primary font-bold">{TEXT.shifts.noActiveShiftTitle}</h3>
             <p className="text-text-muted text-xs">

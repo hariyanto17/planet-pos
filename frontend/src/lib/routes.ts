@@ -6,8 +6,8 @@ export type WorkspaceType = "ADMIN" | "WAREHOUSE" | "ACCOUNTING";
 export const ROLE_WORKSPACES: Record<UserRole, WorkspaceType[]> = {
   ADMIN: ["ADMIN", "WAREHOUSE", "ACCOUNTING"],
   WAREHOUSE: ["WAREHOUSE"],
-  CASHIER: [],
-  KITCHEN: [],
+  CASHIER: ["ADMIN", "WAREHOUSE"],
+  KITCHEN: ["WAREHOUSE"],
   ACCOUNTING: ["ACCOUNTING"],
 };
 

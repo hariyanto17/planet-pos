@@ -51,6 +51,14 @@ export const ssoCallbackHandler = async (req: Request, res: Response) => {
 
   const result = await authService.ssoLogin(code);
 
+  res.cookie("token", result.token, {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 24 * 60 * 60 * 1000,
+    path: "/",
+  });
+
   await logActivity(result.user.id, "LOGIN", "User", result.user.id, {
     username: result.user.username,
     method: "SSO",

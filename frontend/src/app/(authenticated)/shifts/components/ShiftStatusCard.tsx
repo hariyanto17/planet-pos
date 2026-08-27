@@ -2,6 +2,7 @@ import React from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { CashierShiftData } from "../types";
 import { TEXT } from "@/lib/i18n/id";
+import { CheckCircle2, CircleOff } from "lucide-react";
 
 interface ShiftStatusProps {
   data?: CashierShiftData;
@@ -27,7 +28,13 @@ export const ShiftStatusCard: React.FC<ShiftStatusProps> = ({ data, isLoading })
           : "border-border bg-surface/60 text-text-secondary"
         }`}
     >
-      <span className="text-3xl select-none">{isOpen ? "🟢" : "⚪"}</span>
+      <div className="mt-0.5">
+        {isOpen ? (
+          <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+        ) : (
+          <CircleOff className="w-8 h-8 text-zinc-400" />
+        )}
+      </div>
       <div className="flex flex-col gap-1.5 w-full">
         <span className="text-text-muted text-xs font-bold uppercase tracking-wider">
           {TEXT.shifts.statusTitle}
@@ -45,4 +52,3 @@ export const ShiftStatusCard: React.FC<ShiftStatusProps> = ({ data, isLoading })
     </div>
   );
 };
-export default ShiftStatusCard;

@@ -13,6 +13,7 @@ import { Button } from "@/components/Button";
 import { formatOrderNumber } from "@/utils/formatters";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { TEXT } from "@/lib/i18n/id";
+import { AlertTriangle } from "lucide-react";
 
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -47,7 +48,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   if (isError || !order) {
     return (
       <div className="flex flex-col items-center justify-center p-12 bg-surface border border-border rounded-2xl text-center shadow-lg max-w-md mx-auto mt-12 gap-4">
-        <span className="text-xl">⚠️</span>
+        <div className="w-12 h-12 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center font-bold">
+          <AlertTriangle className="w-6 h-6" />
+        </div>
         <div className="flex flex-col gap-1">
           <h2 className="text-text-primary font-bold">Gagal memuat detail pesanan</h2>
           <p className="text-text-muted text-xs">Verifikasi pengidentifikasi atau periksa log server.</p>

@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/Button";
 import { useToast } from "@/components/ToastProvider";
 import { getAvailableUnits, getDefaultUnit, formatConversionPreview } from "@/lib/utils/unitConversions";
+import { AlertTriangle, Trash2 } from "lucide-react";
 
 interface RowItem {
   materialVariantId: string;
@@ -141,7 +142,8 @@ export default function OpeningStockPage() {
 
       {errorMsg && (
         <div className="p-4 bg-rose-950/40 border border-rose-900/50 rounded-xl text-rose-400 text-sm font-semibold flex items-center gap-2">
-          ⚠️ {errorMsg}
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>{errorMsg}</span>
         </div>
       )}
 
@@ -249,9 +251,10 @@ export default function OpeningStockPage() {
                         type="button"
                         onClick={() => handleRemoveRow(idx)}
                         disabled={rows.length === 1}
-                        className="w-8 h-8 rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="w-8 h-8 rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                        title="Hapus baris"
                       >
-                        🗑️
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
 

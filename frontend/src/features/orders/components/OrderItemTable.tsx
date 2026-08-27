@@ -1,5 +1,6 @@
 import React from "react";
 import { formatCurrency } from "@/utils/formatters";
+import { AlertCircle } from "lucide-react";
 
 interface OrderItem {
   id: string;
@@ -10,21 +11,17 @@ interface OrderItem {
 }
 
 interface OrderItemTableProps {
-  items?: OrderItem[];
+  items: OrderItem[];
 }
 
-export const OrderItemTable: React.FC<OrderItemTableProps> = ({ items = [] }) => {
+export const OrderItemTable: React.FC<OrderItemTableProps> = ({ items }) => {
   return (
-    <div className="p-6 bg-surface border border-border/80 rounded-2xl flex flex-col gap-4 shadow-md overflow-x-auto">
-      <h3 className="text-text-primary text-sm font-bold uppercase tracking-wider border-b border-border pb-2">
-        Items Summary
-      </h3>
-
+    <div className="w-full overflow-x-auto">
       <table className="w-full text-left border-collapse">
         <thead>
-          <tr className="border-b border-border text-xs text-text-muted uppercase font-black">
+          <tr className="border-b border-border text-xs font-bold text-text-muted uppercase tracking-wider">
             <th className="py-3 px-4">Qty</th>
-            <th className="py-3 px-4">Product</th>
+            <th className="py-3 px-4">Item Details</th>
             <th className="py-3 px-4 text-right">Price</th>
             <th className="py-3 px-4 text-right">Subtotal</th>
           </tr>
@@ -38,8 +35,9 @@ export const OrderItemTable: React.FC<OrderItemTableProps> = ({ items = [] }) =>
                 <td className="py-4 px-4 flex flex-col gap-1">
                   <span className="font-semibold">{item.productName}</span>
                   {item.note ? (
-                    <span className="text-[10px] text-rose-400 font-bold px-2 py-0.5 rounded bg-rose-500/10 border border-rose-500/20 max-w-max">
-                      ⚠️ {item.note}
+                    <span className="text-[10px] text-rose-400 font-bold px-2 py-0.5 rounded bg-rose-500/10 border border-rose-500/20 max-w-max flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {item.note}
                     </span>
                   ) : null}
                 </td>

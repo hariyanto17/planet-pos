@@ -23,6 +23,7 @@ import { ReportsShiftTable } from "./components/ReportsShiftTable";
 import { Button } from "@/components/Button";
 import { formatCurrency } from "@/utils/formatters";
 import { TEXT } from "@/lib/i18n/id";
+import { AlertTriangle } from "lucide-react";
 
 type ActiveTab = "OVERVIEW" | "SALES" | "COLLECTION" | "RECONCILIATION" | "SHIFTS" | "PRODUCTS";
 
@@ -182,7 +183,7 @@ export default function ReportsPage() {
       {/* Warning banner */}
       {apiWarning && (
         <div className="p-4 bg-red-950/40 border border-red-900/50 rounded-xl flex items-start gap-3">
-          <span className="text-sm">⚠️</span>
+          <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
           <div className="flex flex-col gap-0.5">
             <h4 className="text-text-primary text-xs font-bold uppercase tracking-wider">Peringatan Selisih Akuntansi</h4>
             <p className="text-red-300/80 text-xs font-medium">{apiWarning}</p>
@@ -229,7 +230,9 @@ export default function ReportsPage() {
       {/* Error State retry card */}
       {isAnyError ? (
         <div className="flex flex-col items-center justify-center p-12 bg-surface border border-border rounded-2xl text-center shadow-lg max-w-md mx-auto mt-6 gap-4 animate-fade-in">
-          <span className="text-xl">⚠️</span>
+          <div className="w-12 h-12 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center font-bold">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
           <div className="flex flex-col gap-1">
             <h2 className="text-text-primary font-bold">Gagal menyusun laporan</h2>
             <p className="text-text-muted text-xs">Verifikasi koneksi database Anda dan batas rentang filter tanggal.</p>

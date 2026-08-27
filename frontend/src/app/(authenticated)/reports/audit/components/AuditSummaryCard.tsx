@@ -1,4 +1,5 @@
 import React from "react";
+import { CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 
 interface AuditSummaryCardProps {
   invalidCompletedCount: number;
@@ -28,21 +29,21 @@ export const AuditSummaryCard: React.FC<AuditSummaryCardProps> = ({
 
   let statusText = "All transactions balanced and lifecycle verified";
   let statusColor = "border-emerald-500/30 text-emerald-400";
-  let statusIcon = "✅";
+  let statusIcon = <CheckCircle2 className="w-8 h-8 text-emerald-500 shrink-0" />;
 
   if (invalidCompletedCount > 0) {
     statusText = `${invalidCompletedCount} completed orders detected without payment record!`;
     statusColor = "border-rose-500/30 bg-rose-950/20 text-rose-400";
-    statusIcon = "❌";
+    statusIcon = <XCircle className="w-8 h-8 text-rose-500 shrink-0" />;
   } else if (overpaidCount > 0 || underpaidCount > 0 || stuckPreparingCount > 0 || stuckReadyCount > 0) {
     statusText = "Warnings: Payment reconciliation differences or stuck kitchen tickets detected";
     statusColor = "border-amber-500/30 bg-amber-950/20 text-amber-400";
-    statusIcon = "⚠️";
+    statusIcon = <AlertTriangle className="w-8 h-8 text-amber-500 shrink-0" />;
   }
 
   return (
     <div className={`p-6 border rounded-2xl flex items-start gap-4 shadow-md ${statusColor}`}>
-      <span className="text-3xl select-none">{statusIcon}</span>
+      <div className="mt-0.5">{statusIcon}</div>
       <div className="flex flex-col gap-1">
         <span className="text-xs font-bold uppercase tracking-wider text-text-secondary">
           Accounting Health Ledger Status
@@ -59,4 +60,3 @@ export const AuditSummaryCard: React.FC<AuditSummaryCardProps> = ({
     </div>
   );
 };
-export default AuditSummaryCard;

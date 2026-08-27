@@ -14,6 +14,7 @@ import { Button } from "@/components/Button";
 import { formatCurrency } from "@/utils/formatters";
 import Link from "next/link";
 import { TEXT } from "@/lib/i18n/id";
+import { AlertTriangle, AlertOctagon, ClipboardList } from "lucide-react";
 
 export default function WarehouseDashboardPage() {
   const currentUser = useAppSelector(selectCurrentUser);
@@ -52,8 +53,8 @@ export default function WarehouseDashboardPage() {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center p-12 bg-surface border border-border rounded-2xl text-center shadow-lg max-w-md mx-auto mt-12 gap-4">
-        <div className="w-12 h-12 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center text-xl font-bold">
-          ⚠️
+        <div className="w-12 h-12 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center font-bold">
+          <AlertTriangle className="w-6 h-6" />
         </div>
         <div className="flex flex-col gap-1">
           <h2 className="text-text-primary font-bold text-lg">{TEXT.dashboard.failedLoad}</h2>
@@ -156,7 +157,8 @@ export default function WarehouseDashboardPage() {
           <div className="bg-surface border border-border rounded-2xl p-6 flex flex-col gap-4 shadow">
             <div className="flex items-center justify-between">
               <h3 className="text-text-primary font-extrabold text-base flex items-center gap-2">
-                ⚠️ Produk Minim Stok
+                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                Produk Minim Stok
               </h3>
               <span className="text-[10px] uppercase tracking-wider font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded">
                 Alert
@@ -188,7 +190,8 @@ export default function WarehouseDashboardPage() {
           <div className="bg-surface border border-border rounded-2xl p-6 flex flex-col gap-4 shadow">
             <div className="flex items-center justify-between">
               <h3 className="text-text-primary font-extrabold text-base flex items-center gap-2">
-                🚫 Produk Habis (Out of Stock)
+                <AlertOctagon className="w-4 h-4 text-rose-500" />
+                Produk Habis (Out of Stock)
               </h3>
               <span className="text-[10px] uppercase tracking-wider font-bold text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded">
                 Empty
@@ -220,7 +223,8 @@ export default function WarehouseDashboardPage() {
         <div className="bg-surface border border-border rounded-2xl p-6 flex flex-col gap-4 shadow">
           <div className="flex items-center justify-between border-b border-border pb-3">
             <h3 className="text-text-primary font-extrabold text-base flex items-center gap-2">
-              📋 Aktivitas Stok Terbaru
+              <ClipboardList className="w-4 h-4 text-primary" />
+              Aktivitas Stok Terbaru
             </h3>
             <span className="text-xs text-text-muted">10 Entri Terakhir</span>
           </div>

@@ -10,9 +10,11 @@ import { OrderStatusBadge } from "@/features/orders/components/OrderStatusBadge"
 import { PaymentStatusBadge } from "@/features/orders/components/PaymentStatusBadge";
 import { DataTable } from "@/components/DataTable";
 import { Button } from "@/components/Button";
+import { DatePicker } from "@/components/DatePicker";
 import { Pagination } from "@/components/Pagination";
 import { formatCurrency, formatOrderNumber, formatRelativeTime } from "@/utils/formatters";
 import { TEXT } from "@/lib/i18n/id";
+import { AlertTriangle } from "lucide-react";
 
 export default function OrdersPage() {
   const router = useRouter();
@@ -186,24 +188,16 @@ export default function OrdersPage() {
         {/* Custom Date Inputs if CUSTOM is selected */}
         {filters.businessDate === "CUSTOM" && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-border/60 pt-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Tanggal Mulai</label>
-              <input
-                type="date"
-                value={filters.customDateStart || ""}
-                onChange={(e) => updateFilter("customDateStart", e.target.value)}
-                className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-text-secondary text-xs font-bold uppercase tracking-wider">Tanggal Selesai</label>
-              <input
-                type="date"
-                value={filters.customDateEnd || ""}
-                onChange={(e) => updateFilter("customDateEnd", e.target.value)}
-                className="px-3 py-2 bg-surface-secondary border border-border rounded-lg text-text-primary outline-none focus:border-indigo-500 text-sm"
-              />
-            </div>
+            <DatePicker
+              label="Tanggal Mulai"
+              value={filters.customDateStart || ""}
+              onChange={(val) => updateFilter("customDateStart", val)}
+            />
+            <DatePicker
+              label="Tanggal Selesai"
+              value={filters.customDateEnd || ""}
+              onChange={(val) => updateFilter("customDateEnd", val)}
+            />
           </div>
         )}
       </div>
@@ -218,7 +212,9 @@ export default function OrdersPage() {
       {/* Error handling retry card */}
       {isError ? (
         <div className="flex flex-col items-center justify-center p-12 bg-surface border border-border rounded-2xl text-center shadow-lg max-w-md mx-auto mt-6 gap-4">
-          <span className="text-xl">⚠️</span>
+          <div className="w-12 h-12 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center font-bold">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
           <div className="flex flex-col gap-1">
             <h2 className="text-text-primary font-bold">Gagal memuat antrean pesanan</h2>
             <p className="text-text-muted text-xs">Silakan verifikasi koneksi server Anda dan coba lagi.</p>

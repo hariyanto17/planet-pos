@@ -1,6 +1,7 @@
 import React from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { DataTable } from "@/components/DataTable";
+import { CheckCircle2 } from "lucide-react";
 
 interface OrderIntegrityProps {
   data?: {
@@ -67,8 +68,9 @@ export const OrderIntegrityTable: React.FC<OrderIntegrityProps> = ({ data, isLoa
         </DataTable>
 
         {invalidOrders.length === 0 && (
-          <div className="p-4 border border-border/60 bg-emerald-950/5 text-center rounded-xl text-emerald-400 text-xs font-bold uppercase tracking-wider">
-            ✅ No completed orders missing payment records.
+          <div className="p-4 border border-border/60 bg-emerald-950/5 text-center rounded-xl text-emerald-400 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2">
+            <CheckCircle2 className="w-4 h-4" />
+            No completed orders missing payment records.
           </div>
         )}
       </div>
