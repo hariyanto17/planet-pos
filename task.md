@@ -1,9 +1,0 @@
-- [/] Database: Update prisma schema for Material, MaterialVariant, and PackagingVersion
-- [ ] Database: Run prisma db push --force-reset and npm run seed
-- [ ] Backend: Update materials Joi validation schemas
-- [ ] Backend: Refactor materials controller methods
-- [ ] Backend: Adjust products service mappers
-- [ ] Frontend: Refactor CreateMaterialModal.tsx form fields
-- [ ] Frontend: Refactor AddVariantModal.tsx layout and fields
-- [ ] Frontend: Update RawMaterialDetailModal.tsx layout
-- [ ] Verification: Build, compile, and run tests
