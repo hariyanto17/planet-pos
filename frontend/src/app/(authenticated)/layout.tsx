@@ -342,7 +342,11 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto p-6 bg-background">{children}</main>
+        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 bg-background">
+          <div className="w-full max-w-[1720px] mx-auto">
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   );
