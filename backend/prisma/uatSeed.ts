@@ -77,14 +77,16 @@ export async function seedUat() {
   console.log("✓ Warehouses & AppSettings verified");
 
   // 2. UAT Users
-  const passwordHash = await bcrypt.hash("Uat12345!", 10);
+  const passwordHash = await bcrypt.hash("test1234", 10);
   const usersDef = [
     { username: "uat_admin", fullName: "UAT Platform Administrator", role: UserRole.ADMIN },
     { username: "uat_kasir", fullName: "UAT Kasir Counter", role: UserRole.CASHIER },
     { username: "uat_concessionadmin", fullName: "UAT Concession Administrator", role: UserRole.ADMIN },
     { username: "uat_concessionkasir", fullName: "UAT Concession Kasir", role: UserRole.CASHIER },
-    { username: "uat_executive", fullName: "UAT Executive GM", role: UserRole.ADMIN },
+    { username: "uat_accounting", fullName: "UAT Accounting Officer", role: UserRole.ACCOUNTING },
+    { username: "uat_warehouse", fullName: "UAT Warehouse Officer", role: UserRole.WAREHOUSE },
     { username: "uat_kitchen", fullName: "UAT Kitchen Cook", role: UserRole.KITCHEN },
+    { username: "uat_executive", fullName: "UAT Executive GM", role: UserRole.ADMIN },
   ];
 
   const usersMap: Record<string, any> = {};
