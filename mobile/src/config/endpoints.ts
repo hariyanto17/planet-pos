@@ -15,13 +15,24 @@ export const ENDPOINTS = {
   LOCAL_SOCKET_URL: Platform.OS === "android" ? "http://10.0.2.2:5050" : "http://localhost:5050",
 };
 
-// Set to true only when testing against local dev backend on localhost/10.0.2.2
+// Default to the production Concession API in dev builds.
+// Set to true only when you explicitly want to point the app to the local emulator/backend.
 export const USE_LOCAL_SERVER = false;
 
 export const getApiBaseUrl = (): string => {
+  const override = (globalThis as any)?.__MOBILE_API_BASE_URL__ || process.env.MOBILE_API_BASE_URL;
+  if (override) {
+    return override.replace(/\/+$/, "");
+  }
+
   return USE_LOCAL_SERVER ? ENDPOINTS.LOCAL_API_BASE_URL : ENDPOINTS.API_BASE_URL;
 };
 
 export const getSocketUrl = (): string => {
+  const override = (globalThis as any)?.__MOBILE_SOCKET_URL__ || process.env.MOBILE_SOCKET_URL;
+  if (override) {
+    return override.replace(/\/+$/, "");
+  }
+
   return USE_LOCAL_SERVER ? ENDPOINTS.LOCAL_SOCKET_URL : ENDPOINTS.SOCKET_URL;
 };
