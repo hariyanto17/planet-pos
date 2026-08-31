@@ -3,9 +3,9 @@ import { logout } from "../store/features/auth/slice";
 import { RootState } from "../store/store";
 import { Platform } from "react-native";
 
-const baseUrl = __DEV__
-  ? (Platform.OS === "android" ? "http://10.0.2.2:5050/api" : "http://localhost:5050/api")
-  : "https://be-concession.168billiard.online/api";
+import { getApiBaseUrl } from "../../config/endpoints";
+
+const baseUrl = getApiBaseUrl();
 
 const baseQuery = fetchBaseQuery({
   baseUrl,

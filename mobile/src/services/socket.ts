@@ -1,15 +1,15 @@
 import { io, Socket } from "socket.io-client";
 import { Platform } from "react-native";
 
+import { getSocketUrl } from "../config/endpoints";
+
 class SocketService {
   private socket: Socket | null = null;
   private currentToken: string | null = null;
   private currentUrl: string | null = null;
 
   connect(token: string, url?: string) {
-    const defaultUrl = url || (__DEV__
-      ? (Platform.OS === "android" ? "http://10.0.2.2:5050" : "http://localhost:5050")
-      : "https://be-concession.168billiard.online");
+    const defaultUrl = url || getSocketUrl();
 
     if (this.socket && this.currentToken === token && this.currentUrl === defaultUrl) {
       console.log("[SocketService] Already connected/connecting to the same server. Skipping recreate.");
