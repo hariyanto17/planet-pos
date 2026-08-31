@@ -6,9 +6,29 @@ import { JWT_SECRET, SALT_ROUNDS } from "../../config/constant";
 import { LoginInput, LoginResult } from "./interface";
 
 export const login = async (input: LoginInput): Promise<LoginResult> => {
-  const user = await prisma.user.findUnique({
-    where: { username: input.username },
+  const rawUsername = (input.username || "").trim();
+  let user = await prisma.user.findUnique({
+    where: { username: rawUsername },
   });
+
+  if (!user && rawUsername.includes(".")) {
+    user = await prisma.user.findUnique({
+      where: { username: rawUsername.replace(/\./g, "_") },
+    });
+  }
+
+  if (!user && rawUsername.includes("_")) {
+    user = await prisma.user.findUnique({
+      where: { username: rawUsername.replace(/_/g, ".") },
+    });
+  }
+
+  if (!user && rawUsername.includes("@")) {
+    const fromEmail = rawUsername.split("@")[0];
+    user =
+      (await prisma.user.findUnique({ where: { username: fromEmail } })) ||
+      (await prisma.user.findUnique({ where: { username: fromEmail.replace(/\./g, "_") } }));
+  }
 
   if (!user) {
     throw new AppError("UNAUTHORIZED", "Invalid username");
