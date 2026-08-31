@@ -77,7 +77,7 @@ export async function seedUat() {
   console.log("✓ Warehouses & AppSettings verified");
 
   // 2. UAT Users
-  const passwordHash = await bcrypt.hash("test1234", 10);
+  const passwordHash = await bcrypt.hash("Uat12345!", 10);
   const usersDef = [
     { username: "uat_admin", fullName: "UAT Platform Administrator", role: UserRole.ADMIN },
     { username: "uat_kasir", fullName: "UAT Kasir Counter", role: UserRole.CASHIER },

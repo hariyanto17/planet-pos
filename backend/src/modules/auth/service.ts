@@ -84,9 +84,20 @@ export const ssoLogin = async (code: string): Promise<LoginResult> => {
 
   const localRole = platformUser.application.role === "CONCESSION_ADMINISTRATOR" ? "ADMIN" : "CASHIER";
 
+  const baseUsername = (platformUser.email || "").split("@")[0];
+  if (!user && baseUsername) {
+    user = (await prisma.user.findUnique({ where: { username: baseUsername } }))
+      || (await prisma.user.findUnique({ where: { username: baseUsername.replace(".", "_") } }));
+    if (user) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { platformUserId: platformUser.id },
+      });
+    }
+  }
+
   if (!user) {
-    const baseUsername = platformUser.email.split("@")[0];
-    let username = baseUsername;
+    let username = baseUsername || `user_${platformUser.id.substring(0, 6)}`;
     let suffix = 1;
     while (await prisma.user.findUnique({ where: { username } })) {
       username = `${baseUsername}${suffix}`;
