@@ -37,7 +37,10 @@ const allowedOrigins = [
 ];
 
 app.use(
-  cors()
+  cors({
+    origin: (origin, callback) => callback(null, true),
+    credentials: true,
+  })
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
