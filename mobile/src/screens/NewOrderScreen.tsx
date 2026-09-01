@@ -692,7 +692,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   // Memoized Product Card Styles
   card: {
-    flex: 1,
+    width: "25%",
     backgroundColor: theme.surface,
     borderRadius: 12,
     borderWidth: 2,
@@ -817,13 +817,12 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   },
   // Loading Skeleton Styles
   skeletonCard: {
-    flex: 1,
+    width: "25%",
     backgroundColor: theme.surface,
     borderWidth: 1,
     borderColor: theme.border,
     borderRadius: 12,
     overflow: "hidden",
-    marginHorizontal: 4,
   },
   skeletonImage: {
     width: "100%",
