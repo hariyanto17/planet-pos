@@ -58,14 +58,56 @@ const ProductCard: React.FC<ProductCardProps> = React.memo(({
       style={[
         styles.card, 
         quantity > 0 && styles.cardSelected,
-        isOutOfStock && { opacity: 0.6 }
+        isOutOfStock && { opacity: 0.5, backgroundColor: "#f3f4f6" }
       ]}
       onPress={() => !isOutOfStock && onAdd(product)}
       accessibilityLabel={`Add ${product.name} to cart`}
       accessibilityRole="button"
-      activeOpacity={0.8}
+      activeOpacity={isOutOfStock ? 1 : 0.8}
       disabled={isOutOfStock}
     >
+      {/* Stock Badge */}
+      {product.trackInventory && product.availableStock !== null && product.availableStock !== undefined && (
+        <View style={[
+          { 
+            position: "absolute", 
+            top: 8, 
+            right: 8, 
+            paddingHorizontal: 8, 
+            paddingVertical: 4, 
+            borderRadius: 12,
+            zIndex: 10,
+            backgroundColor: isOutOfStock ? "#ef4444" : "#10b981",
+            minWidth: 50,
+            alignItems: "center"
+          }
+        ]}>
+          <Text style={{ color: "white", fontSize: 12, fontWeight: "600" }}>
+            {isOutOfStock ? "Habis" : `${product.availableStock}`}
+          </Text>
+        </View>
+      )}
+
+      {/* Out of Stock Overlay */}
+      {isOutOfStock && (
+        <View style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.3)",
+          borderRadius: 8,
+          zIndex: 5,
+          justifyContent: "center",
+          alignItems: "center"
+        }}>
+          <Text style={{ color: "white", fontSize: 14, fontWeight: "700", textAlign: "center" }}>
+            STOK HABIS
+          </Text>
+        </View>
+      )}
+
       {/* Product Image */}
       <View style={styles.imageContainer}>
         <Image
@@ -74,7 +116,7 @@ const ProductCard: React.FC<ProductCardProps> = React.memo(({
               ? { uri: product.imageUrl }
               : localPlaceholder
           }
-          style={styles.cardImage}
+          style={[styles.cardImage, isOutOfStock && { opacity: 0.7 }]}
           onError={() => setImageError(true)}
           resizeMode="cover"
         />
@@ -82,27 +124,20 @@ const ProductCard: React.FC<ProductCardProps> = React.memo(({
 
       <View style={styles.cardBody}>
         {categoryName ? <Text style={styles.cardCategory}>{categoryName}</Text> : null}
-        <Text style={styles.cardTitle} numberOfLines={2}>
+        <Text style={[styles.cardTitle, isOutOfStock && { color: "#9ca3af" }]} numberOfLines={2}>
           {product.name}
         </Text>
-        <Text style={styles.cardPrice}>Rp {Number(product.price).toLocaleString()}</Text>
-
-        {product.trackInventory && product.availableStock !== null && product.availableStock !== undefined && (
-          <Text style={[
-            styles.cardStock,
-            isOutOfStock && { color: "#ef4444" }
-          ]}>
-            {isOutOfStock ? "Stok Habis" : `Stok: ${product.availableStock}`}
-          </Text>
-        )}
+        <Text style={[styles.cardPrice, isOutOfStock && { color: "#d1d5db" }]}>
+          Rp {Number(product.price).toLocaleString()}
+        </Text>
 
         <View style={styles.cardActions}>
           <View style={[
             styles.addBtn, 
             quantity > 0 && styles.addBtnSelected,
-            isOutOfStock && { backgroundColor: "#9ca3af" }
+            isOutOfStock && { backgroundColor: "#d1d5db" }
           ]}>
-            <Text style={[styles.addBtnText, quantity > 0 && styles.addBtnTextSelected]}>
+            <Text style={[styles.addBtnText, quantity > 0 && styles.addBtnTextSelected, isOutOfStock && { color: "#6b7280" }]}>
               {isOutOfStock ? "Stok Habis" : quantity > 0 ? "Added" : "Add to Cart"}
             </Text>
           </View>
