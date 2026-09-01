@@ -1,33 +1,30 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  StyleSheet,
-  Text,
-  View,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
+  Dimensions,
   FlatList,
   Image,
-  Dimensions,
-  SafeAreaView,
   Modal,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { StackScreenProps } from "@react-navigation/stack";
-import { RootStackParamList } from "../navigation/AppNavigator";
-import { useGetProductsQuery } from "../lib/api/productApi";
-import { useGetCategoriesQuery } from "../lib/api/categoryApi";
-import { useGetTablesQuery } from "../lib/api/tableApi";
-import { useGetCurrentShiftQuery } from "../lib/api/shiftApi";
-import { useAppDispatch, useAppSelector } from "../lib/store/hooks";
-import { addItem, removeItem, updateQuantity, setCustomerInfo, clearCart } from "../lib/store/features/cart/slice";
-import { logout } from "../lib/store/features/auth/slice";
-import { baseApi } from "../lib/api/baseApi";
-import { selectCartItems, selectCartTotalItems, selectCartSubtotal } from "../lib/store/features/cart/selectors";
-import { OrderType } from "@shared/types";
-import { useToast } from "../hooks/useToast";
+import { CartIcon, CloseIcon, SearchIcon, WarningIcon } from "../components/CustomIcons";
 import { useConfirmation } from "../hooks/useConfirmation";
-import { SearchIcon, CartIcon, CloseIcon, WarningIcon } from "../components/CustomIcons";
-import { useTheme, Theme } from "../theme";
+import { useToast } from "../hooks/useToast";
+import { baseApi } from "../lib/api/baseApi";
+import { useGetCategoriesQuery } from "../lib/api/categoryApi";
+import { useGetProductsQuery } from "../lib/api/productApi";
+import { useGetCurrentShiftQuery } from "../lib/api/shiftApi";
+import { useGetTablesQuery } from "../lib/api/tableApi";
+import { logout } from "../lib/store/features/auth/slice";
+import { selectCartItems, selectCartSubtotal, selectCartTotalItems } from "../lib/store/features/cart/selectors";
+import { addItem, clearCart, removeItem, setCustomerInfo, updateQuantity } from "../lib/store/features/cart/slice";
+import { useAppDispatch, useAppSelector } from "../lib/store/hooks";
+import { Theme, useTheme } from "../theme";
 
 type Props = any;
 
@@ -51,62 +48,43 @@ const ProductCard: React.FC<ProductCardProps> = React.memo(({
   styles,
 }) => {
   const [imageError, setImageError] = useState(false);
-  const isOutOfStock = product.trackInventory && product.availableStock !== null && product.availableStock !== undefined && product.availableStock <= 0;
+  const isOutOfStock = product.availableStock !== null && product.availableStock !== undefined && product.availableStock <= 0;
+
+  console.log({ isOutOfStock })
+  console.log({ trackInventory: product.trackInventory, availableStock: product.availableStock, isOutOfStock })
 
   return (
     <TouchableOpacity
       style={[
-        styles.card, 
+        styles.card,
         quantity > 0 && styles.cardSelected,
         isOutOfStock && { opacity: 0.5, backgroundColor: "#f3f4f6" }
       ]}
-      onPress={() => !isOutOfStock && onAdd(product)}
+      onPress={() => isOutOfStock && onAdd(product)}
       accessibilityLabel={`Add ${product.name} to cart`}
       accessibilityRole="button"
       activeOpacity={isOutOfStock ? 1 : 0.8}
       disabled={isOutOfStock}
     >
       {/* Stock Badge */}
-      {product.trackInventory && product.availableStock !== null && product.availableStock !== undefined && (
-        <View style={[
-          { 
-            position: "absolute", 
-            top: 8, 
-            right: 8, 
-            paddingHorizontal: 8, 
-            paddingVertical: 4, 
-            borderRadius: 12,
-            zIndex: 10,
-            backgroundColor: isOutOfStock ? "#ef4444" : "#10b981",
-            minWidth: 50,
-            alignItems: "center"
-          }
-        ]}>
-          <Text style={{ color: "white", fontSize: 12, fontWeight: "600" }}>
-            {isOutOfStock ? "Habis" : `${product.availableStock}`}
-          </Text>
-        </View>
-      )}
-
-      {/* Out of Stock Overlay */}
-      {isOutOfStock && (
-        <View style={{
+      <View style={[
+        {
           position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: "rgba(0, 0, 0, 0.3)",
-          borderRadius: 8,
-          zIndex: 5,
-          justifyContent: "center",
+          top: 8,
+          right: 8,
+          paddingHorizontal: 8,
+          paddingVertical: 4,
+          borderRadius: 12,
+          zIndex: 10,
+          backgroundColor: isOutOfStock ? "#ef4444" : "#10b981",
+          minWidth: 50,
           alignItems: "center"
-        }}>
-          <Text style={{ color: "white", fontSize: 14, fontWeight: "700", textAlign: "center" }}>
-            STOK HABIS
-          </Text>
-        </View>
-      )}
+        }
+      ]}>
+        <Text style={{ color: "white", fontSize: 12, fontWeight: "600" }}>
+          {!isOutOfStock ? "Habis" : `${product.availableStock}`}
+        </Text>
+      </View>
 
       {/* Product Image */}
       <View style={styles.imageContainer}>
@@ -133,12 +111,12 @@ const ProductCard: React.FC<ProductCardProps> = React.memo(({
 
         <View style={styles.cardActions}>
           <View style={[
-            styles.addBtn, 
+            styles.addBtn,
             quantity > 0 && styles.addBtnSelected,
             isOutOfStock && { backgroundColor: "#d1d5db" }
           ]}>
             <Text style={[styles.addBtnText, quantity > 0 && styles.addBtnTextSelected, isOutOfStock && { color: "#6b7280" }]}>
-              {isOutOfStock ? "Stok Habis" : quantity > 0 ? "Added" : "Add to Cart"}
+              {!isOutOfStock ? "Stok Habis" : quantity > 0 ? "Added" : "Add to Cart"}
             </Text>
           </View>
         </View>
@@ -708,8 +686,9 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     paddingBottom: 80,
   },
   gridRow: {
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
     marginBottom: 12,
+    gap: 8,
   },
   // Memoized Product Card Styles
   card: {
@@ -719,7 +698,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderWidth: 2,
     borderColor: "transparent",
     overflow: "hidden",
-    marginHorizontal: 4,
     // Soft shadow
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
