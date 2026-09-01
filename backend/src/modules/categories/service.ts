@@ -6,7 +6,7 @@ export const getAllCategories = async (sellableOnly: boolean = false) => {
   const whereClause: any = { deletedAt: null };
   if (sellableOnly) {
     whereClause.isActive = true;
-    whereClause.products = {
+    whereClause.sellableProducts = {
       some: getSellableProductWhereClause(),
     };
   }

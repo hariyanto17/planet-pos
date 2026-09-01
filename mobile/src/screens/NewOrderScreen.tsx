@@ -210,6 +210,16 @@ export default function NewOrderScreen({ navigation }: Props) {
   }, [cartItems]);
 
   const handleAdd = useCallback((p: any) => {
+    // Prevent adding products with no stock
+    if (p.trackInventory && (p.availableStock === null || p.availableStock === undefined || p.availableStock <= 0)) {
+      showToast({
+        type: "warning",
+        title: "Stok Habis",
+        message: `Maaf, produk ${p.name} saat ini tidak tersedia.`,
+      });
+      return;
+    }
+
     const qtyInCart = getQuantityInCart(p.id);
     if (p.trackInventory && p.availableStock !== null && p.availableStock !== undefined) {
       if (qtyInCart >= p.availableStock) {
