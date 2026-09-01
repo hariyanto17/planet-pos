@@ -26,6 +26,8 @@ export async function resetUat() {
   }
 
   console.log("⚠️  Resetting UAT Data in Concession POS...");
+  
+  // Clean transaction data
   await prisma.payment.deleteMany();
   await prisma.orderTax.deleteMany();
   await prisma.orderPromotion.deleteMany();
@@ -34,6 +36,17 @@ export async function resetUat() {
   await prisma.order.deleteMany();
   await prisma.cashierShift.deleteMany();
   console.log("✓ Concession transaction data cleaned successfully.");
+
+  // Clean product and inventory data
+  await prisma.stockLedger.deleteMany();
+  await prisma.inventoryStock.deleteMany();
+  await prisma.recipeItem.deleteMany();
+  await prisma.recipe.deleteMany();
+  await prisma.sellableProduct.deleteMany();
+  await prisma.promotionItem.deleteMany();
+  await prisma.promotion.deleteMany();
+  await prisma.category.deleteMany();
+  console.log("✓ Product and inventory data cleaned successfully.");
 }
 
 export async function seedUat() {
