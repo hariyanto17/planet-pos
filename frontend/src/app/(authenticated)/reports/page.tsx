@@ -370,7 +370,7 @@ export default function ReportsPage() {
           {!isAnyLoading && (
             <div className="flex flex-wrap items-center justify-between text-[10px] text-text-muted font-bold uppercase tracking-widest border-t border-border/40 pt-4 mt-2 px-1">
               <span>Zona Waktu: {summaryData?.meta?.timezone || "UTC"}</span>
-              <span>Dibuat Pada: {new Date(summaryData?.meta?.generatedAt || "").toLocaleString()}</span>
+              <span>Dibuat Pada: {new Date(summaryData?.meta?.generatedAt || "").toLocaleString("id-ID", { hour12: false })}</span>
               <span>Mata Uang Dasar Laporan: {summaryData?.meta?.currency || "Rp"}</span>
             </div>
           )}

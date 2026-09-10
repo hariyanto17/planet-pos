@@ -95,7 +95,7 @@ export const OrderIntegrityTable: React.FC<OrderIntegrityProps> = ({ data, isLoa
                   {o.orderNumber}
                 </td>
                 <td className="px-6 py-4 text-[10px] text-text-muted font-medium">
-                  {new Date(o.createdAt).toLocaleTimeString()}
+                  {new Date(o.createdAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false })}
                 </td>
                 <td className="px-6 py-4 text-xs text-text-secondary font-bold">
                   {formatCurrency(o.grandTotal)}
@@ -129,7 +129,7 @@ export const OrderIntegrityTable: React.FC<OrderIntegrityProps> = ({ data, isLoa
                   {o.orderNumber}
                 </td>
                 <td className="px-6 py-4 text-[10px] text-text-muted font-medium">
-                  {new Date(o.createdAt).toLocaleTimeString()}
+                  {new Date(o.createdAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false })}
                 </td>
                 <td className="px-6 py-4 text-xs text-text-secondary font-bold">
                   {formatCurrency(o.grandTotal)}

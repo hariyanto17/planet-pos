@@ -85,7 +85,7 @@ export const SnapshotCard: React.FC<SnapshotCardProps> = ({
 
       {data && (
         <span className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest text-right mt-1">
-          Archived Closing Snapshot: {new Date(data.generatedAt).toLocaleString()}
+          Archived Closing Snapshot: {new Date(data.generatedAt).toLocaleString("id-ID", { hour12: false })}
         </span>
       )}
     </div>

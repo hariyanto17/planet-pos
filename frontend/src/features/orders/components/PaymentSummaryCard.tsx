@@ -77,9 +77,10 @@ export const PaymentSummaryCard: React.FC<PaymentSummaryCardProps> = ({ payments
               <span className="text-text-muted text-xs font-semibold">Confirmed At</span>
               <span className="text-text-primary font-medium">
                 {latestPayment.confirmedAt
-                  ? new Date(latestPayment.confirmedAt).toLocaleString(undefined, {
+                  ? new Date(latestPayment.confirmedAt).toLocaleString("id-ID", {
                       dateStyle: "medium",
                       timeStyle: "short",
+                      hour12: false,
                     })
                   : "N/A"}
               </span>

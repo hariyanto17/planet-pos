@@ -44,7 +44,7 @@ export const ShiftStatusCard: React.FC<ShiftStatusProps> = ({ data, isLoading })
         </h2>
         {isOpen && (
           <div className="flex flex-wrap gap-x-6 gap-y-2 mt-2 text-xs font-semibold text-text-secondary">
-            <span>Waktu Dibuka: <strong className="text-text-primary">{new Date(data.openedAt!).toLocaleString()}</strong></span>
+            <span>Waktu Dibuka: <strong className="text-text-primary">{new Date(data.openedAt!).toLocaleString("id-ID", { hour12: false })}</strong></span>
             <span>Saldo Awal: <strong className="text-text-primary">{formatCurrency(data.openingCash || 0)}</strong></span>
           </div>
         )}

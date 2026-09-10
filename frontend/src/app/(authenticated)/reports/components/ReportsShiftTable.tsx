@@ -97,10 +97,10 @@ export const ReportsShiftTable: React.FC<ReportsShiftTableProps> = ({
               <ShiftStatusBadge status={s.status} />
             </td>
             <td className="px-6 py-4 text-[10px] text-text-muted font-medium">
-              {new Date(s.openedAt).toLocaleTimeString()}
+              {new Date(s.openedAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false })}
             </td>
             <td className="px-6 py-4 text-[10px] text-text-muted font-medium">
-              {s.closedAt ? new Date(s.closedAt).toLocaleTimeString() : "-"}
+              {s.closedAt ? new Date(s.closedAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false }) : "-"}
             </td>
             <td className="px-6 py-4 text-xs text-text-primary font-mono">
               {formatCurrency(s.cashSales)}

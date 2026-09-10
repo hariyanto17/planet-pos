@@ -278,7 +278,7 @@ export default function OrderDetailScreen({ route, navigation }: Props) {
                 <Text style={styles.timelineDesc}>{log.description}</Text>
               </View>
               <Text style={styles.timelineTime}>
-                {new Date(log.createdAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+                {new Date(log.createdAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false })}
               </Text>
             </View>
           ))}
